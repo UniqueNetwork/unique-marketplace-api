@@ -91,6 +91,10 @@ export class KusamaEscrow extends Escrow {
     }
   }
 
+  getStartFromBlock(): number | string {
+    return this.config('kusama.startFromBlock');
+  }
+
   async processBlock(blockNum, force=false) {
     try {
       await this.scanBlock(blockNum, force);
