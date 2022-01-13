@@ -13,8 +13,8 @@
     "debug": "nest start --debug --watch",
     "prod": "node dist/main",
     "coverage": "jest --config tests/jest.config.json --coverage --detectOpenHandles",
-    "test": "jest  --config tests/jest.config.json --detectOpenHandles",
-    "test:watch": "jest --config tests/jest.config.json --watch --runInBand --detectOpenHandles",
+    "test": "jest  --detectOpenHandles",
+    "test:watch": "jest  --watch --runInBand --detectOpenHandles",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test2": "jest --config tests/jest.config.json --detectOpenHandles"
   },
@@ -61,21 +61,19 @@
       "json",
       "ts"
     ],
-    "presets": [
-      [
-        "@polkadot/util-crypto",
-        "@polkadot/util"
-      ]
-    ],
     "rootDir": "tests",
     "testRegex": ".*\\.test\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "watchman": true,
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
+    "verbose": true,
+    "resolver": "<rootDir>/resolver",
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testTimeout": 60000
   }
 }
