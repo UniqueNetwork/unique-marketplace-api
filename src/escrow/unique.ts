@@ -133,7 +133,7 @@ export class UniqueEscrow extends Escrow {
     const addressTo = normalizeAccountId(extrinsic.args.recipient);
     const collectionId = parseInt(extrinsic.args.collection_id);
     const tokenId = parseInt(extrinsic.args.item_id);
-    if(this.config('unique.collectionIds').indexOf(collectionId) === -1) return; // Collection not managed by market
+    if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     await this.service.registerTransfer(blockNum, {
       collectionId, tokenId, addressTo: this.address2string(addressTo), addressFrom: this.address2string(addressFrom)
     }, this.getNetwork());
@@ -151,17 +151,21 @@ export class UniqueEscrow extends Escrow {
     const tokenId = inputData.inputs[3].toNumber();
     if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     await this.service.registerAccountPair(addressFrom, this.address2string(addressFromEth));
-    await this.service.registerAsk(blockNum, {
-      collectionId, tokenId, addressTo: this.address2string(addressTo), addressFrom, price, currency
-    }, this.getNetwork());
-    logging.log(`Got ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum}`);
     // TODO: maybe we don't need this at all
     let isToMatcher = this.address2string(addressTo).toLocaleLowerCase() === this.config('unique.matcherContractAddress').toLocaleLowerCase();
     if(isToMatcher) {
-      await this.service.oldRegisterOffer({collectionId, tokenId, price: inputData.inputs[0], seller: addressFrom});
-      await this.service.oldAddSearchIndexes(await this.getSearchIndexes(collectionId, tokenId), {collectionId, tokenId});
-
+      logging.log(`Got ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum}`);
+      const tokenKeywords = await this.getSearchIndexes(collectionId, tokenId);
+      await this.service.registerAsk(blockNum, {
+        collectionId, tokenId, addressTo: this.address2string(addressTo), addressFrom, price, currency
+      }, this.getNetwork());
+      await this.service.addSearchIndexes(tokenKeywords, collectionId, tokenId, this.getNetwork());
       await this.addToAllowList(addressFrom);
+
+      // TODO: remove old staff
+      await this.service.oldRegisterOffer({collectionId, tokenId, price: inputData.inputs[0], seller: addressFrom});
+      await this.service.oldAddSearchIndexes(tokenKeywords, {collectionId, tokenId});
+
     }
   }
 
@@ -173,14 +177,22 @@ export class UniqueEscrow extends Escrow {
     const tokenId = inputData.inputs[1].toNumber();
     const buyer = normalizeAccountId(inputData.inputs[2]);
     // const receiver = normalizeAccountId(inputData.inputs[3]);
-    const existedOffer = await this.service.oldGetActiveOffer(collectionId, tokenId);
-    if(!existedOffer) return;
-    const origPrice = this.getPriceWithoutCommission(existedOffer.price);
+    const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
+
+    if(!activeAsk) return;
+    const origPrice = this.getPriceWithoutCommission(BigInt(activeAsk.price));
     const buyerEth = this.address2string(buyer);
-    const buyerAddress = await this.service.getSubstrateAddress(buyerEth);
-    await this.service.oldRegisterTrade(buyerAddress ? buyerAddress : buyerEth, existedOffer, origPrice);
-    await this.service.registerKusamaWithdraw(origPrice, existedOffer.seller, blockNum, this.config('kusama.network'));
-    logging.log(`Got buyKSM (collectionId: ${collectionId}, tokenId: ${tokenId}, buyer: ${buyerAddress}, price: ${existedOffer.price}, price without commission: ${origPrice}) in block #${blockNum}`);
+    const buyerSub = await this.service.getSubstrateAddress(buyerEth);
+    const buyerAddress = buyerSub ? buyerSub : buyerEth;
+
+    await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
+    await this.service.registerKusamaWithdraw(origPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
+
+    // TODO: remove old staff
+    const existedOffer = await this.service.oldGetActiveOffer(collectionId, tokenId);
+    await this.service.oldRegisterTrade(buyerAddress, existedOffer, origPrice);
+
+    logging.log(`Got buyKSM (collectionId: ${collectionId}, tokenId: ${tokenId}, buyer: ${buyerAddress}, price: ${activeAsk.price}, price without commission: ${origPrice}) in block #${blockNum}`);
   }
 
   async processCancelAsk(blockNum, extrinsic, inputData) {
@@ -188,10 +200,17 @@ export class UniqueEscrow extends Escrow {
     const collectionId = extractCollectionIdFromAddress(collectionEVMAddress);
     if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     const tokenId = inputData.inputs[1].toNumber();
-    const existedOffer = await this.service.oldGetActiveOffer(collectionId, tokenId);
-    await this.service.oldCancelOffers(collectionId, tokenId);
+    const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
     logging.log(`Got cancelAsk (collectionId: ${collectionId}, tokenId: ${tokenId}) in block #${blockNum}`);
-    if(!existedOffer) logging.log(`No active offer for token ${tokenId} from collection ${collectionId}, nothing to cancel`, logging.level.WARNING);
+    if(!activeAsk) {
+      logging.log(`No active offer for token ${tokenId} from collection ${collectionId}, nothing to cancel`, logging.level.WARNING);
+    }
+    else {
+      await this.service.cancelAsk(collectionId, tokenId, blockNum, this.getNetwork());
+    }
+
+    // TODO: remove old staff
+    await this.service.oldCancelOffers(collectionId, tokenId);
   }
 
   async processCall(blockNum, rawExtrinsic) {
