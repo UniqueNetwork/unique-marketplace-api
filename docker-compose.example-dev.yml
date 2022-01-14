@@ -1,39 +1,59 @@
 version: "3.5"
 
-services:
-  market-web:
-    build: .
-    image: market-web
-    hostname: market-web
-    container_name: market-web
-    environment:
-      POSTGRES_URL: 'postgres://marketplace:12345@marketplace-postgres:5432/marketplace_db'
-      API_PORT: '5000'
-      DISABLE_SECURITY: 'false'
-    ports:
-      - 5000:5000
-    networks:
-      - backend
-    links:
-      - marketplace-postgres
+x-marketplace: &marketplace-backend
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: marketplace-backend
+  restart: unless-stopped
+  environment:
+    POSTGRES_URL: 'postgres://marketplace:12345@marketplace-postgres:5432/marketplace_db'
+    API_PORT: '5000'
+    DISABLE_SECURITY: 'false'
+    ESCROW_SEED: '//Alice'
+    UNIQUE_WS_ENDPOINT: 'ws://localhost:9944'
+    UNIQUE_NETWORK: 'private_opal'
+    UNIQUE_START_FROM_BLOCK: 'current'
+    MATCHER_ETH_OWNER_SEED: 'Get by running "npm run playground deploy_contract"'
+    MATCHER_CONTRACT_ADDRESS: 'Get by running "npm run playground deploy_contract"'
+    UNIQUE_COLLECTION_IDS: '1, 2, 3'
+    KUSAMA_WS_ENDPOINT: 'wss://ws-relay-opal.unique.network'
+    KUSAMA_NETWORK: 'private_ksm'
+    KUSAMA_START_FROM_BLOCK: 'current'
+    COMMISSION_PERCENT: '10'
 
+services:
   marketplace-postgres:
-    image: postgres:13.4-alpine
+    image: postgres:14.1-alpine
     container_name: marketplace-postgres
-    hostname: marketplace-postgres
     environment:
-      POSTGRES_DB: marketplace_db
-      POSTGRES_USER: marketplace
-      POSTGRES_PASSWORD: 12345
-      POSTGRES_PORT: 5432
+      POSTGRES_DB: 'marketplace_db'
+      POSTGRES_USER: 'marketplace'
+      POSTGRES_PASSWORD: '12345'
+      POSTGRES_PORT: '5432'
       POSTGRES_INITDB_ARGS: "--auth-local=trust"
+    restart: unless-stopped
     ports:
       - 5432:5432
-    networks:
-      - backend
     volumes:
-      - ../postgresql/market:/var/lib/postgresql/data
+      - ../postgresql/marketplace:/var/lib/postgresql/data
       - /etc/localtime:/etc/localtime:ro
+
+  marketplace-web:
+    container_name: marketplace-web
+    ports:
+      - 5000:5000
+    <<: *marketplace-backend
+
+  marketplace-escrow-unique:
+    container_name: marketplace-escrow-unique
+    command: [ "npm", "run", "escrow:unique" ]
+    <<: *marketplace-backend
+
+  marketplace-escrow-kusama:
+    container_name: marketplace-escrow-kusama
+    command: [ "npm", "run", "escrow:kusama" ]
+    <<: *marketplace-backend
 
   postgres-test:
     image: postgres:13.4-alpine
@@ -47,10 +67,3 @@ services:
       POSTGRES_INITDB_ARGS: "--auth-local=trust"
     ports:
       - 6432:5432
-    networks:
-      - backend
-
-networks:
-  backend:
-    name: marketplace_api_backend
-    driver: bridge
