@@ -1,0 +1,9 @@
+{
+    "tabWidth": 4,
+    "useTabs": false,
+    "semi": true,
+    "arrowParens": "always",
+    "singleQuote": true,
+    "printWidth": 160,
+    "trailingComma": "all"
+}

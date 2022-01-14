@@ -1,12 +1,9 @@
 FROM node:16-alpine
-
-WORKDIR /src
-
-COPY ./package.json .
+RUN mkdir -p /var/www/api
+WORKDIR /var/www/api
+ADD . /var/www/api
 
 RUN npm install --production
-
-COPY . .
 
 RUN npm run build
 

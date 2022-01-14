@@ -1,0 +1,56 @@
+version: "3.5"
+
+services:
+  market-web:
+    build: .
+    image: market-web
+    hostname: market-web
+    container_name: market-web
+    environment:
+      POSTGRES_URL: 'postgres://marketplace:12345@marketplace-postgres:5432/marketplace_db'
+      API_PORT: '5000'
+      DISABLE_SECURITY: 'false'
+    ports:
+      - 5000:5000
+    networks:
+      - backend
+    links:
+      - marketplace-postgres
+
+  marketplace-postgres:
+    image: postgres:13.4-alpine
+    container_name: marketplace-postgres
+    hostname: marketplace-postgres
+    environment:
+      POSTGRES_DB: marketplace_db
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_PORT: 5432
+      POSTGRES_INITDB_ARGS: "--auth-local=trust"
+    ports:
+      - 5432:5432
+    networks:
+      - backend
+    volumes:
+      - ../postgresql/market:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+
+  postgres-test:
+    image: postgres:13.4-alpine
+    container_name: test-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres_db
+      POSTGRES_USER: postgresman
+      POSTGRES_PASSWORD: test12345
+      POSTGRES_PORT: 5432
+      POSTGRES_INITDB_ARGS: "--auth-local=trust"
+    ports:
+      - 6432:5432
+    networks:
+      - backend
+
+networks:
+  backend:
+    name: marketplace_api_backend
+    driver: bridge
