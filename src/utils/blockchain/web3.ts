@@ -11,8 +11,8 @@ const Web3 = Web3_ as any;
 import { signTransaction } from './unique';
 import { privateKey } from './util';
 
-const contractHelpersAbi = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'blockchain', 'contractHelpersAbi.json')).toString());
-const nonFungibleAbi = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'blockchain', 'nonFungibleAbi.json')).toString());
+const contractHelpersAbi = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..','..', 'blockchain', 'contractHelpersAbi.json')).toString());
+const nonFungibleAbi = JSON.parse(fs.readFileSync(path.join(__dirname, '..','..', '..', 'blockchain', 'nonFungibleAbi.json')).toString());
 
 
 const GAS_ARGS = {gas: 2500000};
