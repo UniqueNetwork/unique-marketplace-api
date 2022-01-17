@@ -1,7 +1,7 @@
 import * as path from 'path';
 export default {
   postgresUrl: process.env.POSTGRES_URL || 'postgres://marketplace:12345@marketplace-postgres:5432/marketplace_db',
-  testingPostgresUrl: 'postgres://test:test@test-postgres:5432/test',
+  testingPostgresUrl: 'postgres://postgresman:test12345@test-postgres:6432/postgres_db',
   listenPort : parseInt(process.env.API_PORT || '5000'),
   disableSecurity: process.env.DISABLE_SECURITY === 'true',
   rootDir: path.normalize(path.join(__dirname, '..')),
