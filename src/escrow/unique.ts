@@ -57,9 +57,16 @@ export class UniqueEscrow extends Escrow {
   }
 
   async addToAllowList(substrateAddress, data?: {matcher: any, helpers: any}) {
-    if(!data) data = this.getMatcher();
-    let ethAddress = lib.subToEth(substrateAddress);
+    let contractAddress = this.config('unique.matcherContractAddress');
+    let ethAddress = lib.subToEth(substrateAddress), toAdd = [];
     for(let address of [substrateAddress, ethAddress, evmToAddress(ethAddress, 42, 'blake2')]) {
+      let isAllowed = (await this.api.query.evmContractHelpers.allowlist(contractAddress, address)).toJSON();
+      if(!isAllowed) toAdd.push(address);
+    }
+    if(!toAdd.length) return;
+
+    if(!data) data = this.getMatcher();
+    for(let address of toAdd) {
       await data.helpers.methods.toggleAllowed(data.matcher.options.address, address, true).send({from: this.matcherOwner.address});
     }
   }
@@ -151,22 +158,21 @@ export class UniqueEscrow extends Escrow {
     const tokenId = inputData.inputs[3].toNumber();
     if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     await this.service.registerAccountPair(addressFrom, this.address2string(addressFromEth));
-    // TODO: maybe we don't need this at all
+
     let isToMatcher = this.address2string(addressTo).toLocaleLowerCase() === this.config('unique.matcherContractAddress').toLocaleLowerCase();
-    if(isToMatcher) {
-      logging.log(`Got ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum}`);
-      const tokenKeywords = await this.getSearchIndexes(collectionId, tokenId);
-      await this.service.registerAsk(blockNum, {
-        collectionId, tokenId, addressTo: this.address2string(addressTo), addressFrom, price, currency
-      }, this.getNetwork());
-      await this.service.addSearchIndexes(tokenKeywords, collectionId, tokenId, this.getNetwork());
-      await this.addToAllowList(addressFrom);
+    if(!isToMatcher) return;
+    logging.log(`Got ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum}`);
+    const tokenKeywords = await this.getSearchIndexes(collectionId, tokenId);
+    await this.service.registerAsk(blockNum, {
+      collectionId, tokenId, addressTo: this.address2string(addressTo), addressFrom, price, currency
+    }, this.getNetwork());
+    await this.service.addSearchIndexes(tokenKeywords, collectionId, tokenId, this.getNetwork());
+    await this.addToAllowList(addressFrom);
 
-      // TODO: remove old staff
-      await this.service.oldRegisterOffer({collectionId, tokenId, price: inputData.inputs[0], seller: addressFrom});
-      await this.service.oldAddSearchIndexes(tokenKeywords, {collectionId, tokenId});
+    // TODO: remove old staff
+    await this.service.oldRegisterOffer({collectionId, tokenId, price: inputData.inputs[0], seller: addressFrom});
+    await this.service.oldAddSearchIndexes(tokenKeywords, {collectionId, tokenId});
 
-    }
   }
 
   async processBuyKSM(blockNum, extrinsic, inputData) {

@@ -149,7 +149,7 @@ export class EscrowService {
     const alreadyExist = await repository.count({collection_id: collectionId.toString(), token_id: tokenId.toString(), network});
     if(alreadyExist > 0) return;
     await repository.insert(keywords.map(x => {
-      return {id: uuid(), collection_id: collectionId.toString(), token_id: tokenId.toString(), network, locale: x.locale, text: x.text}
+      return {id: uuid(), collection_id: collectionId.toString(), token_id: tokenId.toString(), network, locale: x.locale, value: x.text}
     }));
   }
 

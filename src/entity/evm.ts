@@ -137,7 +137,10 @@ export class SearchIndex {
   network: string;
 
   @Column("text", {name: "value"})
-  text: string;
+  value: string;
+
+  @Column("boolean", {name: "is_trait", default: "'f'"})
+  is_trait: boolean;
 
   @Column("text", {name: "locale", nullable: true})
   locale: string | null;
