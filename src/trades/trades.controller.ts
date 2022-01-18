@@ -1,5 +1,5 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, HttpStatus, Param, Query } from '@nestjs/common';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { queryArray } from '../utils/decorators/query-array.decorator';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
@@ -19,9 +19,10 @@ export class TradesController {
     @Get('/')
     @ApiQuery(queryArray('collectionId', 'integer'))
     @ApiOperation({
-        summary: 'Create a empty product',
+        summary: 'Get trades with sort and filters',
         description: fs.readFileSync('docs/trades.md').toString(),
     })
+    @ApiResponse({ type: MarketTradeDto, status: HttpStatus.OK })
     get(
         @Query() pagination: PaginationRequest,
         @Query() sort: TradeSortingRequest,
@@ -32,6 +33,11 @@ export class TradesController {
 
     @Get('/:seller')
     @ApiQuery(queryArray('collectionId', 'integer'))
+    @ApiOperation({
+        summary: 'Get trades with sort, filters and seller',
+        description: fs.readFileSync('docs/trades.md').toString(),
+    })
+    @ApiResponse({ type: MarketTradeDto, status: HttpStatus.OK })
     getBySeller(
         @Param('seller') seller: string,
         @Query() sort: TradeSortingRequest,

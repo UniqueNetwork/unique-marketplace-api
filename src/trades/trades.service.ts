@@ -141,7 +141,7 @@ export class TradesService {
             return query;
         }
 
-        return query.andWhere('contract_ask.Seller = :seller', { seller: seller });
+        return query.andWhere('trade.address_seller = :seller', { seller: seller });
     }
 
     /**
