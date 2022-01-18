@@ -60,8 +60,10 @@ export class KusamaEscrow extends Escrow {
     if([kusamaBlockMethods.METHOD_TRANSFER_KEEP_ALIVE].indexOf(method) > -1) method = kusamaBlockMethods.METHOD_TRANSFER;
     let toAddress = rawExtrinsic.method.args[0].toString();
     if(method !== kusamaBlockMethods.METHOD_TRANSFER || toAddress !== this.adminAddress) return;
+
     const amount = rawExtrinsic.method.args[1].toString();
     const address = encodeAddress(decodeAddress(rawExtrinsic.signer.toString()));
+    
     if (!isSuccess) {
       logging.log(`Kusama deposit (from ${address}, amount ${amount}) in block #${blockNum} failed`);
       return;
