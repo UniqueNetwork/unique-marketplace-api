@@ -14,6 +14,7 @@
     "prod": "node dist/main",
     "coverage": "jest --config tests/jest.config.json --coverage --detectOpenHandles",
     "test": "jest --config tests/jest.config.json --detectOpenHandles",
+    "test:watch": "jest --config tests/jest.config.json --watch --detectOpenHandles",
     "escrow:kusama": "node dist/cli.js start_escrow kusama",
     "escrow:unique": "node dist/cli.js start_escrow unique",
     "playground": "npx nestjs-command playground"
