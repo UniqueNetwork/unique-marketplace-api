@@ -1,7 +1,10 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 import {ApiPromise, Keyring} from '@polkadot/api';
 import { IKeyringPair } from '@polkadot/types/types';
 
-import { signTransaction, transactionStatus } from './unique';
+import { signTransaction, transactionStatus } from './polka';
 import * as tokenUtil from './token'
 
 
@@ -175,7 +178,12 @@ const extractCollectionIdFromAddress = (address: string): number => {
   return parseInt(address.substr(address.length - 8), 16);
 }
 
+const blockchainStaticFile = (filename: string): string => {
+  return fs.readFileSync(path.join(__dirname, '..', '..','..', 'blockchain', filename)).toString();
+}
+
 
 export {
-  vec2str, str2vec, UniqueExplorer, normalizeAccountId, privateKey, extractCollectionIdFromAddress
+  vec2str, str2vec, UniqueExplorer, normalizeAccountId, privateKey, extractCollectionIdFromAddress,
+  blockchainStaticFile
 }

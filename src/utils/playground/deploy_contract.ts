@@ -1,6 +1,4 @@
 import { evmToAddress } from '@polkadot/util-crypto';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import * as unique from '../blockchain/unique';
 import * as lib from '../blockchain/web3';
@@ -58,10 +56,10 @@ export const main = async(moduleRef) => {
   const account = web3.eth.accounts.privateKeyToAccount(config.blockchain.unique.matcherOwnerSeed);
   web3.eth.accounts.wallet.add(account.privateKey);
 
-  const matcherContract = new web3.eth.Contract(JSON.parse(fs.readFileSync(path.join(config.rootDir, 'blockchain', 'MarketPlace.abi')).toString()), undefined, {
+  const matcherContract = new web3.eth.Contract(JSON.parse(util.blockchainStaticFile('MarketPlace.abi')), undefined, {
     from: account.address, ...lib.GAS_ARGS,
   });
-  const matcher = await matcherContract.deploy({data: fs.readFileSync(path.join(config.rootDir, 'blockchain', 'MarketPlace.bin')).toString(), arguments: [account.address]}).send({from: account.address, gas: 10000000});
+  const matcher = await matcherContract.deploy({data: util.blockchainStaticFile('MarketPlace.bin'), arguments: [account.address]}).send({from: account.address, gas: 10000000});
   const helpers = lib.contractHelpers(web3, account.address);
   await helpers.methods.toggleSponsoring(matcher.options.address, true).send({from: account.address});
   await helpers.methods.setSponsoringRateLimit(matcher.options.address, 1).send({from: account.address});

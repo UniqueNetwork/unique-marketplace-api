@@ -1,10 +1,7 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { evmToAddress } from '@polkadot/util-crypto';
 
 import { Escrow } from './base';
 import * as logging from '../utils/logging';
-import { normalizeAccountId, extractCollectionIdFromAddress, UniqueExplorer } from '../utils/blockchain/util';
 import * as lib from '../utils/blockchain/web3';
 import * as unique from '../utils/blockchain/unique';
 import * as util from '../utils/blockchain/util';
@@ -36,13 +33,13 @@ export class UniqueEscrow extends Escrow {
     await this.connectApi();
     const InputDataDecoder = require('ethereum-input-data-decoder');
     this.inputDecoder = new InputDataDecoder(this.getAbi());
-    this.explorer = new UniqueExplorer(this.api, this.admin);
+    this.explorer = new util.UniqueExplorer(this.api, this.admin);
     this.web3 = lib.connectWeb3(this.config('unique.wsEndpoint')).web3;
     this.matcherOwner = this.web3.eth.accounts.privateKeyToAccount(this.config('unique.matcherOwnerSeed'));
   }
 
   getAbi() {
-    return JSON.parse(fs.readFileSync(path.join(this.configObj.rootDir, 'blockchain', 'MarketPlace.abi')).toString());
+    return JSON.parse(util.blockchainStaticFile('MarketPlace.abi'));
   }
 
   getMatcher() {
@@ -136,8 +133,8 @@ export class UniqueEscrow extends Escrow {
 
   async processTransfer(blockNum, rawExtrinsic) {
     const extrinsic = rawExtrinsic.toHuman().method;
-    const addressFrom = normalizeAccountId(rawExtrinsic.signer.toString());
-    const addressTo = normalizeAccountId(extrinsic.args.recipient);
+    const addressFrom = util.normalizeAccountId(rawExtrinsic.signer.toString());
+    const addressTo = util.normalizeAccountId(extrinsic.args.recipient);
     const collectionId = parseInt(extrinsic.args.collection_id);
     const tokenId = parseInt(extrinsic.args.item_id);
     if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
@@ -148,13 +145,13 @@ export class UniqueEscrow extends Escrow {
   }
 
   async processAddAsk(blockNum, extrinsic, inputData, signer) {
-    const addressTo = normalizeAccountId(extrinsic.args.target);
+    const addressTo = util.normalizeAccountId(extrinsic.args.target);
     const addressFrom = signer.toString(); // signer is substrate address of args.source
-    const addressFromEth = normalizeAccountId(extrinsic.args.source);
+    const addressFromEth = util.normalizeAccountId(extrinsic.args.source);
     const price = inputData.inputs[0].toString();
     const currency = inputData.inputs[1];
     const collectionEVMAddress = inputData.inputs[2];
-    const collectionId = extractCollectionIdFromAddress(collectionEVMAddress);
+    const collectionId = util.extractCollectionIdFromAddress(collectionEVMAddress);
     const tokenId = inputData.inputs[3].toNumber();
     if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     await this.service.registerAccountPair(addressFrom, this.address2string(addressFromEth));
@@ -176,13 +173,13 @@ export class UniqueEscrow extends Escrow {
   }
 
   async processBuyKSM(blockNum, extrinsic, inputData) {
-    // const addressTo = normalizeAccountId(extrinsic.args.target);
-    // const addressFrom = normalizeAccountId(extrinsic.args.source);
+    // const addressTo = util.normalizeAccountId(extrinsic.args.target);
+    // const addressFrom = util.normalizeAccountId(extrinsic.args.source);
     const collectionEVMAddress = inputData.inputs[0];
-    const collectionId = extractCollectionIdFromAddress(collectionEVMAddress);
+    const collectionId = util.extractCollectionIdFromAddress(collectionEVMAddress);
     const tokenId = inputData.inputs[1].toNumber();
-    const buyer = normalizeAccountId(inputData.inputs[2]);
-    // const receiver = normalizeAccountId(inputData.inputs[3]);
+    const buyer = util.normalizeAccountId(inputData.inputs[2]);
+    // const receiver = util.normalizeAccountId(inputData.inputs[3]);
     const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
 
     if(!activeAsk) return;
@@ -203,7 +200,7 @@ export class UniqueEscrow extends Escrow {
 
   async processCancelAsk(blockNum, extrinsic, inputData) {
     const collectionEVMAddress = inputData.inputs[0];
-    const collectionId = extractCollectionIdFromAddress(collectionEVMAddress);
+    const collectionId = util.extractCollectionIdFromAddress(collectionEVMAddress);
     if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     const tokenId = inputData.inputs[1].toNumber();
     const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
@@ -239,7 +236,7 @@ export class UniqueEscrow extends Escrow {
     const inputData = this.inputDecoder.decodeData(extrinsic.args.transaction.input);
     if(inputData.method === 'depositKSM') {
       const amount = inputData.inputs[0].toString();
-      const sender = normalizeAccountId(inputData.inputs[1]);
+      const sender = util.normalizeAccountId(inputData.inputs[1]);
       logging.log(`Got depositKSM (Sender: ${this.address2string(sender)}, amount: ${amount}) in block #${blockNum}`);
     }
   }

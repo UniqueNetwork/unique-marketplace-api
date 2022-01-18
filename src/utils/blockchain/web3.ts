@@ -1,6 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
-
 import { ApiPromise } from '@polkadot/api';
 import { addressToEvm, evmToAddress } from '@polkadot/util-crypto';
 
@@ -8,11 +5,11 @@ import { addressToEvm, evmToAddress } from '@polkadot/util-crypto';
 import * as Web3_ from 'web3';
 const Web3 = Web3_ as any;
 
-import { signTransaction } from './unique';
-import { privateKey } from './util';
+import { signTransaction } from './polka';
+import { privateKey, blockchainStaticFile } from './util';
 
-const contractHelpersAbi = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..','..', 'blockchain', 'contractHelpersAbi.json')).toString());
-const nonFungibleAbi = JSON.parse(fs.readFileSync(path.join(__dirname, '..','..', '..', 'blockchain', 'nonFungibleAbi.json')).toString());
+const contractHelpersAbi = JSON.parse(blockchainStaticFile('contractHelpersAbi.json'));
+const nonFungibleAbi = JSON.parse(blockchainStaticFile('nonFungibleAbi.json'));
 
 
 const GAS_ARGS = {gas: 2500000};
