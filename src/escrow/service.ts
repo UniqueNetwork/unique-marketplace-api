@@ -1,10 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Connection } from 'typeorm';
 import { v4 as uuid } from 'uuid';
-import { decodeAddress } from "@polkadot/util-crypto";
 
-import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex } from '../entity/evm';
-import { Offer, Trade, TokenTextSearch } from '../entity';
+import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex } from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 
 
@@ -150,44 +148,6 @@ export class EscrowService {
     if(alreadyExist > 0) return;
     await repository.insert(keywords.map(x => {
       return {id: uuid(), collection_id: collectionId.toString(), token_id: tokenId.toString(), network, locale: x.locale, value: x.text}
-    }));
-  }
-
-  async oldGetActiveOffer(collectionId: number, tokenId: number) {
-    const repository = this.db.getRepository(Offer);
-    return await repository.findOne({
-      collectionId: collectionId.toString(), tokenId: tokenId.toString(), offerStatus: oldOfferStatus.ACTIVE
-    });
-  }
-
-  async oldCancelOffers(collectionId: number, tokenId: number) {
-    const repository = this.db.getRepository(Offer);
-    await repository.update({collectionId: collectionId.toString(), tokenId: tokenId.toString(), offerStatus: oldOfferStatus.ACTIVE}, {offerStatus: oldOfferStatus.CANCELED});
-  }
-
-  async oldRegisterOffer(data: {collectionId: number, tokenId: number, seller: string, price: bigint}) {
-    await this.oldCancelOffers(data.collectionId, data.tokenId);
-
-    const repository = this.db.getRepository(Offer);
-    await repository.insert({
-      id: uuid(), creationDate: new Date(), collectionId: data.collectionId.toString(), tokenId: data.tokenId.toString(),
-      price: data.price, sellerPublicKeyBytes: decodeAddress(data.seller), metadata: {}, seller: data.seller, offerStatus: oldOfferStatus.ACTIVE, quoteId: "2"
-    });
-  }
-
-  async oldRegisterTrade(buyer, offer: Offer, price: bigint) {
-    const repository = this.db.getRepository(Trade);
-
-    await repository.insert({id: uuid(), tradeDate: new Date(), buyer, offerId: offer.id, price});
-    await this.db.getRepository(Offer).update({id: offer.id}, {offerStatus: oldOfferStatus.TRADED});
-  }
-
-  async oldAddSearchIndexes(keywords, data: {collectionId: number, tokenId: number}) {
-    const repository = this.db.getRepository(TokenTextSearch);
-    const alreadyExist = await repository.count({collectionId: data.collectionId.toString(), tokenId: data.tokenId.toString()})
-    if(alreadyExist > 0) return;
-    await repository.insert(keywords.map(x => {
-      return {id: uuid(), collectionId: data.collectionId.toString(), tokenId: data.tokenId.toString(), locale: x.locale, text: x.text}
     }));
   }
 }

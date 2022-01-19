@@ -3,7 +3,7 @@ import { Controller, Get, HttpStatus, Query } from '@nestjs/common';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResult } from '../utils/pagination/pagination-result';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
-import { OfferContractAskDto, OfferDto } from './dto/offer-dto';
+import { OfferContractAskDto } from './dto/offer-dto';
 import { OffersFilter } from './dto/offers-filter';
 import { ParseOffersFilterPipe } from './pipes/offers-filter.pipe';
 import { OffersService } from './offers.service';

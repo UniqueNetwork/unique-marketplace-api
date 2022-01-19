@@ -51,36 +51,6 @@ export const runMigrations = async (config) => {
     await connection.close();
 };
 
-export const genOffer = (
-    id,
-    {
-        creationDate = null,
-        collectionId = 1,
-        tokenId = 1,
-        price = '0000000000000000000000000000100000000000',
-        seller = 'jq8EFRaHc2Mmyf6hfiX8UodhNpPJEpCcsiaqR5Tyakg=',
-        sellerPublicKeyBytes = "E'\\\\x8EAF04151687736326C9FEA17E25FC5287613693C912909CB226AA4794F26A48'",
-        offerStatus = 1,
-        quoteId = 2,
-        metadata = null,
-    },
-) => {
-    if (metadata === null) metadata = { gender: '0', traits: ['2', '6', '10', '13', '17'] };
-    if (creationDate === null) creationDate = new Date().toISOString().split('T').join(' ').split('Z')[0];
-    return {
-        id,
-        creationDate,
-        collectionId,
-        tokenId,
-        price,
-        seller,
-        offerStatus,
-        sellerPublicKeyBytes,
-        quoteId,
-        metadata,
-    };
-};
-
 /**
  * Converts sort: OfferSortingRequest to url string
  * @param {OfferSortingRequest} sortFilter

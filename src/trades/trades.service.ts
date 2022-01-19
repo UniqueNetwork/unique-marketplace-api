@@ -1,8 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 
-import { Trade } from '../entity';
-
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResult } from '../utils/pagination/pagination-result';
@@ -10,8 +8,8 @@ import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
 import { paginate } from '../utils/pagination/paginate';
-import { MarketTradeDto, TradeDto } from './dto/trade-dto';
-import { MarketTrade } from '../entity/evm';
+import { MarketTradeDto } from './dto/trade-dto';
+import { MarketTrade } from '../entity';
 import { IMarketTrade } from './interfaces/trade.interface';
 
 @Injectable()
@@ -142,27 +140,5 @@ export class TradesService {
         }
 
         return query.andWhere('trade.address_seller = :seller', { seller: seller });
-    }
-
-    /**
-     * Conversion of data from Trade  to JSON
-     * @deprecated
-     * Use this.serializeTradeToDto, used in the old method
-     * @param {Trade} trade
-     * @private
-     * @return ({TradeDto})
-     */
-    private mapToDto(trade: Trade): TradeDto {
-        return {
-            buyer: trade.buyer,
-            seller: trade.offer.seller,
-            collectionId: +trade.offer.collectionId,
-            creationDate: trade.offer.creationDate,
-            metadata: trade.offer.metadata,
-            price: trade.price?.toString(),
-            quoteId: +trade.offer.quoteId,
-            tokenId: +trade.offer.tokenId,
-            tradeDate: trade.tradeDate,
-        };
     }
 }

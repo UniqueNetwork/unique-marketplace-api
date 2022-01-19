@@ -1,15 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class OfferDto {
-    collectionId: number;
-    tokenId: number;
-    price: string;
-    quoteId: number;
-    seller: string;
-    metadata: object | null;
-    creationDate: Date;
-}
-
 export class OfferContractAskDto {
     @ApiProperty({})
     collectionId: number;

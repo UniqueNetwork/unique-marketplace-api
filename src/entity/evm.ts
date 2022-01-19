@@ -1,4 +1,4 @@
-import { Column, Entity, Index, ManyToOne, OneToOne } from 'typeorm';
+import { Column, Entity, Index, OneToOne } from 'typeorm';
 
 @Index('PK_blockchain_block', ['block_number', 'network'], { unique: true })
 @Entity('blockchain_block', { schema: 'public' })

@@ -1,6 +1,7 @@
-import { TableColumn, MigrationInterface, QueryRunner, Table } from 'typeorm';
-
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 import { encodeAddress } from '@polkadot/util-crypto';
+
+import { createSchema, dropSchema } from './initial_20211106';
 
 
 export class MoveToEvm_20211220000000 implements MigrationInterface {
@@ -331,12 +332,10 @@ export class MoveToEvm_20211220000000 implements MigrationInterface {
       await queryRunner.manager.createQueryBuilder().insert().into("market_trade").values(newTrade).execute();
     }
 
-    await queryRunner.addColumn("Trade", new TableColumn({name: "price", type: "bigint", default: "0"}));
+    await dropSchema(queryRunner)
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropColumn("Trade", "price");
-
     await queryRunner.dropIndex("search_index", "IX_search_index_collection_id_token_id_locale");
     await queryRunner.dropTable("search_index")
 
@@ -356,6 +355,8 @@ export class MoveToEvm_20211220000000 implements MigrationInterface {
 
     await queryRunner.dropTable("blockchain_block");
     await queryRunner.dropTable("account_pairs");
+
+    await createSchema(queryRunner);
   }
 
 }

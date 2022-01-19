@@ -165,11 +165,6 @@ export class UniqueEscrow extends Escrow {
     }, this.getNetwork());
     await this.service.addSearchIndexes(tokenKeywords, collectionId, tokenId, this.getNetwork());
     await this.addToAllowList(addressFrom);
-
-    // TODO: remove old staff
-    await this.service.oldRegisterOffer({collectionId, tokenId, price: inputData.inputs[0], seller: addressFrom});
-    await this.service.oldAddSearchIndexes(tokenKeywords, {collectionId, tokenId});
-
   }
 
   async processBuyKSM(blockNum, extrinsic, inputData) {
@@ -191,10 +186,6 @@ export class UniqueEscrow extends Escrow {
     await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
     await this.service.registerKusamaWithdraw(origPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
 
-    // TODO: remove old staff
-    const existedOffer = await this.service.oldGetActiveOffer(collectionId, tokenId);
-    await this.service.oldRegisterTrade(buyerAddress, existedOffer, origPrice);
-
     logging.log(`Got buyKSM (collectionId: ${collectionId}, tokenId: ${tokenId}, buyer: ${buyerAddress}, price: ${activeAsk.price}, price without commission: ${origPrice}) in block #${blockNum}`);
   }
 
@@ -211,9 +202,6 @@ export class UniqueEscrow extends Escrow {
     else {
       await this.service.cancelAsk(collectionId, tokenId, blockNum, this.getNetwork());
     }
-
-    // TODO: remove old staff
-    await this.service.oldCancelOffers(collectionId, tokenId);
   }
 
   async processCall(blockNum, rawExtrinsic) {

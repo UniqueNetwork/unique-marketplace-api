@@ -7,7 +7,7 @@ import { PaginationResult } from '../utils/pagination/pagination-result';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
 import { parseCollectionIdRequest } from '../utils/parsers/parse-collection-id-request';
 import { QueryParamArray } from '../utils/query-param-array';
-import { MarketTradeDto, TradeDto } from './dto/trade-dto';
+import { MarketTradeDto } from './dto/trade-dto';
 import { TradesService } from './trades.service';
 import * as fs from 'fs';
 
