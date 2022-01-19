@@ -9,7 +9,7 @@ import { ProjectNamingStrategy } from '../../src/database/naming_strategy';
 import { ignoreQueryCase, useGlobalPipes } from '../../src/utils/application';
 import { OfferSortingRequest } from '../../src/utils/sorting/sorting-request';
 import { PaginationRequest } from '../../src/utils/pagination/pagination-request';
-import { OffersFilter } from '../../src/offers/offers-filter';
+import { OffersFilter } from '../../src/offers/dto/offers-filter';
 import * as request from 'supertest';
 
 const testConfigFactory = (extra?) => () => {

@@ -28,16 +28,17 @@ describe('Offers service', () => {
             { searchText: 'Not exists trait', collectionId: [], traitsCount: [] },
             { sort: [{ order: 1, column: '' }] },
         );
-
+        //console.log(response.body);
         await expect(response.statusCode).toBe(200);
         await expect(response.body.items.length).toBe(0);
     });
 
     // All tokens has that trait
     it('/offers (GET, All tokens has that trait)', async () => {
-        let response = await searchByFilterOffers(app, {}, { searchText: 'Smile', collectionId: [], traitsCount: [] }, { sort: [{ order: 1, column: '' }] });
-        await expect(response.body.items.length).toBe(3);
-        await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([12, 42, 120]);
+        let response = await searchByFilterOffers(app, {}, { searchText: 'Female', collectionId: [], traitsCount: [] }, { sort: [{ order: 1, column: '' }] });
+        await expect(response.body.items.length).toBe(1);
+
+        await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([5817]);
     });
 
     // Trait for several tokens
@@ -45,11 +46,11 @@ describe('Offers service', () => {
         let response = await searchByFilterOffers(
             app,
             {},
-            { searchText: 'Left Earring', collectionId: [], traitsCount: [] },
+            { searchText: 'Black Earrings', collectionId: [], traitsCount: [] },
             { sort: [{ order: 1, column: '' }] },
         );
-        await expect(response.body.items.length).toBe(2);
-        await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([12, 42]);
+        await expect(response.body.items.length).toBe(1);
+        await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([4017]);
     });
 
     // Only one token has that trait
@@ -63,28 +64,33 @@ describe('Offers service', () => {
         );
         await expect(response.statusCode).toBe(200);
         await expect(response.body.items.length).toBe(1);
-        await expect(response.body.items[0].tokenId).toBe(42);
+        await expect(response.body.items[0].tokenId).toBe(5817);
     });
 
     // Search by tokenId (120 contains 12)
-    it('/offers (GET, Search by tokenId (12 contains 120))', async () => {
-        let response = await searchByFilterOffers(app, {}, { searchText: '12', collectionId: [], traitsCount: [] }, { sort: [{ order: 1, column: '' }] });
+    it('/offers (GET, Search by tokenId (5817))', async () => {
+        let response = await searchByFilterOffers(app, {}, { searchText: '5817', collectionId: [], traitsCount: [] }, { sort: [{ order: 1, column: '' }] });
         await expect(response.statusCode).toBe(200);
-        await expect(response.body.items.length).toBe(2);
-        await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([12, 120]);
+        await expect(response.body.items.length).toBe(1);
+
+        await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([5817]);
     });
 
     // Search by unique tokenId
     it('/offers (GET, Search by unique tokenId)', async () => {
-        let response = await searchByFilterOffers(app, {}, { searchText: '42', collectionId: [], traitsCount: [] }, { sort: [{ order: 1, column: '' }] });
+        let response = await searchByFilterOffers(
+            app,
+            {},
+            { searchText: '3-day Stubble Black', collectionId: [], traitsCount: [] },
+            { sort: [{ order: 1, column: '' }] },
+        );
         await expect(response.statusCode).toBe(200);
-        await expect(response.body.items.length).toBe(1);
-        await expect(response.body.items[0].tokenId).toBe(42);
+        await expect(response.body.items.length).toBe(0);
     });
 
     // Search by not exists tokenId
     it('/offers (GET, Search by not exists tokenId)', async () => {
-        let response = await searchByFilterOffers(app, {}, { searchText: '122', collectionId: [], traitsCount: [] }, { sort: [{ order: 1, column: '' }] });
+        let response = await searchByFilterOffers(app, {}, { searchText: '3221', collectionId: [], traitsCount: [] }, { sort: [{ order: 1, column: '' }] });
         await expect(response.statusCode).toBe(200);
         await expect(response.body.items.length).toBe(0);
     });

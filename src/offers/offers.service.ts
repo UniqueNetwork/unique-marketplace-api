@@ -9,133 +9,151 @@ import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 
-import { OfferDto } from './offer-dto';
-import { OffersFilter } from './offers-filter';
+import { OfferContractAskDto, OfferDto } from './dto/offer-dto';
+import { OffersFilter } from './dto/offers-filter';
 import { Offer, TokenTextSearch } from '../entity';
 import { priceTransformer } from '../utils/price-transformer';
+import { BlockchainBlock, ContractAsk, SearchIndex } from '../entity/evm';
 
 @Injectable()
 export class OffersService {
-  private sortingColumns = ['Price', 'TokenId', 'CreationDate'];
+    private sortingColumns = ['Price', 'TokenId', 'CreationDate'];
 
-  constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {
-  }
+    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {}
 
-  applySort(query: SelectQueryBuilder<Offer>, sort: OfferSortingRequest): SelectQueryBuilder<Offer> {
-    const params = (sort.sort ?? [])
-      .map(s => (
-        {
-          ...s,
-          column: this.sortingColumns.find(allowedColumn => equalsIgnoreCase(s.column, allowedColumn))
-        }))
-      .filter(s => s.column != null);
-    if(params.length <= 0) {
-      return query;
+    /**
+     * Get Offers
+     * @param pagination
+     * @param offersFilter
+     * @param sort
+     */
+    async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResult<OfferContractAskDto>> {
+        let offers = this.connection.manager
+            .createQueryBuilder(ContractAsk, 'offer')
+            .leftJoinAndMapOne('offer.blockchain', BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask');
+
+        offers = this.filter(offers, offersFilter);
+        offers = this.applySort(offers, sort);
+        const paginationResult = await paginate(offers, pagination);
+        //console.dir(paginationResult, { depth: 4 });
+        return {
+            ...paginationResult,
+            items: paginationResult.items.map(this.serializeOffersToDto),
+        };
     }
 
-    query = query.orderBy(`offer.${params[0].column}`, params[0].order === SortingOrder.Asc ? 'ASC' : 'DESC');
-    for(let i = 1; i < params.length; i++) {
-      query = query.addOrderBy(`offer.${params[i].column}`, params[i].order === SortingOrder.Asc ? 'ASC' : 'DESC');
+    private serializeOffersToDto(offer: ContractAsk): OfferContractAskDto {
+        return {
+            collectionId: +offer.collection_id,
+            tokenId: +offer.token_id,
+            price: offer.price.toString(),
+            quoteId: +offer.currency,
+            seller: offer.address_from,
+            creationDate: offer.blockchain.created_at,
+        };
     }
 
-    return query;
-  }
+    private applySort(query: SelectQueryBuilder<ContractAsk>, sort: OfferSortingRequest): SelectQueryBuilder<ContractAsk> {
+        const params = (sort.sort ?? [])
+            .map((s) => ({
+                ...s,
+                column: this.sortingColumns.find((allowedColumn) => equalsIgnoreCase(s.column, allowedColumn)),
+            }))
+            .filter((s) => s.column != null);
+        if (params.length <= 0) {
+            return query;
+        }
 
-  filterByCollectionId(query: SelectQueryBuilder<Offer>, collectionIds?: number[]): SelectQueryBuilder<Offer> {
-    if((collectionIds ?? []).length <= 0) {
-      return query;
+        query = query.orderBy(`offer.${params[0].column}`, params[0].order === SortingOrder.Asc ? 'ASC' : 'DESC');
+        for (let i = 1; i < params.length; i++) {
+            query = query.addOrderBy(`offer.${params[i].column}`, params[i].order === SortingOrder.Asc ? 'ASC' : 'DESC');
+        }
+
+        return query;
     }
 
-    return query.andWhere('offer.CollectionId in (:...collectionIds)', {collectionIds: collectionIds})
-  }
+    private filterByCollectionId(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[]): SelectQueryBuilder<ContractAsk> {
+        if ((collectionIds ?? []).length <= 0) {
+            return query;
+        }
 
-  filterByMaxPrice(query: SelectQueryBuilder<Offer>, maxPrice?: BigInt): SelectQueryBuilder<Offer> {
-    if(maxPrice == null) {
-      return query;
+        return query.andWhere('offer.collection_id in (:...collectionIds)', { collectionIds });
     }
 
-    return query.andWhere('offer.Price <= :maxPrice', {maxPrice: priceTransformer.to(maxPrice)});
-  }
+    private filterByMaxPrice(query: SelectQueryBuilder<ContractAsk>, maxPrice?: BigInt): SelectQueryBuilder<ContractAsk> {
+        if (maxPrice == null) {
+            return query;
+        }
 
-  filterByMinPrice(query: SelectQueryBuilder<Offer>, minPrice?: BigInt): SelectQueryBuilder<Offer> {
-    if(minPrice == null) {
-      return query;
+        return query.andWhere('offer.price <= :maxPrice', { maxPrice: priceTransformer.to(maxPrice) });
     }
 
-    return query.andWhere('offer.Price >= :minPrice', {minPrice: priceTransformer.to(minPrice)});
-  }
+    private filterByMinPrice(query: SelectQueryBuilder<ContractAsk>, minPrice?: BigInt): SelectQueryBuilder<ContractAsk> {
+        if (minPrice == null) {
+            return query;
+        }
 
-  filterBySearchText(query: SelectQueryBuilder<Offer>, text?: string, locale?: string): SelectQueryBuilder<Offer> {
-    if(nullOrWhitespace(text)) {
-      return query;
+        return query.andWhere('offer.price >= :minPrice', { minPrice: priceTransformer.to(minPrice) });
     }
 
-    let matchedText = this.connection.createQueryBuilder(TokenTextSearch, 'tokenTextSearch')
-      .andWhere(`tokenTextSearch.Text ilike CONCAT('%', cast(:searchText as text), '%')`, { searchText: text });
-    if(!nullOrWhitespace(locale)) {
-      matchedText = matchedText.andWhere('(tokenTextSearch.Locale is null OR tokenTextSearch.Locale = :locale)', { locale: locale});
+    private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string): SelectQueryBuilder<ContractAsk> {
+        if (nullOrWhitespace(text)) {
+            return query;
+        }
+
+        let matchedText = this.connection
+            .createQueryBuilder(SearchIndex, 'searchIndex')
+            .andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text });
+        if (!nullOrWhitespace(locale)) {
+            matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale });
+        }
+
+        const groupedMatches = matchedText.select('searchIndex.collection_id, searchIndex.token_id').groupBy('searchIndex.collection_id, searchIndex.token_id');
+        //innerJoin doesn't add parentesises around joined value, which is required in case of complex subquery.
+        const getQueryOld = groupedMatches.getQuery.bind(groupedMatches);
+        groupedMatches.getQuery = () => `(${getQueryOld()})`;
+        groupedMatches.getQuery.prototype = getQueryOld;
+        return query.innerJoin(() => groupedMatches, 'gr', 'gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"');
     }
 
-    const groupedMatches = matchedText.select('tokenTextSearch.CollectionId, tokenTextSearch.TokenId').groupBy('tokenTextSearch.CollectionId, tokenTextSearch.TokenId');
-    //innerJoin doesn't add parentesises around joined value, which is required in case of complex subquery.
-    const getQueryOld = groupedMatches.getQuery.bind(groupedMatches);
-    groupedMatches.getQuery = () => `(${getQueryOld()})`;
-    groupedMatches.getQuery.prototype = getQueryOld;
-    return query.innerJoin(() => groupedMatches, 'gr', 'gr."CollectionId" = offer."CollectionId" AND gr."TokenId" = offer."TokenId"');
-  }
+    private filterBySeller(query: SelectQueryBuilder<ContractAsk>, seller?: string): SelectQueryBuilder<ContractAsk> {
+        if (nullOrWhitespace(seller)) {
+            return query;
+        }
 
-  filterBySeller(query: SelectQueryBuilder<Offer>, seller?: string): SelectQueryBuilder<Offer> {
-    if(nullOrWhitespace(seller)) {
-      return query;
+        return query.andWhere('offer.address_from = :seller', { seller });
     }
 
+    private filterByTraitsCount(query: SelectQueryBuilder<ContractAsk>, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
+        if ((traitsCount ?? []).length <= 0) {
+            return query;
+        }
 
-    return query.andWhere('offer.Seller = :seller', {seller});
-  }
-
-  filterByTraitsCount(query: SelectQueryBuilder<Offer>, traitsCount?: number[]): SelectQueryBuilder<Offer> {
-    if((traitsCount ?? []).length <= 0) {
-      return query;
+        return query.andWhere(`offer.Metadata ? 'traits' AND jsonb_array_length(offer."Metadata"->'traits') in (:...traitsCount)`, {
+            traitsCount: traitsCount,
+        });
     }
 
-    return query.andWhere(`offer.Metadata ? 'traits' AND jsonb_array_length(offer."Metadata"->'traits') in (:...traitsCount)`, {traitsCount: traitsCount});
-  }
+    private filter(query: SelectQueryBuilder<ContractAsk>, offersFilter: OffersFilter): SelectQueryBuilder<ContractAsk> {
+        query = this.filterByCollectionId(query, offersFilter.collectionId);
+        query = this.filterByMaxPrice(query, offersFilter.maxPrice);
+        query = this.filterByMinPrice(query, offersFilter.minPrice);
+        query = this.filterBySeller(query, offersFilter.seller);
+        query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale);
+        query = this.filterByTraitsCount(query, offersFilter.traitsCount);
 
-  filter(query: SelectQueryBuilder<Offer>, offersFilter: OffersFilter): SelectQueryBuilder<Offer> {
-    query = this.filterByCollectionId(query, offersFilter.collectionId);
-    query = this.filterByMaxPrice(query, offersFilter.maxPrice);
-    query = this.filterByMinPrice(query, offersFilter.minPrice);
-    query = this.filterBySeller(query, offersFilter.seller);
-    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale);
-    query = this.filterByTraitsCount(query, offersFilter.traitsCount);
-
-    return query.andWhere('offer.OfferStatus = 1');
-  }
-
-  mapToDto(offer: Offer): OfferDto {
-    return {
-      collectionId: +offer.collectionId,
-      tokenId: +offer.tokenId,
-      price: offer.price.toString(),
-      quoteId: +offer.quoteId,
-      seller: offer.seller,
-      metadata: offer.metadata,
-      creationDate: offer.creationDate
+        return query;
     }
-  }
 
-  async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResult<OfferDto>> {
-    let offers = this.connection.manager.createQueryBuilder(Offer, 'offer')
-      .where('offer.OfferStatus = 1');
-    offers = this.filter(offers, offersFilter);
-
-    offers = this.applySort(offers, sort);
-
-    const paginationResult = await paginate(offers, pagination);
-
-    return {
-      ...paginationResult,
-      items: paginationResult.items.map(this.mapToDto)
-    };
-  }
+    private mapToDto(offer: Offer): OfferDto {
+        return {
+            collectionId: +offer.collectionId,
+            tokenId: +offer.tokenId,
+            price: offer.price.toString(),
+            quoteId: +offer.quoteId,
+            seller: offer.seller,
+            metadata: offer.metadata,
+            creationDate: offer.creationDate,
+        };
+    }
 }
