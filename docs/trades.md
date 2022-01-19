@@ -8,6 +8,5 @@ Returns completed deals in JSON format with the following fields:
 * Seller address
 * Buyer address
 
-
 ### Parameters:
 Collection ID. If not present, the last 10 trades are returned.
