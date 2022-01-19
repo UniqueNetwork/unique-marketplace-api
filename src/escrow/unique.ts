@@ -183,13 +183,13 @@ export class UniqueEscrow extends Escrow {
     const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
 
     if(!activeAsk) return;
-    const origPrice = this.getPriceWithoutCommission(BigInt(activeAsk.price)); //Оригинальная цена
+    const origPrice = this.getPriceWithoutCommission(BigInt(activeAsk.price));
     const buyerEth = this.address2string(buyer);
-    const buyerSub = await this.service.getSubstrateAddress(buyerEth); //Достаем substracte address
+    const buyerSub = await this.service.getSubstrateAddress(buyerEth);
     const buyerAddress = buyerSub ? buyerSub : buyerEth;
 
     await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
-    await this.service.registerKusamaWithdraw(origPrice, activeAsk.address_from, blockNum, this.config('kusama.network')); //Регистрирую сумму
+    await this.service.registerKusamaWithdraw(origPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
 
     // TODO: remove old staff
     const existedOffer = await this.service.oldGetActiveOffer(collectionId, tokenId);
@@ -230,7 +230,7 @@ export class UniqueEscrow extends Escrow {
     }
   }
 
-  async processEthereum(blockNum, rawExtrinsic) { 
+  async processEthereum(blockNum, rawExtrinsic) {
     const extrinsic = rawExtrinsic.toHuman().method;
     if(!('transaction' in extrinsic.args)) return;
     const inputData = this.inputDecoder.decodeData(extrinsic.args.transaction.input);
