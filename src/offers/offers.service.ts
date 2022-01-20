@@ -16,7 +16,8 @@ import { BlockchainBlock, ContractAsk, SearchIndex } from '../entity';
 
 @Injectable()
 export class OffersService {
-    private sortingColumns = ['Price', 'TokenId', 'CreationDate'];
+    private offerSortingColumns = ['Price', 'TokenId', 'token_id', 'CollectionId', 'collection_id'];
+    private sortingColumns = [...this.offerSortingColumns, 'CreationDate'];
 
     constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {}
 
@@ -34,6 +35,7 @@ export class OffersService {
 
         offers = this.filter(offers, offersFilter);
         offers = this.applySort(offers, sort);
+        //console.log(await offers.getMany());
         const paginationResult = await paginate(offers, pagination);
         //console.dir(paginationResult, { depth: 4 });
         return {
@@ -42,6 +44,45 @@ export class OffersService {
         };
     }
 
+    /**
+     * Adds fields to the sort and sorts the data
+     * in ascending and descending order, depending on the request
+     * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
+     * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate).
+     * @private
+     * @see OffersService.get
+     * @return {SelectQueryBuilder<ContractAsk>}
+     */
+    private applySort(query: SelectQueryBuilder<ContractAsk>, sort: OfferSortingRequest): SelectQueryBuilder<ContractAsk> {
+        let params = [];
+
+        for (let param of sort.sort ?? []) {
+            let column = this.sortingColumns.find((column) => equalsIgnoreCase(param.column, column));
+            console.log('NAME', column);
+            if (column === 'tokenid' || column === 'TokenId') {
+                column = 'token_id';
+            }
+            if (column === 'creationdate' || column === 'CreationDate') {
+                column = 'created_at';
+            }
+            if (column === 'collectionid' || column === 'CollectionId') {
+                column = 'collection_id';
+            }
+            if (column === null) continue;
+            params.push({ ...param, column });
+        }
+
+        let first = true;
+        for (let param of params) {
+            let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'offer' : 'block';
+            console.log(this.offerSortingColumns.indexOf(param.column) > -1, param.column);
+            console.log(table);
+            query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
+            first = false;
+        }
+
+        return query;
+    }
     /**
      * Conversion of data from ContractAsk to JSON
      * @example: items: OfferContractAskDto[]
@@ -59,34 +100,6 @@ export class OffersService {
             seller: offer.address_from,
             creationDate: offer.blockchain.created_at,
         };
-    }
-
-    /**
-     * Adds fields to the sort and sorts the data
-     * in ascending and descending order, depending on the request
-     * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-     * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate).
-     * @private
-     * @see OffersService.get
-     * @return {SelectQueryBuilder<ContractAsk>}
-     */
-    private applySort(query: SelectQueryBuilder<ContractAsk>, sort: OfferSortingRequest): SelectQueryBuilder<ContractAsk> {
-        const params = (sort.sort ?? [])
-            .map((s) => ({
-                ...s,
-                column: this.sortingColumns.find((allowedColumn) => equalsIgnoreCase(s.column, allowedColumn)),
-            }))
-            .filter((s) => s.column != null);
-        if (params.length <= 0) {
-            return query;
-        }
-
-        query = query.orderBy(`offer.${params[0].column}`, params[0].order === SortingOrder.Asc ? 'ASC' : 'DESC');
-        for (let i = 1; i < params.length; i++) {
-            query = query.addOrderBy(`offer.${params[i].column}`, params[i].order === SortingOrder.Asc ? 'ASC' : 'DESC');
-        }
-
-        return query;
     }
 
     /**
@@ -197,7 +210,7 @@ export class OffersService {
             return query;
         }
 
-        return query.andWhere(`offer.Metadata ? 'traits' AND jsonb_array_length(offer."Metadata"->'traits') in (:...traitsCount)`, {
+        return query.andWhere(`offer.is_trait ? 'traits') in (:...traitsCount)`, {
             traitsCount: traitsCount,
         });
     }
@@ -216,7 +229,7 @@ export class OffersService {
         query = this.filterByMinPrice(query, offersFilter.minPrice);
         query = this.filterBySeller(query, offersFilter.seller);
         query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale);
-        query = this.filterByTraitsCount(query, offersFilter.traitsCount);
+        //query = this.filterByTraitsCount(query, offersFilter.traitsCount);
 
         return query;
     }
