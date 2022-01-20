@@ -5,11 +5,11 @@ import { queryArray } from '../utils/decorators/query-array.decorator';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResult } from '../utils/pagination/pagination-result';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
-import { parseCollectionIdRequest } from '../utils/parsers/parse-collection-id-request';
 import { QueryParamArray } from '../utils/query-param-array';
 import { MarketTradeDto } from './dto/trade-dto';
 import { TradesService } from './trades.service';
 import * as fs from 'fs';
+import { parseCollectionIdRequest } from '../utils/parsers';
 
 @ApiTags('Trades')
 @Controller('trades')

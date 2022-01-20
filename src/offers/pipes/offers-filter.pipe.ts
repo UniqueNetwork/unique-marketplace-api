@@ -1,13 +1,10 @@
 import { ArgumentMetadata, HttpStatus, Injectable, Optional, PipeTransform } from '@nestjs/common';
 import { ErrorHttpStatusCode, HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
 
-import { parseBigIntRequest } from '../../utils/parsers/parse-big-int-request';
-import { parseCollectionIdRequest } from '../../utils/parsers/parse-collection-id-request';
-import { parseIntRequest } from '../../utils/parsers/parse-int-request';
-import { requestArray } from '../../utils/parsers/request-array';
 import { TransformationResult } from '../../utils/type-generators/transformation-result';
 import { UntypedRequest } from '../../utils/type-generators/untyped-request';
 import { OffersFilter } from '../dto/offers-filter';
+import { parseBigIntRequest, parseCollectionIdRequest, parseIntRequest, requestArray } from '../../utils/parsers';
 
 export interface ParseOffersFilterPipeOptions {
     errorHttpStatusCode?: ErrorHttpStatusCode;
