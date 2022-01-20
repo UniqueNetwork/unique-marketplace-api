@@ -35,9 +35,7 @@ export class OffersService {
 
         offers = this.filter(offers, offersFilter);
         offers = this.applySort(offers, sort);
-        //console.log(await offers.getMany());
         const paginationResult = await paginate(offers, pagination);
-        //console.dir(paginationResult, { depth: 4 });
         return {
             ...paginationResult,
             items: paginationResult.items.map(this.serializeOffersToDto),
@@ -58,7 +56,7 @@ export class OffersService {
 
         for (let param of sort.sort ?? []) {
             let column = this.sortingColumns.find((column) => equalsIgnoreCase(param.column, column));
-            console.log('NAME', column);
+
             if (column === 'tokenid' || column === 'TokenId') {
                 column = 'token_id';
             }
@@ -75,8 +73,6 @@ export class OffersService {
         let first = true;
         for (let param of params) {
             let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'offer' : 'block';
-            console.log(this.offerSortingColumns.indexOf(param.column) > -1, param.column);
-            console.log(table);
             query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
             first = false;
         }
