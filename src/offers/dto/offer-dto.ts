@@ -1,16 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class OfferContractAskDto {
-    @ApiProperty({})
+    @ApiProperty({ description: 'Collection ID' })
     collectionId: number;
-    @ApiProperty({})
+    @ApiProperty({ description: 'Token ID' })
     tokenId: number;
-    @ApiProperty({})
+    @ApiProperty({ description: 'Price' })
     price: string;
-    @ApiProperty({})
+    @ApiProperty({ description: 'Contract ask currency' })
     quoteId: number;
-    @ApiProperty({})
+    @ApiProperty({ description: 'Contract ask from' })
     seller: string;
-    @ApiProperty({})
+    @ApiProperty({ description: 'Date blockchain block created' })
     creationDate: Date;
 }

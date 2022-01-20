@@ -7,11 +7,11 @@ import { OfferContractAskDto } from './dto/offer-dto';
 import { OffersFilter } from './dto/offers-filter';
 import { ParseOffersFilterPipe } from './pipes/offers-filter.pipe';
 import { OffersService } from './offers.service';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import * as fs from 'fs';
-import { MarketTradeDto } from '../trades/dto/trade-dto';
 
-@Controller('Offers')
+@ApiTags('Offers')
+@Controller('offers')
 export class OffersController {
     constructor(private readonly offersService: OffersService) {}
 
@@ -20,7 +20,7 @@ export class OffersController {
         summary: 'Get offers, filters and seller',
         description: fs.readFileSync('docs/offers.md').toString(),
     })
-    @ApiResponse({ type: MarketTradeDto, status: HttpStatus.OK })
+    @ApiResponse({ type: OfferContractAskDto, status: HttpStatus.OK })
     get(
         @Query() pagination: PaginationRequest,
         @Query(ParseOffersFilterPipe) offersFilter: OffersFilter,
