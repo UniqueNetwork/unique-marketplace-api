@@ -1,4 +1,4 @@
-import { evmToAddress } from '@polkadot/util-crypto';
+// import { evmToAddress } from '@polkadot/util-crypto';
 
 import { Escrow } from './base';
 import * as logging from '../utils/logging';
@@ -56,7 +56,9 @@ export class UniqueEscrow extends Escrow {
   async addToAllowList(substrateAddress, data?: {matcher: any, helpers: any}) {
     let contractAddress = this.config('unique.matcherContractAddress');
     let ethAddress = lib.subToEth(substrateAddress), toAdd = [];
-    for(let address of [substrateAddress, ethAddress, evmToAddress(ethAddress, 42, 'blake2')]) {
+    // let toCheck = [substrateAddress, ethAddress, evmToAddress(ethAddress, 42, 'blake2')];
+    let toCheck = [ethAddress];
+    for(let address of toCheck) {
       let isAllowed = (await this.api.query.evmContractHelpers.allowlist(contractAddress, address)).toJSON();
       if(!isAllowed) toAdd.push(address);
     }
