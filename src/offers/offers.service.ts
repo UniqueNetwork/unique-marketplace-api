@@ -32,6 +32,7 @@ export class OffersService {
         let offers = this.connection.manager
             .createQueryBuilder(ContractAsk, 'offer')
             .leftJoinAndMapOne('offer.blockchain', BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask');
+        offers.leftJoinAndMapMany('offer.indexdata', SearchIndex, 'sindex', 'sindex.collection_id = offer.collection_id and sindex.token_id = offer.token_id');
 
         offers = this.filter(offers, offersFilter);
         offers = this.applySort(offers, sort);
@@ -206,7 +207,7 @@ export class OffersService {
             return query;
         }
 
-        return query.andWhere(`offer.is_trait ? 'traits') in (:...traitsCount)`, {
+        return query.andWhere(`offer.indexData.is_trait ? 'traits') in (:...traitsCount)`, {
             traitsCount: traitsCount,
         });
     }
@@ -225,8 +226,8 @@ export class OffersService {
         query = this.filterByMinPrice(query, offersFilter.minPrice);
         query = this.filterBySeller(query, offersFilter.seller);
         query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale);
-        //query = this.filterByTraitsCount(query, offersFilter.traitsCount);
+        // query = this.filterByTraitsCount(query, offersFilter.traitsCount);
 
-        return query;
+        return query.andWhere(`offer.status = :status`, { status: 'active' });
     }
 }
