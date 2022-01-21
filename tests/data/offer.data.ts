@@ -1,6 +1,5 @@
 import { BlockchainBlock, ContractAsk, SearchIndex } from '../../src/entity';
 
-
 export const prepareSearchData = async (queryBuilder) => {
     await queryBuilder
         .insert()
@@ -296,7 +295,7 @@ export const prepareSearchData = async (queryBuilder) => {
         .values([
             {
                 id: 'b2c9d82c-4123-45f2-8af7-4de1af4dd4d2',
-                status: 'bought',
+                status: 'active',
                 collection_id: 23,
                 token_id: 5817,
                 network: 'testnet',
@@ -310,7 +309,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: '23e4862f-547c-4974-a5f5-73cf9560be7f',
-                status: 'bought',
+                status: 'active',
                 collection_id: 23,
                 token_id: 5425,
                 network: 'testnet',
@@ -324,7 +323,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: '05b6a485-91d8-4a12-a89c-929a9b0582b7',
-                status: 'bought',
+                status: 'active',
                 collection_id: 25,
                 token_id: 4017,
                 network: 'testnet',
@@ -338,7 +337,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: 'afb00bde-2c58-4ff1-891a-c99c451fd21a',
-                status: 'bought',
+                status: 'active',
                 collection_id: 23,
                 token_id: 3220,
                 network: 'testnet',
@@ -352,7 +351,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: '0a210bc5-169e-4e1f-b6cb-d007f4ecba1a',
-                status: 'bought',
+                status: 'active',
                 collection_id: 25,
                 token_id: 4514,
                 network: 'testnet',
@@ -366,7 +365,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: 'e19f3d3c-362e-42bb-a3f6-bba5144cc695',
-                status: 'bought',
+                status: 'active',
                 collection_id: 25,
                 token_id: 4514,
                 network: 'testnet',
@@ -380,7 +379,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: 'f827d746-0db9-46ac-ad2d-2b4e21fb093f',
-                status: 'bought',
+                status: 'active',
                 collection_id: 25,
                 token_id: 43,
                 network: 'testnet',
@@ -394,7 +393,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: '57d792a2-2e2f-446b-a94b-9d0bc729fe72',
-                status: 'bought',
+                status: 'active',
                 collection_id: 2,
                 token_id: 5,
                 network: 'testnet',
@@ -408,7 +407,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: '5d59dacc-f4f6-49a2-9f99-eae5992df055',
-                status: 'bought',
+                status: 'active',
                 collection_id: 2,
                 token_id: 7,
                 network: 'testnet',
@@ -422,7 +421,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: '96fe1187-7283-4dd8-9571-679083905baf',
-                status: 'bought',
+                status: 'active',
                 collection_id: 2,
                 token_id: 11,
                 network: 'testnet',
@@ -436,7 +435,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: '8f77a27c-9549-41bc-b18b-53b9ec02134f',
-                status: 'bought',
+                status: 'active',
                 collection_id: 2,
                 token_id: 20,
                 network: 'testnet',
@@ -450,7 +449,7 @@ export const prepareSearchData = async (queryBuilder) => {
             },
             {
                 id: 'c5ab0d5c-9f31-48b8-8858-6381f18bea50',
-                status: 'bought',
+                status: 'active',
                 collection_id: 2,
                 token_id: 25,
                 network: 'testnet',
