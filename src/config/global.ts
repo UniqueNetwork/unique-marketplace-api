@@ -21,8 +21,8 @@ export default {
       wsEndpoint: process.env.UNIQUE_WS_ENDPOINT || 'wss://opal.unique.network',
       network: process.env.UNIQUE_NETWORK || 'quartz',
       startFromBlock: `${process.env.UNIQUE_START_FROM_BLOCK || 'current'}`,
-      matcherOwnerSeed: process.env.MATCHER_ETH_OWNER_SEED || null,
-      matcherContractAddress: process.env.MATCHER_CONTRACT_ADDRESS || null,
+      contractOwnerSeed: process.env.CONTRACT_ETH_OWNER_SEED || null,
+      contractAddress: process.env.CONTRACT_ADDRESS || null,
       collectionIds: (process.env.UNIQUE_COLLECTION_IDS || '')
         .split(',')
         .map((x) => Number(x.trim()))
@@ -41,8 +41,8 @@ export default {
         wsEndpoint: 'ws://localhost:9944',
         network: 'private_opal',
         startFromBlock: '1',
-        matcherOwnerSeed: null,
-        matcherContractAddress: null,
+        contractOwnerSeed: null,
+        contractAddress: null,
         collectionIds: [1],
       },
       kusama: {
