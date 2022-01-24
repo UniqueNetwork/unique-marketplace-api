@@ -15,8 +15,7 @@ const initSwagger = (app: INestApplication, config) => {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule), config = app.get('CONFIG');
 
-  // TODO: separate this activity
-  await runMigrations(config);
+  if(config.autoDBMigrations) await runMigrations(config);
 
   if(config.disableSecurity) app.enableCors();
 

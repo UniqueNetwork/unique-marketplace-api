@@ -21,6 +21,7 @@ x-marketplace: &marketplace-backend
     KUSAMA_NETWORK: 'private_ksm'
     KUSAMA_START_FROM_BLOCK: 'current'
     COMMISSION_PERCENT: '10'
+    AUTO_DB_MIGRATIONS: 'false'
 
 services:
   marketplace-postgres:
