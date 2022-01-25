@@ -13,7 +13,8 @@ const initSwagger = (app: INestApplication, config) => {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule), config = app.get('CONFIG');
+  const app = await NestFactory.create(AppModule);
+  const config = app.get('CONFIG');
 
   if(config.autoDBMigrations) await runMigrations(config);
 

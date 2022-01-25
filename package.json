@@ -22,6 +22,7 @@
     "migration:generate": "npm run typeorm -- migration:generate -n",
     "migration:show": "npm run typeorm -- migration:show",
     "migration:revert": "npm run typeorm -- migration:revert",
+    "migration:run": "npm run typeorm -- migration:run",
     "schema:log": "npm run typeorm -- schema:log"
   },
   "dependencies": {

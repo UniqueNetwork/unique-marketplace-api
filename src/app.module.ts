@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { CommandModule } from 'nestjs-command';
 
@@ -10,14 +11,14 @@ import { TradesService } from './trades/trades.service';
 import { EscrowModule } from './escrow/module';
 import { PlaygroundCommand } from './utils/playground';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
+import { AuctionModule } from "./auction/auction.module";
 
 @Module({
   imports: [
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'blockchain'),
     }),
-    DatabaseModule, ConfigModule, CommandModule, EscrowModule],
+    DatabaseModule, ConfigModule, CommandModule, EscrowModule, AuctionModule],
   controllers: [OffersController, TradesController],
   providers: [OffersService, TradesService, PlaygroundCommand]
 })
