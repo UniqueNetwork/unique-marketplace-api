@@ -17,7 +17,10 @@
     "test:watch": "jest --config tests/jest.config.json --watch --detectOpenHandles",
     "escrow:kusama": "node dist/cli.js start_escrow kusama",
     "escrow:unique": "node dist/cli.js start_escrow unique",
-    "playground": "npx nestjs-command playground"
+    "playground": "npx nestjs-command playground",
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/.bin/typeorm --config src/database/connection-options.ts",
+    "migration:generate": "npm run typeorm -- migration:generate -n",
+    "schema:log": "npm run typeorm -- schema:log"
   },
   "dependencies": {
     "@nestjs/cli": "^8.2.0",
