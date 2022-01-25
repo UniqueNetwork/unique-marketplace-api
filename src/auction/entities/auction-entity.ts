@@ -37,13 +37,18 @@ export class AuctionEntity implements Auction {
   collectionId: string;
 
   @Column({
-    type: 'bigint',
+    type: 'varchar',
+    length: 64,
     nullable: true,
     name: 'current_price'
   })
   currentPrice: string;
 
-  @Column('bigint', { name: 'price' })
+  @Column({
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    name: 'price' })
   price: string;
 
   @Column('varchar', { name: 'currency', length: 64 })
@@ -51,14 +56,16 @@ export class AuctionEntity implements Auction {
 
 
   @Column({
-    type: 'bigint',
+    type: 'varchar',
+    length: 64,
     nullable: false,
     name: 'price_step',
   })
   priceStep: string;
 
   @Column({
-    type: 'bigint',
+    type: 'varchar',
+    length: 64,
     nullable: false,
     name: 'start_price',
   })

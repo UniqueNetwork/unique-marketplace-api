@@ -8,7 +8,8 @@ export class BidEntity implements Bid {
   id: string;
 
   @Column({
-    type: 'bigint',
+    type: 'varchar',
+    length: 64,
     nullable: false,
   })
   amount: string;
