@@ -12,7 +12,7 @@ export class UniqueEscrow extends Escrow {
   inputDecoder;
   explorer;
   web3;
-  matcherOwner;
+  contractOwner;
   SECTION_UNIQUE = 'unique';
   SECTION_CONTRACT = 'evm';
   SECTION_ETHEREUM = 'ethereum';
@@ -35,26 +35,26 @@ export class UniqueEscrow extends Escrow {
     this.inputDecoder = new InputDataDecoder(this.getAbi());
     this.explorer = new util.UniqueExplorer(this.api, this.admin);
     this.web3 = lib.connectWeb3(this.config('unique.wsEndpoint')).web3;
-    this.matcherOwner = this.web3.eth.accounts.privateKeyToAccount(this.config('unique.matcherOwnerSeed'));
+    this.contractOwner = this.web3.eth.accounts.privateKeyToAccount(this.config('unique.contractOwnerSeed'));
   }
 
   getAbi() {
     return JSON.parse(util.blockchainStaticFile('MarketPlace.abi'));
   }
 
-  getMatcher() {
+  getContract(): {web3: any, contract: any, helpers: any} {
     const web3 = lib.connectWeb3(this.config('unique.wsEndpoint')).web3;
-    web3.eth.accounts.wallet.add(this.matcherOwner.privateKey);
+    web3.eth.accounts.wallet.add(this.contractOwner.privateKey);
 
     return {
       web3,
-      matcher: new web3.eth.Contract(this.getAbi(), this.config('unique.matcherContractAddress')),
-      helpers: lib.contractHelpers(web3, this.matcherOwner.address)
+      contract: new web3.eth.Contract(this.getAbi(), this.config('unique.contractAddress')),
+      helpers: lib.contractHelpers(web3, this.contractOwner.address)
     };
   }
 
-  async addToAllowList(substrateAddress, data?: {matcher: any, helpers: any}) {
-    let contractAddress = this.config('unique.matcherContractAddress');
+  async addToAllowList(substrateAddress, data?: {contract: any, helpers: any}) {
+    let contractAddress = this.config('unique.contractAddress');
     let ethAddress = lib.subToEth(substrateAddress), toAdd = [];
     // let toCheck = [substrateAddress, ethAddress, evmToAddress(ethAddress, 42, 'blake2')];
     let toCheck = [ethAddress];
@@ -64,9 +64,9 @@ export class UniqueEscrow extends Escrow {
     }
     if(!toAdd.length) return;
 
-    if(!data) data = this.getMatcher();
+    if(!data) data = this.getContract();
     for(let address of toAdd) {
-      await data.helpers.methods.toggleAllowed(data.matcher.options.address, address, true).send({from: this.matcherOwner.address});
+      await data.helpers.methods.toggleAllowed(data.contract.options.address, address, true).send({from: this.contractOwner.address});
     }
   }
 
@@ -158,8 +158,8 @@ export class UniqueEscrow extends Escrow {
     if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     await this.service.registerAccountPair(addressFrom, this.address2string(addressFromEth));
 
-    let isToMatcher = this.address2string(addressTo).toLocaleLowerCase() === this.config('unique.matcherContractAddress').toLocaleLowerCase();
-    if(!isToMatcher) return;
+    let isToContract = this.address2string(addressTo).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
+    if(!isToContract) return;
     logging.log(`Got ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum}`);
     const tokenKeywords = await this.getSearchIndexes(collectionId, tokenId);
     await this.service.registerAsk(blockNum, {
@@ -261,11 +261,11 @@ export class UniqueEscrow extends Escrow {
         const ethAddress = lib.subToEth(deposit.extra.address);
         await this.service.registerAccountPair(deposit.extra.address, ethAddress);
         logging.log(['amount', amount.toString(), 'ethAddress', ethAddress]);
-        const { matcher, helpers } = this.getMatcher();
-        await this.addToAllowList(deposit.extra.address, {matcher, helpers});
+        const { contract, helpers } = this.getContract();
+        await this.addToAllowList(deposit.extra.address, {contract: contract, helpers});
 
-        await matcher.methods.depositKSM(amount, ethAddress).send({
-          from: this.matcherOwner.address, ...lib.GAS_ARGS
+        await contract.methods.depositKSM(amount, ethAddress).send({
+          from: this.contractOwner.address, ...lib.GAS_ARGS
         });
         await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.COMPLETED);
         logging.log(`Unique depositKSM for money transfer #${deposit.id} successful`);
@@ -297,8 +297,8 @@ export class UniqueEscrow extends Escrow {
     this.store.currentBlock = await this.getStartBlock();
     this.store.latestBlock = await this.getLatestBlockNumber();
     logging.log(`Unique escrow starting from block #${this.store.currentBlock} (mode: ${this.config('unique.startFromBlock')}, maxBlock: ${this.store.latestBlock})`)
-    logging.log(`Unique escrow matcher owner address: ${this.matcherOwner.address}`);
-    logging.log(`Unique escrow contract address: ${this.config('unique.matcherContractAddress')}`);
+    logging.log(`Unique escrow contract owner address: ${this.contractOwner.address}`);
+    logging.log(`Unique escrow contract address: ${this.config('unique.contractAddress')}`);
     await this.subscribe();
     await this.mainLoop();
   }

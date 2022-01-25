@@ -1,30 +1,62 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger, ShutdownSignal } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
+import { getConfig } from './config';
 import { runMigrations } from './database/migrations';
 import { ignoreQueryCase, useGlobalPipes } from './utils/application';
 
+const logger = new Logger('NestApplication');
+
 const initSwagger = (app: INestApplication, config) => {
-  const swaggerConf = new DocumentBuilder().setTitle(config.swagger.title).setDescription(config.swagger.description).setVersion(config.swagger.version).build();
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConf);
-  SwaggerModule.setup('api/docs/', app, swaggerDocument);
-}
+    const swaggerConf = new DocumentBuilder()
+        .setTitle(config.swagger.title)
+        .setDescription(config.swagger.description)
+        .setVersion(config.swagger.version)
+        .build();
+    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConf);
+    SwaggerModule.setup('api/docs/', app, swaggerDocument);
+};
+
+let app: INestApplication;
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const config = app.get('CONFIG');
+    app = await NestFactory.create(AppModule);
+    const config = app.get('CONFIG');
 
-  if(config.autoDBMigrations) await runMigrations(config);
+    if (config.autoDBMigrations) await runMigrations(config);
 
-  if(config.disableSecurity) app.enableCors();
+    if (config.disableSecurity) app.enableCors();
 
-  initSwagger(app, config);
-  ignoreQueryCase(app);
-  useGlobalPipes(app);
+    initSwagger(app, config);
+    ignoreQueryCase(app);
+    useGlobalPipes(app);
 
-  await app.listen(config.listenPort);
+    app.enableShutdownHooks();
+
+    await app.listen(config.listenPort, () => {
+        logger.log(`Nest application listening on port: ${config.listenPort}`);
+    });
+}
+bootstrap().catch((error: unknown) => {
+    logger.error('Bootstrapping application failed! ' + error);
+});
+
+async function gracefulShutdown(): Promise<void> {
+    if (app !== undefined) {
+        await app.close();
+        logger.warn('Application closed!');
+    }
+    process.exit(0);
 }
 
-bootstrap();
+process.once('SIGTERM', async () => {
+    logger.error('SIGTERM: Graceful shutdown... ');
+    await gracefulShutdown();
+});
+
+process.once('SIGINT', async () => {
+    logger.error('SIGINT: Graceful shutdown... ');
+    await gracefulShutdown();
+});
