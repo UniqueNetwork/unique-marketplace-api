@@ -4,13 +4,12 @@ import { createConnection } from 'typeorm';
 
 import { getConfig } from '../../src/config';
 import { AppModule } from '../../src/app.module';
-import { activeMigrations } from '../../src/migrations';
-import { ProjectNamingStrategy } from '../../src/database/naming_strategy';
 import { ignoreQueryCase, useGlobalPipes } from '../../src/utils/application';
 import { OfferSortingRequest } from '../../src/utils/sorting/sorting-request';
 import { PaginationRequest } from '../../src/utils/pagination/pagination-request';
 import { OffersFilter } from '../../src/offers/dto/offers-filter';
 import * as request from 'supertest';
+import { getConnectionOptions } from '../../src/database/connection-options';
 
 const testConfigFactory = (extra?) => () => {
     let config = getConfig();
@@ -34,14 +33,8 @@ export const initApp = async (config?): Promise<INestApplication> => {
 };
 
 export const getMigrationsConnection = async (config, logging: boolean = false) => {
-    return await createConnection({
-        name: 'migrations',
-        type: 'postgres',
-        url: config.postgresUrl,
-        logging: logging,
-        migrations: activeMigrations,
-        namingStrategy: new ProjectNamingStrategy(),
-    });
+    const connectionOptions = getConnectionOptions(config, true, logging);
+    return await createConnection({ ...connectionOptions, name: 'migrations' });
 };
 
 export const runMigrations = async (config) => {

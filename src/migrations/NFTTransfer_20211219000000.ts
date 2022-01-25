@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
-export class NFTTransfer1639304294000 implements MigrationInterface {
-    name = 'NFT_Transfer_1639304294000';
+export class NFTTransfer_20211219000000 implements MigrationInterface {
+    name = 'NFT_Transfer_20211219000000';
 
     async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(

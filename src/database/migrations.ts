@@ -1,17 +1,9 @@
 import { createConnection } from 'typeorm';
-
-import { ProjectNamingStrategy } from './naming_strategy';
-import { activeMigrations } from '../migrations';
+import { getConnectionOptions } from './connection-options';
 
 export const runMigrations = async (config) => {
-    const connection = await createConnection({
-        name: 'migrations',
-        type: 'postgres',
-        url: config.postgresUrl,
-        logging: true,
-        migrations: activeMigrations,
-        namingStrategy: new ProjectNamingStrategy(),
-    });
+    const connectionOptions = getConnectionOptions(config, false, config.dev.debugMigrations);
+    const connection = await createConnection({ ...connectionOptions, name: 'migrations' });
     await connection.runMigrations();
     await connection.close();
 };

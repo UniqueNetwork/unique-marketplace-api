@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
-export class MarketTrade1639304294000 implements MigrationInterface {
-    name = 'Market_Trade_1639304294000';
+export class MarketTrade_20211219000000 implements MigrationInterface {
+    name = 'Market_Trade_20211219000000';
 
     async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(

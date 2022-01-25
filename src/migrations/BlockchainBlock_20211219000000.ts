@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
-export class BlockchainBlock1639304294000 implements MigrationInterface {
-    name = 'Blockchain_Block_1639304294000';
+export class BlockchainBlock_20211219000000 implements MigrationInterface {
+    name = 'Blockchain_Block_20211219000000';
 
     async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(
