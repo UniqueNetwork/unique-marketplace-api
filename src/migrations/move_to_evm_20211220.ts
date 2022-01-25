@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 import { encodeAddress } from '@polkadot/util-crypto';
 
-import { createSchema, dropSchema } from './initial_20211106';
+import { createSchema, dropSchema } from "./helpers";
 
 
 export class MoveToEvm_20211220000000 implements MigrationInterface {

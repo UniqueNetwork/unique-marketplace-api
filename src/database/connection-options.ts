@@ -8,8 +8,7 @@ export const getConnectionOptions = (config = getConfig()): ConnectionOptions =>
     type: 'postgres',
     url: config.postgresUrl,
     entities: [__dirname + '/../**/entity.{t,j}s', __dirname + '/../entity/*.{t,j}s'],
-    // todo - refactor migrations to be in "typeorm" style: exclude all exports except migration classes
-    // migrations: [__dirname + '/../migrations/**/*.ts'],
+    migrations: [__dirname + '/../migrations/*.ts'],
     synchronize: false,
     namingStrategy: new ProjectNamingStrategy(),
   }
