@@ -23,14 +23,14 @@ export class AuctionEntity implements Auction {
   updatedAt: Date;
 
   @Column({
-    type: 'text',
+    type: 'bigint',
     nullable: false,
     name: 'token_id',
   })
   tokenId: string;
 
   @Column({
-    type: 'text',
+    type: 'bigint',
     nullable: false,
     name: 'collection_id',
   })
@@ -41,21 +41,28 @@ export class AuctionEntity implements Auction {
     nullable: true,
     name: 'current_price'
   })
-  currentPrice: bigint;
+  currentPrice: string;
+
+  @Column('bigint', { name: 'price' })
+  price: string;
+
+  @Column('varchar', { name: 'currency', length: 64 })
+  currency: string;
+
 
   @Column({
     type: 'bigint',
     nullable: false,
     name: 'price_step',
   })
-  priceStep: bigint;
+  priceStep: string;
 
   @Column({
     type: 'bigint',
     nullable: false,
     name: 'start_price',
   })
-  startPrice: bigint;
+  startPrice: string;
 
   @Column({
     type: "enum",

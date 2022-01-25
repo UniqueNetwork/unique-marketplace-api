@@ -24,12 +24,12 @@ class NewAuctionDto implements NewAuction {
   @IsInt()
   @IsPositive()
   @Min(0)
-  startPrice: bigint;
+  startPrice: string;
 
   @ApiProperty({ type: Number, default: 10 })
   @IsInt()
   @Min(1)
-  priceStep: bigint;
+  priceStep: string;
 
   @ApiProperty()
   @Type(() => Date)
@@ -56,13 +56,16 @@ export class CreateAuctionResponse implements Auction {
   createdAt: Date;
 
   @ApiProperty()
-  currentPrice: bigint;
+  currentPrice: string;
 
   @ApiProperty()
-  priceStep: bigint;
+  priceStep: string;
 
   @ApiProperty()
-  startPrice: bigint;
+  currency: string;
+
+  @ApiProperty()
+  startPrice: string;
 
   @ApiProperty()
   status: AuctionStatus;

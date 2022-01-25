@@ -11,7 +11,7 @@ export class BidEntity implements Bid {
     type: 'bigint',
     nullable: false,
   })
-  amount: bigint;
+  amount: string;
 
   @Column({
     type: 'uuid',

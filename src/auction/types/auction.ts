@@ -13,11 +13,13 @@ export interface Auction {
 
   status: AuctionStatus;
 
-  startPrice: bigint;
+  currency: string;
 
-  priceStep: bigint;
+  startPrice: string;
 
-  currentPrice: bigint;
+  priceStep: string;
+
+  currentPrice: string;
 
   stopAt: Date;
 

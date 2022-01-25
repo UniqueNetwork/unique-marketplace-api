@@ -11,7 +11,7 @@ import { ApiProperty } from "@nestjs/swagger";
 export class NewBidDto implements NewBid {
   @ApiProperty({ type: Number })
   @IsInt()
-  amount: bigint;
+  amount: string;
 
   @ApiProperty()
   @IsString()
@@ -35,7 +35,7 @@ export class PlaceBidRequest {
 
 export class PlaceBidResponse implements Bid {
   @ApiProperty()
-  amount: bigint;
+  amount: string;
 
   @ApiProperty()
   auctionId: string;

@@ -13,7 +13,7 @@ export interface Bid {
 
   status: BidStatus;
 
-  amount: bigint;
+  amount: string;
 
   bidderAddress: string;
 
