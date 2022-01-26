@@ -1,24 +1,33 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { Connection } from "typeorm";
+import { Connection, Repository } from "typeorm";
 
 import { Bid, NewBid } from "../types";
 import { BidEntity } from "../entities";
+import { BroadcastService } from "../../broadcast/services/broadcast.service";
 
 @Injectable()
 export class BidPlacingService {
   private readonly logger = new Logger(BidPlacingService.name);
 
+  private bidRepository: Repository<BidEntity>;
+
   constructor(
-    @Inject('DATABASE_CONNECTION') private connection: Connection,
-  ) {}
+    @Inject('DATABASE_CONNECTION') connection: Connection,
+    private broadcastService: BroadcastService,
+  ) {
+    this.bidRepository = connection.manager.getRepository(BidEntity);
+  }
 
   async placeBid(newBid: NewBid, balanceTransferTransaction: string): Promise<Bid> {
-    const bidRepository = this.connection.manager.getRepository(BidEntity);
+    let bid = this.bidRepository.create(newBid);
 
-    const bid = bidRepository.create(newBid);
     await this.transferBalance(balanceTransferTransaction);
 
-    return await bidRepository.save(bid);
+    bid = await this.bidRepository.save(bid);
+
+    this.broadcastService.sendBidPlaced(bid);
+
+    return bid;
   }
 
   // todo - implement
