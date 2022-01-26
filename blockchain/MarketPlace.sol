@@ -103,7 +103,7 @@ contract MarketPlace is IERC721Receiver/* , Initializable */ {
     */
 
      
-    receive  () external payable onlyOwner {
+    receive  () external payable  {
      //   revert ("Can't accept payment without collection and IDs, use dApp to send");
     }
     fallback () external payable {
@@ -360,10 +360,12 @@ contract MarketPlace is IERC721Receiver/* , Initializable */ {
             address addr = nfts[i].collection;
             IERC721ext token = IERC721ext(addr);
             token.transferFrom(address(this), owner, nfts[i].id);
-            
+        }    
     // Transfer Eth to owner and terminate contract
-        payable(owner).transfer(address(this).balance);
-        }
+        address payable owner1 = payable (owner);
+        uint balance = address(this).balance;
+        owner1.transfer(balance);
+        
     } 
     
 }
