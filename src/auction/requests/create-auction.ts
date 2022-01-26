@@ -12,13 +12,17 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Auction, AuctionStatus, NewAuction } from "../types";
 
 class NewAuctionDto implements NewAuction {
-  @ApiProperty()
+  @ApiProperty({ default: '1' })
   @IsString()
   tokenId: string;
 
-  @ApiProperty()
+  @ApiProperty({ default: '2' })
   @IsString()
   collectionId: string;
+
+  @ApiProperty({ default: 'OPL' })
+  @IsString()
+  currency: string;
 
   @ApiProperty({ type: Number, default: 100 })
   @IsInt()

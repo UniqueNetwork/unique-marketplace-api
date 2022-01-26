@@ -44,16 +44,8 @@ export class AuctionEntity implements Auction {
   })
   currentPrice: string;
 
-  @Column({
-    type: 'varchar',
-    length: 64,
-    nullable: true,
-    name: 'price' })
-  price: string;
-
   @Column('varchar', { name: 'currency', length: 64 })
   currency: string;
-
 
   @Column({
     type: 'varchar',

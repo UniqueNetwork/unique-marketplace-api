@@ -28,4 +28,4 @@ export interface Auction {
   updatedAt: Date;
 }
 
-export type NewAuction = Pick<Auction, 'startPrice' |'priceStep' | 'collectionId'| 'tokenId' | 'stopAt'>
+export type NewAuction = Pick<Auction, 'currency' | 'startPrice' |'priceStep' | 'collectionId'| 'tokenId' | 'stopAt'>

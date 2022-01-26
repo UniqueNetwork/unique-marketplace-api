@@ -41,10 +41,14 @@ export class BroadcastService {
   }
 
   sendAuctionStarted(auction: Auction): void {
+    this.logger.debug(`auctionStarted - ${JSON.stringify(auction)}`);
+
     this.server.of('/').emit('auctionStarted', auction);
   }
 
   sendBidPlaced(bid: Bid): void {
+    this.logger.debug(`bidPlaced - ${JSON.stringify(bid)}`);
+
     this.server.of('/').emit('bidPlaced', bid);
   }
 }

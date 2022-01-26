@@ -19,7 +19,7 @@ export class AuctionCreationService {
 
   async create(newAuction: NewAuction, nftTransferTransaction: string): Promise<Auction> {
     const auction = await this.auctionRepository.save(
-      this.auctionRepository.create(newAuction)
+      this.auctionRepository.create({ ...newAuction, currentPrice: newAuction.startPrice })
     );
 
     await this.applyChainTransaction(nftTransferTransaction);
