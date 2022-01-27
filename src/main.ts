@@ -29,11 +29,12 @@ async function bootstrap() {
 
     if (config.disableSecurity) app.enableCors();
 
+    //app.setGlobalPrefix('api');
+    app.enableShutdownHooks();
+
     initSwagger(app, config);
     ignoreQueryCase(app);
     useGlobalPipes(app);
-
-    app.enableShutdownHooks();
 
     await app.listen(config.listenPort, () => {
         logger.log(`Nest application listening on port: ${config.listenPort}`);

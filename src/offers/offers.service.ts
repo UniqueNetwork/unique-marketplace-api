@@ -127,8 +127,8 @@ export class OffersService {
         if (maxPrice == null) {
             return query;
         }
-
         return query.andWhere('offer.price <= :maxPrice', { maxPrice: priceTransformer.to(maxPrice) });
+        // return query.andWhere('offer.price <= :maxPrice', { maxPrice: maxPrice });
     }
 
     /**
