@@ -3,16 +3,16 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
-import { getConfig } from './config';
 import { runMigrations } from './database/migrations';
 import { ignoreQueryCase, useGlobalPipes } from './utils/application';
+import * as fs from 'fs';
 
 const logger = new Logger('NestApplication');
 
 const initSwagger = (app: INestApplication, config) => {
     const swaggerConf = new DocumentBuilder()
         .setTitle(config.swagger.title)
-        .setDescription(config.swagger.description)
+        .setDescription(fs.readFileSync('docs/description.md').toString())
         .setVersion(config.swagger.version)
         .build();
     const swaggerDocument = SwaggerModule.createDocument(app, swaggerConf);
