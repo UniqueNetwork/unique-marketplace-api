@@ -49,27 +49,29 @@ export const main = async(moduleRef) => {
     return await api.disconnect();
   }
   let balance = BigInt((await api.query.system.account(escrow.address)).data.free.toJSON());
+  logging.log(['Balance on escrow', balance.toString()]);
   if (balance < 2000n * lib.UNIQUE) {
-    logging.log(['Balance on account', escrow.address, 'too low to deploy contract. Need at least', 2000n * lib.UNIQUE])
+    logging.log(['Balance on account', escrow.address, 'too low to deploy contract. Need at least', 2000n * lib.UNIQUE], logging.level.WARNING)
     return await api.disconnect();
   }
   const account = web3.eth.accounts.privateKeyToAccount(config.blockchain.unique.contractOwnerSeed);
   web3.eth.accounts.wallet.add(account.privateKey);
 
-  const contract = new web3.eth.Contract(JSON.parse(util.blockchainStaticFile('MarketPlace.abi')), undefined, {
+  const contractAbi = new web3.eth.Contract(JSON.parse(util.blockchainStaticFile('MarketPlace.abi')), undefined, {
     from: account.address, ...lib.GAS_ARGS,
   });
-  const deployedContract = await contract.deploy({data: util.blockchainStaticFile('MarketPlace.bin'), arguments: [account.address]}).send({from: account.address, gas: 10000000});
+  const contract = await contractAbi.deploy({data: util.blockchainStaticFile('MarketPlace.bin')}).send({from: account.address, gas: 10000000});
+  await contract.methods.setEscrow(account.address, true).send({from: account.address});
   const helpers = lib.contractHelpers(web3, account.address);
-  await helpers.methods.toggleSponsoring(deployedContract.options.address, true).send({from: account.address});
-  await helpers.methods.setSponsoringRateLimit(deployedContract.options.address, 1).send({from: account.address});
-  let result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(deployedContract.options.address), 1000n * lib.UNIQUE), 'api.tx.balances.transfer') as any;
+  await helpers.methods.toggleSponsoring(contract.options.address, true).send({from: account.address});
+  await helpers.methods.setSponsoringRateLimit(contract.options.address, 0).send({from: account.address});
+  let result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(contract.options.address), 1000n * lib.UNIQUE), 'api.tx.balances.transfer') as any;
   if(result.status !== transactionStatus.SUCCESS) {
-    logging.log(['Unable to transfer', 1000n * lib.UNIQUE, 'from', escrow.address, 'to', evmToAddress(deployedContract.options.address)], logging.level.ERROR);
+    logging.log(['Unable to transfer', 1000n * lib.UNIQUE, 'from', escrow.address, 'to', evmToAddress(contract.options.address)], logging.level.ERROR);
     logging.log(result.result.toHuman(), logging.level.ERROR);
     return await api.disconnect();
   }
-  logging.log(['Your new contract address', deployedContract.options.address]);
+  logging.log(['Your new contract address', contract.options.address]);
   logging.log('Set it to CONTRACT_ADDRESS env or override config "blockchain.unique.contractAddress"');
 
   return await api.disconnect();
