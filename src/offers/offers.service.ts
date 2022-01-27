@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
@@ -18,8 +18,11 @@ import { BlockchainBlock, ContractAsk, SearchIndex } from '../entity';
 export class OffersService {
     private offerSortingColumns = ['Price', 'TokenId', 'token_id', 'CollectionId', 'collection_id'];
     private sortingColumns = [...this.offerSortingColumns, 'CreationDate'];
+    private logger: Logger;
 
-    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {}
+    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {
+        this.logger = new Logger(OffersService.name);
+    }
 
     /**
      * Get Offers
@@ -29,14 +32,38 @@ export class OffersService {
      * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate)
      */
     async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResult<OfferContractAskDto>> {
-        let offers = this.connection.manager
-            .createQueryBuilder(ContractAsk, 'offer')
-            .leftJoinAndMapOne('offer.blockchain', BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask');
-        offers.leftJoinAndMapMany('offer.indexdata', SearchIndex, 'sindex', 'sindex.collection_id = offer.collection_id and sindex.token_id = offer.token_id');
+        let offers: SelectQueryBuilder<ContractAsk>;
+        let paginationResult;
 
-        offers = this.filter(offers, offersFilter);
-        offers = this.applySort(offers, sort);
-        const paginationResult = await paginate(offers, pagination);
+        try {
+            offers = this.connection.manager
+                .createQueryBuilder(ContractAsk, 'offer')
+                .leftJoinAndMapOne(
+                    'offer.blockchain',
+                    BlockchainBlock,
+                    'block',
+                    'block.network = offer.network and block.block_number = offer.block_number_ask',
+                );
+            offers.leftJoinAndMapMany(
+                'offer.indexdata',
+                SearchIndex,
+                'sindex',
+                'sindex.collection_id = offer.collection_id and sindex.token_id = offer.token_id',
+            );
+
+            offers = this.filter(offers, offersFilter);
+            offers = this.applySort(offers, sort);
+            paginationResult = await paginate(offers, pagination);
+        } catch (e) {
+            this.logger.error(e.message);
+            throw new BadRequestException({
+                statusCode: HttpStatus.BAD_REQUEST,
+                message:
+                    'Something went wrong! Perhaps there is no table [contract_ask] in the database, the sequence of installation and configuration or failure to sort or filter data.',
+                error: e.message,
+            });
+        }
+
         return {
             ...paginationResult,
             items: paginationResult.items.map(this.serializeOffersToDto),
