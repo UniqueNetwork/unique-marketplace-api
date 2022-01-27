@@ -1,4 +1,4 @@
-import { INestApplication, Logger, ShutdownSignal } from '@nestjs/common';
+import { INestApplication, Logger, ShutdownSignal, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -29,6 +29,7 @@ async function bootstrap() {
 
     if (config.disableSecurity) app.enableCors();
 
+    app.useGlobalPipes(new ValidationPipe());
     //app.setGlobalPrefix('api');
     app.enableShutdownHooks();
 
