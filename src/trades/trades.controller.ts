@@ -6,7 +6,7 @@ import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResult } from '../utils/pagination/pagination-result';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
 import { QueryParamArray } from '../utils/query-param-array';
-import { MarketTradeDto } from './dto/trade-dto';
+import { MarketTradeDto, ResponseMarketTradeDto } from './dto/trade-dto';
 import { TradesService } from './trades.service';
 import * as fs from 'fs';
 import { parseCollectionIdRequest } from '../utils/parsers';
@@ -22,7 +22,7 @@ export class TradesController {
         summary: 'Get trades with sort and filters',
         description: fs.readFileSync('docs/trades.md').toString(),
     })
-    @ApiResponse({ type: MarketTradeDto, status: HttpStatus.OK })
+    @ApiResponse({ type: ResponseMarketTradeDto, status: HttpStatus.OK })
     get(
         @Query() pagination: PaginationRequest,
         @Query() sort: TradeSortingRequest,

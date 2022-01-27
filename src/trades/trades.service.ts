@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
@@ -16,8 +16,11 @@ import { IMarketTrade } from './interfaces/trade.interface';
 export class TradesService {
     private offerSortingColumns = ['Price', 'TokenId', 'CollectionId'];
     private sortingColumns = [...this.offerSortingColumns, 'TradeDate'];
+    private logger: Logger;
 
-    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {}
+    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {
+        this.logger = new Logger(TradesService.name);
+    }
 
     /**
      * Retrieving trade data
@@ -35,13 +38,33 @@ export class TradesService {
         paginationRequest: PaginationRequest,
         sort: TradeSortingRequest,
     ): Promise<PaginationResult<MarketTradeDto>> {
-        let tradesQuery = this.connection.manager.createQueryBuilder(MarketTrade, 'trade');
+        let tradesQuery: SelectQueryBuilder<IMarketTrade>;
+        let paginationResult;
+        try {
+            tradesQuery = this.connection.manager.createQueryBuilder(MarketTrade, 'trade');
+            tradesQuery = this.filterByCollectionIds(tradesQuery, collectionIds);
+            tradesQuery = this.filterBySeller(tradesQuery, seller);
+            tradesQuery = this.applySort(tradesQuery, sort);
+            paginationResult = await paginate(tradesQuery, paginationRequest);
+        } catch (e) {
+            this.logger.error(e.message);
+            throw new BadRequestException({
+                statusCode: HttpStatus.BAD_REQUEST,
+                message:
+                    'Something went wrong! Perhaps there is no table [market_trade] in the database, the sequence of installation and configuration or failure to sort or filter data.',
+                error: e.message,
+            });
+        }
 
-        tradesQuery = this.filterByCollectionIds(tradesQuery, collectionIds);
-        tradesQuery = this.filterBySeller(tradesQuery, seller);
-        tradesQuery = this.applySort(tradesQuery, sort);
-
-        const paginationResult = await paginate(tradesQuery, paginationRequest);
+        try {
+        } catch (e) {
+            this.logger.error(e.message);
+            throw new BadRequestException({
+                statusCode: HttpStatus.BAD_REQUEST,
+                message: 'Something went wrong! Failure to sort or filter data.',
+                error: e.message,
+            });
+        }
 
         return {
             ...paginationResult,
