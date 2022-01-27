@@ -8,7 +8,7 @@ export class SettingBlockchainUnique {
     collectionIds: number[];
 
     @ApiProperty({})
-    collectionAddress: string;
+    contractAddress: string;
 }
 
 export class SettingBlockchainKusama {
@@ -30,9 +30,6 @@ export class SettingBlockchain {
 
     @ApiProperty({})
     kusama: SettingBlockchainKusama;
-
-    @ApiProperty({})
-    escrow: SettingBlockchainEscrow;
 }
 
 export class SettingsDto {

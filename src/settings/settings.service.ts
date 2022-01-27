@@ -12,13 +12,10 @@ export class SettingsService {
         const config = getConfig();
         const result = {
             blockchain: {
-                escrow: {
-                    adress: config.blockchain.escrowSeed,
-                },
                 unique: {
                     wsEndpoint: config.blockchain.unique.wsEndpoint,
                     collectionIds: config.blockchain.unique.collectionIds,
-                    collectionAddress: config.blockchain.unique.collectionAddress,
+                    contractAddress: config.blockchain.unique.contractAddress,
                 },
                 kusama: {
                     wsEndpoint: config.blockchain.kusama.wsEndpoint,
