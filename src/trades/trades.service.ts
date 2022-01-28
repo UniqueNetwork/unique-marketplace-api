@@ -123,8 +123,6 @@ export class TradesService {
             params.push({ ...param, column });
         }
 
-        console.log(params);
-
         if (params.length <= 0) {
             return query;
         }
