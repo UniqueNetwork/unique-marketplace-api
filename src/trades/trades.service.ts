@@ -104,8 +104,11 @@ export class TradesService {
     private applySort(query: SelectQueryBuilder<IMarketTrade>, sort: TradeSortingRequest): SelectQueryBuilder<IMarketTrade> {
         let params = [];
 
+        if (JSON.stringify(sort.sort).includes('TradeDate') === false) sort.sort.push({ order: 1, column: 'TradeDate' });
+
         for (let param of sort.sort ?? []) {
             let column = this.sortingColumns.find((column) => equalsIgnoreCase(param.column, column)).toLowerCase();
+
             if (column === 'tokenid' || column === 'TokenId') {
                 column = 'token_id';
             }
@@ -115,9 +118,12 @@ export class TradesService {
             if (column === 'collectionid' || column === 'CollectionId') {
                 column = 'collection_id';
             }
+
             if (column === null) continue;
             params.push({ ...param, column });
         }
+
+        console.log(params);
 
         if (params.length <= 0) {
             return query;
@@ -125,8 +131,8 @@ export class TradesService {
 
         let first = true;
         for (let param of params) {
-            let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'trade' : 'trade';
-            query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
+            //let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'trade' : 'trade';
+            query = query[first ? 'orderBy' : 'addOrderBy'](`trade.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
             first = false;
         }
 
