@@ -1,4 +1,4 @@
-import { Column, Entity, Index, OneToOne } from 'typeorm';
+import { Column, Entity, Index, ManyToOne, OneToOne } from 'typeorm';
 import { BlockchainBlock } from './blockchain-block';
 
 @Index('IX_contract_ask_collection_id_token_id', ['collection_id', 'token_id'])
@@ -42,5 +42,5 @@ export class ContractAsk {
     block_number_buy: string;
 
     @OneToOne((type) => BlockchainBlock, (BlockchainBlock) => BlockchainBlock.network)
-    blockchain: BlockchainBlock;
+    created_at: Date;
 }

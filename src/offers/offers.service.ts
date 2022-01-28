@@ -38,18 +38,9 @@ export class OffersService {
         try {
             offers = this.connection.manager
                 .createQueryBuilder(ContractAsk, 'offer')
-                .leftJoinAndMapOne(
-                    'offer.blockchain',
-                    BlockchainBlock,
-                    'block',
-                    'block.network = offer.network and block.block_number = offer.block_number_ask',
-                );
-            offers.leftJoinAndMapMany(
-                'offer.indexdata',
-                SearchIndex,
-                'sindex',
-                'sindex.collection_id = offer.collection_id and sindex.token_id = offer.token_id',
-            );
+                .innerJoinAndSelect(BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask')
+                .select('offer')
+                .addSelect('block.created_at', 'created_at');
 
             offers = this.filter(offers, offersFilter);
             offers = this.applySort(offers, sort);
@@ -122,7 +113,7 @@ export class OffersService {
             price: offer.price.toString(),
             quoteId: +offer.currency,
             seller: offer.address_from,
-            creationDate: offer.blockchain.created_at,
+            creationDate: offer.created_at,
         };
     }
 
@@ -254,7 +245,7 @@ export class OffersService {
         query = this.filterBySeller(query, offersFilter.seller);
         query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale);
         // query = this.filterByTraitsCount(query, offersFilter.traitsCount);
-
-        return query.andWhere(`offer.status = :status`, { status: 'active' });
+        const qr = query.andWhere(`offer.status = :status`, { status: 'active' });
+        return qr;
     }
 }
