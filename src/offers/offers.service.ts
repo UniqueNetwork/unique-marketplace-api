@@ -3,7 +3,7 @@ import { Connection, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResult } from '../utils/pagination/pagination-result';
+import { PaginationResultDto } from '../utils/pagination/pagination-result';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
@@ -12,7 +12,7 @@ import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 import { OfferContractAskDto } from './dto/offer-dto';
 import { OffersFilter } from './dto/offers-filter';
 import { priceTransformer } from '../utils/price-transformer';
-import { BlockchainBlock, ContractAsk, SearchIndex } from '../entity';
+import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk, SearchIndex } from '../entity';
 
 @Injectable()
 export class OffersService {
@@ -28,19 +28,41 @@ export class OffersService {
      * @param {OffersFilter} offersFilter - DTO Offer filter
      * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate)
      */
-    async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResult<OfferContractAskDto>> {
+    async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResultDto<OfferContractAskDto>> {
         let offers = this.connection.manager
-            .createQueryBuilder(ContractAsk, 'offer')
-            .leftJoinAndMapOne('offer.blockchain', BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask');
+            .createQueryBuilder(
+              ContractAsk,
+              'offer',
+            )
+            .leftJoinAndMapOne(
+              'offer.blockchain',
+              BlockchainBlock,
+              'block',
+              'block.network = offer.network and block.block_number = offer.block_number_ask',
+            )
+            .leftJoinAndMapOne(
+                'offer.auction',
+              AuctionEntity,
+              'auction',
+              'auction.contract_ask_id = offer.id'
+            )
+            .leftJoinAndMapMany(
+              'auction.bids',
+              BidEntity,
+                'bid',
+                'bid.auction_id = auction.id and bid.is_withdrawn = false'
+            );
+
         offers.leftJoinAndMapMany('offer.indexdata', SearchIndex, 'sindex', 'sindex.collection_id = offer.collection_id and sindex.token_id = offer.token_id');
 
         offers = this.filter(offers, offersFilter);
         offers = this.applySort(offers, sort);
         const paginationResult = await paginate(offers, pagination);
-        return {
+
+        return new PaginationResultDto(OfferContractAskDto, {
             ...paginationResult,
-            items: paginationResult.items.map(this.serializeOffersToDto),
-        };
+            items: paginationResult.items.map(OfferContractAskDto.fromContractAsk),
+        })
     }
 
     /**

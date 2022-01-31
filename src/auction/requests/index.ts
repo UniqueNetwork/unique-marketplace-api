@@ -1,2 +1,2 @@
-export { CreateAuctionRequest, CreateAuctionResponse } from './create-auction';
-export { PlaceBidRequest } from './place-bid';
+export { CreateAuctionRequest, CreateAuctionRequestDto } from './create-auction';
+export { PlaceBidRequest, PlaceBidRequestDto } from './place-bid';

@@ -1,9 +1,10 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Post } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { CreateAuctionRequest, CreateAuctionResponse, PlaceBidRequest } from "./requests";
 import { AuctionCreationService } from "./services/auction-creation.service";
-import { PlaceBidResponse } from "./requests/place-bid";
 import { BidPlacingService } from "./services/bid-placing.service";
+import { CreateAuctionRequestDto, PlaceBidRequestDto } from "./requests";
+import { OfferContractAskDto } from "../offers/dto/offer-dto";
+import { WithdrawBidRequestDto } from "./requests/withdraw-bid";
 
 
 @ApiTags('Auction')
@@ -15,16 +16,17 @@ export class AuctionController {
   ) {}
 
   @Post('create_auction')
-  async createAuction(@Body() createAuctionRequest: CreateAuctionRequest): Promise<CreateAuctionResponse> {
-    const { auction, nftTransferTransaction } = createAuctionRequest;
-
-    return await this.auctionCreationService.create(auction, nftTransferTransaction)
+  async createAuction(@Body() createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
+    return await this.auctionCreationService.create(createAuctionRequest);
   }
 
   @Post('place_bid')
-  async placeBid(@Body() placeBidRequest: PlaceBidRequest): Promise<PlaceBidResponse> {
-    const { bid, balanceTransferTransaction } = placeBidRequest;
+  async placeBid(@Body() placeBidRequest: PlaceBidRequestDto): Promise<OfferContractAskDto> {
+    return await this.bidPlacingService.placeBid(placeBidRequest);
+  }
 
-    return await this.bidPlacingService.placeBid(bid, balanceTransferTransaction);
+  @Delete('withdraw_bid')
+  async withdrawBid(@Body() withdrawBidRequest: WithdrawBidRequestDto): Promise<void> {
+    return await this.bidPlacingService.withdrawBid(withdrawBidRequest);
   }
 }

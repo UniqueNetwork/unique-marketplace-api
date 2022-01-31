@@ -1,14 +1,14 @@
 import { Server, Socket } from "socket.io";
-import { Auction, Bid } from "../../auction/types";
+import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 
 type ServerToClientEvents = {
-  auctionStarted: (auction: Auction) => void;
-  bidPlaced: (bid: Bid) => void;
+  auctionStarted: (offer: OfferContractAskDto) => void;
+  bidPlaced: (offer: OfferContractAskDto) => void;
 };
 
 type ClientToServerEvents = {
-  subscribeToAuction: (auctionId: string) => void;
-  unsubscribeFromAuction: (auctionId: string) => void;
+  subscribeToAuction: (offerId: string) => void;
+  unsubscribeFromAuction: (offerId: string) => void;
 };
 
 type InterServerEvents = Record<string, never>;

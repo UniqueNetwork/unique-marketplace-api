@@ -19,5 +19,3 @@ export interface Bid {
 
   isWithdrawn: boolean;
 }
-
-export type NewBid = Pick<Bid, 'auctionId' | 'amount' | 'bidderAddress'>;

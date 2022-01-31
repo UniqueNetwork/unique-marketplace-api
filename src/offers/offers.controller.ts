@@ -1,7 +1,7 @@
 import { Controller, Get, HttpStatus, Query } from '@nestjs/common';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResult } from '../utils/pagination/pagination-result';
+import { PaginationResultDto } from '../utils/pagination/pagination-result';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { OfferContractAskDto } from './dto/offer-dto';
 import { OffersFilter } from './dto/offers-filter';
@@ -25,7 +25,7 @@ export class OffersController {
         @Query() pagination: PaginationRequest,
         @Query(ParseOffersFilterPipe) offersFilter: OffersFilter,
         @Query() sort: OfferSortingRequest,
-    ): Promise<PaginationResult<OfferContractAskDto>> {
+    ): Promise<PaginationResultDto<OfferContractAskDto>> {
         return this.offersService.get(pagination, offersFilter, sort);
     }
 }

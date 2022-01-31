@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 
 import { BroadcastIOServer, BroadcastIOSocket } from "../types";
-import { Auction, Bid } from "../../auction/types";
+import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 
 @Injectable()
 export class BroadcastService {
@@ -40,15 +40,15 @@ export class BroadcastService {
     });
   }
 
-  sendAuctionStarted(auction: Auction): void {
-    this.logger.debug(`auctionStarted - ${JSON.stringify(auction)}`);
+  sendAuctionStarted(offer: OfferContractAskDto): void {
+    this.logger.debug(`auctionStarted - ${JSON.stringify(offer)}`);
 
-    this.server.of('/').emit('auctionStarted', auction);
+    this.server.of('/').emit('auctionStarted', offer);
   }
 
-  sendBidPlaced(bid: Bid): void {
-    this.logger.debug(`bidPlaced - ${JSON.stringify(bid)}`);
+  sendBidPlaced(offer: OfferContractAskDto): void {
+    this.logger.debug(`bidPlaced - ${JSON.stringify(offer)}`);
 
-    this.server.of('/').emit('bidPlaced', bid);
+    this.server.of('/').emit('bidPlaced', offer);
   }
 }
