@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
@@ -12,14 +12,23 @@ import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 import { OfferContractAskDto } from './dto/offer-dto';
 import { OffersFilter } from './dto/offers-filter';
 import { priceTransformer } from '../utils/price-transformer';
-import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk, SearchIndex } from '../entity';
+import {
+  BlockchainBlock,
+  ContractAsk,
+  SearchIndex,
+  AuctionEntity,
+  BidEntity,
+} from '../entity';
 
 @Injectable()
 export class OffersService {
     private offerSortingColumns = ['Price', 'TokenId', 'token_id', 'CollectionId', 'collection_id'];
     private sortingColumns = [...this.offerSortingColumns, 'CreationDate'];
+    private logger: Logger;
 
-    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {}
+    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {
+        this.logger = new Logger(OffersService.name);
+    }
 
     /**
      * Get Offers
@@ -28,41 +37,46 @@ export class OffersService {
      * @param {OffersFilter} offersFilter - DTO Offer filter
      * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate)
      */
-    async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResultDto<OfferContractAskDto>> {
-        let offers = this.connection.manager
-            .createQueryBuilder(
-              ContractAsk,
-              'offer',
-            )
-            .leftJoinAndMapOne(
-              'offer.blockchain',
-              BlockchainBlock,
-              'block',
-              'block.network = offer.network and block.block_number = offer.block_number_ask',
-            )
-            .leftJoinAndMapOne(
-                'offer.auction',
-              AuctionEntity,
-              'auction',
-              'auction.contract_ask_id = offer.id'
-            )
-            .leftJoinAndMapMany(
-              'auction.bids',
-              BidEntity,
-                'bid',
-                'bid.auction_id = auction.id and bid.is_withdrawn = false'
-            );
+    async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResult<OfferContractAskDto>> {
+        let offers: SelectQueryBuilder<ContractAsk>;
+        let paginationResult;
 
-        offers.leftJoinAndMapMany('offer.indexdata', SearchIndex, 'sindex', 'sindex.collection_id = offer.collection_id and sindex.token_id = offer.token_id');
+        try {
+            offers = this.connection.manager
+                .createQueryBuilder(ContractAsk, 'offer')
+                .innerJoinAndSelect(BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask')
+                .select('offer')
+                .addSelect('block.created_at', 'created_at')
+                .leftJoinAndMapOne(
+                  'offer.auction',
+                  AuctionEntity,
+                  'auction',
+                  'auction.contract_ask_id = offer.id'
+                )
+                .leftJoinAndMapMany(
+                  'auction.bids',
+                  BidEntity,
+                  'bid',
+                  'bid.auction_id = auction.id and bid.is_withdrawn = false'
+                );
 
-        offers = this.filter(offers, offersFilter);
-        offers = this.applySort(offers, sort);
-        const paginationResult = await paginate(offers, pagination);
+            offers = this.filter(offers, offersFilter);
+            offers = this.applySort(offers, sort);
+            paginationResult = await paginate(offers, pagination);
+        } catch (e) {
+            this.logger.error(e.message);
+            throw new BadRequestException({
+                statusCode: HttpStatus.BAD_REQUEST,
+                message:
+                    'Something went wrong! Perhaps there is no table [contract_ask] in the database, the sequence of installation and configuration or failure to sort or filter data.',
+                error: e.message,
+            });
+        }
 
-        return new PaginationResultDto(OfferContractAskDto, {
-            ...paginationResult,
-            items: paginationResult.items.map(OfferContractAskDto.fromContractAsk),
-        })
+      return new PaginationResultDto(OfferContractAskDto, {
+        ...paginationResult,
+        items: paginationResult.items.map(OfferContractAskDto.fromContractAsk),
+      })
     }
 
     /**
@@ -117,7 +131,7 @@ export class OffersService {
             price: offer.price.toString(),
             quoteId: +offer.currency,
             seller: offer.address_from,
-            creationDate: offer.blockchain.created_at,
+            creationDate: offer.created_at,
         };
     }
 
@@ -149,8 +163,8 @@ export class OffersService {
         if (maxPrice == null) {
             return query;
         }
-
         return query.andWhere('offer.price <= :maxPrice', { maxPrice: priceTransformer.to(maxPrice) });
+        // return query.andWhere('offer.price <= :maxPrice', { maxPrice: maxPrice });
     }
 
     /**
@@ -249,7 +263,7 @@ export class OffersService {
         query = this.filterBySeller(query, offersFilter.seller);
         query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale);
         // query = this.filterByTraitsCount(query, offersFilter.traitsCount);
-
-        return query.andWhere(`offer.status = :status`, { status: 'active' });
+        const qr = query.andWhere(`offer.status = :status`, { status: 'active' });
+        return qr;
     }
 }

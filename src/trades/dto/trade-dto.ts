@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsArray } from 'class-validator';
 
 /** DTO for Trades */
 export class MarketTradeDto {
@@ -25,4 +26,18 @@ export class MarketTradeDto {
 
     @ApiProperty({})
     tradeDate: Date;
+}
+
+export class ResponseMarketTradeDto {
+    @ApiProperty({})
+    page: number;
+
+    @ApiProperty({})
+    pageSize: number;
+
+    @ApiProperty({})
+    itemsCount: number;
+
+    @ApiProperty({ type: [MarketTradeDto], format: 'array' })
+    items: [MarketTradeDto];
 }

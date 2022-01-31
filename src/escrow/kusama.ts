@@ -66,7 +66,7 @@ export class KusamaEscrow extends Escrow {
       logging.log(`Kusama deposit (from ${address}, amount ${amount}) in block #${blockNum} failed`);
       return;
     }
-    await this.service.registerKusamaDeposit(amount, address, blockNum, this.getNetwork());
+    await this.service.modifyContractBalance(amount, address, blockNum, this.getNetwork());
     logging.log(`Kusama deposit (from ${address}, amount ${amount}) in block #${blockNum} saved to db`);
   }
 

@@ -5,11 +5,6 @@ import { v4 as uuid } from 'uuid';
 import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex } from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 
-const oldOfferStatus = {
-    ACTIVE: 1,
-    CANCELED: 2,
-    TRADED: 3,
-};
 
 @Injectable()
 export class EscrowService {
@@ -63,7 +58,12 @@ export class EscrowService {
 
     async getActiveAsk(collectionId: number, tokenId: number, network?: string): Promise<ContractAsk> {
         const repository = this.db.getRepository(ContractAsk);
-        return await repository.findOne({ collection_id: collectionId.toString(), token_id: tokenId.toString(), network: this.getNetwork(network) });
+        return await repository.findOne({
+          collection_id: collectionId.toString(),
+          token_id: tokenId.toString(),
+          network: this.getNetwork(network),
+          status: ASK_STATUS.ACTIVE
+        });
     }
 
     async registerAsk(
@@ -125,7 +125,7 @@ export class EscrowService {
         await repository.upsert({ block_number: `${blockNum}`, network: this.getNetwork(network), created_at }, ['block_number', 'network']);
     }
 
-    async registerKusamaDeposit(amount, address, blockNumber, network: string) {
+    async modifyContractBalance(amount, address, blockNumber, network: string) {
         const repository = this.db.getRepository(MoneyTransfer);
         await repository.insert({
             id: uuid(),
@@ -157,7 +157,7 @@ export class EscrowService {
         });
     }
 
-    async getPendingKusamaDeposit(network: string) {
+    async getPendingContractBalance(network: string) {
         return this.db
             .getRepository(MoneyTransfer)
             .createQueryBuilder('money_transfer')

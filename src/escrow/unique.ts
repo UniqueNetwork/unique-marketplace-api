@@ -180,12 +180,17 @@ export class UniqueEscrow extends Escrow {
     const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
 
     if(!activeAsk) return;
-    const origPrice = this.getPriceWithoutCommission(BigInt(activeAsk.price));
+    const realPrice = BigInt(activeAsk.price);
+    const origPrice = this.getPriceWithoutCommission(realPrice);
     const buyerEth = this.address2string(buyer);
     const buyerSub = await this.service.getSubstrateAddress(buyerEth);
     const buyerAddress = buyerSub ? buyerSub : buyerEth;
 
     await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
+
+    // Balance on smart-contract (Next tick in this escrow)
+    await this.service.modifyContractBalance(-realPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
+    // Real KSM (Processed on kusama escrow)
     await this.service.registerKusamaWithdraw(origPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
 
     logging.log(`Got buyKSM (collectionId: ${collectionId}, tokenId: ${tokenId}, buyer: ${buyerAddress}, price: ${activeAsk.price}, price without commission: ${origPrice}) in block #${blockNum}`);
@@ -250,13 +255,14 @@ export class UniqueEscrow extends Escrow {
     }
   }
 
-  async processDeposits() {
+  async processContractBalance() {
     while(true) {
-      let deposit = await this.service.getPendingKusamaDeposit(this.config('kusama.network'));
+      let deposit = await this.service.getPendingContractBalance(this.config('kusama.network'));
       if(!deposit) break;
       await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.IN_PROGRESS);
+      let method = 'depositKSM';
       try {
-        logging.log(`Unique depositKSM for money transfer #${deposit.id} started`);
+        logging.log(`Unique deposit for money transfer #${deposit.id} started`);
         const amount = BigInt(deposit.amount);
         const ethAddress = lib.subToEth(deposit.extra.address);
         await this.service.registerAccountPair(deposit.extra.address, ethAddress);
@@ -264,15 +270,24 @@ export class UniqueEscrow extends Escrow {
         const { contract, helpers } = this.getContract();
         await this.addToAllowList(deposit.extra.address, {contract: contract, helpers});
 
-        await contract.methods.depositKSM(amount, ethAddress).send({
-          from: this.contractOwner.address, ...lib.GAS_ARGS
-        });
+        if(amount < 0) {
+          method = 'withdrawKSM'
+          await contract.methods.withdrawKSM(-amount, ethAddress).send({
+            from: this.contractOwner.address, ...lib.GAS_ARGS
+          });
+        }
+        else {
+          await contract.methods.depositKSM(amount, ethAddress).send({
+            from: this.contractOwner.address, ...lib.GAS_ARGS
+          });
+        }
+
         await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.COMPLETED);
-        logging.log(`Unique depositKSM for money transfer #${deposit.id} successful`);
+        logging.log(`Unique ${method} for money transfer #${deposit.id} successful`);
       }
       catch(e) {
         await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.FAILED);
-        logging.log(`Unique depositKSM for money transfer #${deposit.id} failed`, logging.level.ERROR);
+        logging.log(`Unique ${method} for money transfer #${deposit.id} failed`, logging.level.ERROR);
         logging.log(e, logging.level.ERROR);
       }
     }
@@ -285,7 +300,7 @@ export class UniqueEscrow extends Escrow {
       logging.log(`Unable to scan block #${blockNum} (WTF?)`, logging.level.ERROR);
       logging.log(e, logging.level.ERROR);
     }
-    await this.processDeposits();
+    await this.processContractBalance();
   }
 
   getStartFromBlock(): number | string {

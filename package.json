@@ -1,6 +1,6 @@
 {
   "name": "unique-marketplace-api",
-  "version": "1.0.0",
+  "version": "1.0",
   "description": "Backend project for unique marketplace",
   "author": "Unique Network",
   "private": true,
@@ -61,7 +61,7 @@
     "yargs": "17.3.0"
   },
   "devDependencies": {
-    "@nestjs/testing": "^8.0.0",
+    "@nestjs/testing": "^8.2.6",
     "@types/cron": "^1.7.3",
     "@types/express": "^4.17.13",
     "@types/jest": "^27.0.1",

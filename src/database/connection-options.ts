@@ -11,7 +11,7 @@ export const getConnectionOptions = (config = getConfig(), test = false, logger 
         entities: [__dirname + '/../**/entity.{t,j}s', __dirname + '/../entity/*.{t,j}s'],
         migrations: [__dirname + '/../migrations/*.ts'],
         synchronize: false,
-        logging: logger,
+        logging: logger ? logger : config.dev.debugMigrations,
         cli: {
             migrationsDir: join('src', 'migrations'),
         },

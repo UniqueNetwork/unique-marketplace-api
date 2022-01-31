@@ -45,8 +45,9 @@ const collectionIdToAddress = (address: number): string => {
 
 const createEthAccountWithBalance = async (api: ApiPromise, web3) => {
   const alice = privateKey('//Alice');
-  const account = createEthAccount(web3);
-  await transferBalanceToEth(api, alice, account);
+  const account = web3.eth.accounts.create();
+  web3.eth.accounts.wallet.add(account.privateKey);
+  await transferBalanceToEth(api, alice, account.address);
 
   return account;
 }
