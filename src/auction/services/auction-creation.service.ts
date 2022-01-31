@@ -60,7 +60,6 @@ export class AuctionCreationService {
     });
 
     await this.contractAskRepository.save(contractAsk);
-    contractAsk.blockchain = block;
 
     const offer = OfferContractAskDto.fromContractAsk(contractAsk);
 

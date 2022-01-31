@@ -62,7 +62,7 @@ export class OfferContractAskDto {
         price: contractAsk.price.toString(),
         quoteId: +contractAsk.currency,
         seller: contractAsk.address_from,
-        creationDate: contractAsk.blockchain?.created_at,
+        creationDate: contractAsk.created_at,
       };
 
       return plainToInstance<OfferContractAskDto, Record<string, any>>(

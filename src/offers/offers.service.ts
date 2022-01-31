@@ -37,7 +37,7 @@ export class OffersService {
      * @param {OffersFilter} offersFilter - DTO Offer filter
      * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate)
      */
-    async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResult<OfferContractAskDto>> {
+    async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResultDto<OfferContractAskDto>> {
         let offers: SelectQueryBuilder<ContractAsk>;
         let paginationResult;
 
