@@ -311,7 +311,7 @@ contract MarketPlace is IERC721Receiver/* , Initializable */ {
         emit WithdrawnAllKSM(_sender, lastBalance);
     }
 
-    function withdrawKSM (uint _amount, address _sender) onlyEscrow public returns (uint ) {
+    function withdrawKSM (uint _amount, address _sender) onlyEscrow public {
         balanceKSM[_sender] = balanceKSM[_sender].sub(_amount);
         emit WithdrawnKSM(_sender, balanceKSM[_sender]);
         
