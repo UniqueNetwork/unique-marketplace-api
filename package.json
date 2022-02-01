@@ -49,7 +49,7 @@
     "swagger-ui-express": "4.3.0",
     "typeorm": "0.2.41",
     "uuid": "8.3.2",
-    "web3": "^1.2.6",
+    "web3": "^1.7.0",
     "yargs": "17.3.0"
   },
   "devDependencies": {

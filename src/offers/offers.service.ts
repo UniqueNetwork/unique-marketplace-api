@@ -51,11 +51,18 @@ export class OffersService {
                     'block.network = offer.network and block.block_number = offer.block_number_ask',
                 )
                 .select('offer')
-                .addSelect('block.created_at', 'created_at');
+                .addSelect('block.created_at', 'created_at')
+                .innerJoinAndMapOne(
+                    'offer.block',
+                    BlockchainBlock,
+                    'blocks',
+                    'offer.network = blocks.network and blocks.block_number = offer.block_number_ask',
+                );
 
             offers = this.filter(offers, offersFilter);
             offers = this.applySort(offers, sort);
             paginationResult = await paginate(offers, pagination);
+            console.dir(paginationResult, { depth: 5 });
         } catch (e) {
             this.logger.error(e.message);
             this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -63,8 +70,7 @@ export class OffersService {
             });
             throw new BadRequestException({
                 statusCode: HttpStatus.BAD_REQUEST,
-                message:
-                    'Something went wrong! Perhaps there is no table [contract_ask] in the database, the sequence of installation and configuration or failure to sort or filter data.',
+                message: 'Something went wrong!',
                 error: e.message,
             });
         }
@@ -127,7 +133,7 @@ export class OffersService {
             price: offer.price.toString(),
             quoteId: +offer.currency,
             seller: offer.address_from,
-            creationDate: offer.created_at,
+            creationDate: offer.block.created_at,
         };
     }
 

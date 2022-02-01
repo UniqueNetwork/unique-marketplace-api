@@ -11,9 +11,9 @@ export default {
         debugScanBlock: false,
     },
     sentry: {
-        enabled: process.env.SENTRY_ENABLED || true,
+        enabled: process.env.SENTRY_ENABLED || false,
         environment: process.env.SENTRY_ENV || 'dev', // | 'production' | 'some_environment',
-        dsn: process.env.SENTRY_DSN || 'https://9ef079bc3782414183267356b91314d7@sentry.uniquenetwork.dev/2',
+        dsn: process.env.SENTRY_DSN || 'https://hash@domain.tld/sentryId',
         debug: process.env.SENTRY_DEBUG || true,
         release: process.env.SENTRY_RELEASE || 'marketplace-api:develop',
     },
