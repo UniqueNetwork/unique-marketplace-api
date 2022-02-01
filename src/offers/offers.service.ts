@@ -62,7 +62,6 @@ export class OffersService {
             offers = this.filter(offers, offersFilter);
             offers = this.applySort(offers, sort);
             paginationResult = await paginate(offers, pagination);
-            console.dir(paginationResult, { depth: 5 });
         } catch (e) {
             this.logger.error(e.message);
             this.sentryService.instance().captureException(new BadRequestException(e), {
