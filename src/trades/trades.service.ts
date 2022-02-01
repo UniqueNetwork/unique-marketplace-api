@@ -11,6 +11,7 @@ import { paginate } from '../utils/pagination/paginate';
 import { MarketTradeDto } from './dto/trade-dto';
 import { MarketTrade } from '../entity';
 import { IMarketTrade } from './interfaces/trade.interface';
+import { InjectSentry, SentryService } from '../utils/sentry';
 
 @Injectable()
 export class TradesService {
@@ -18,7 +19,10 @@ export class TradesService {
     private sortingColumns = [...this.offerSortingColumns, 'TradeDate'];
     private logger: Logger;
 
-    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {
+    constructor(
+        @Inject('DATABASE_CONNECTION') private connection: Connection,
+        @InjectSentry() private readonly sentryService: SentryService,
+    ) {
         this.logger = new Logger(TradesService.name);
     }
 
@@ -48,6 +52,9 @@ export class TradesService {
             paginationResult = await paginate(tradesQuery, paginationRequest);
         } catch (e) {
             this.logger.error(e);
+            this.sentryService.instance().captureException(new BadRequestException(e), {
+                tags: { section: 'market_trade' },
+            });
             throw new BadRequestException({
                 statusCode: HttpStatus.BAD_REQUEST,
                 message:
@@ -145,7 +152,10 @@ export class TradesService {
      * @see TradesService.get
      * @return ({SelectQueryBuilder<IMarketTrade>})
      */
-    private filterByCollectionIds(query: SelectQueryBuilder<IMarketTrade>, collectionIds: number[] | undefined): SelectQueryBuilder<IMarketTrade> {
+    private filterByCollectionIds(
+        query: SelectQueryBuilder<IMarketTrade>,
+        collectionIds: number[] | undefined,
+    ): SelectQueryBuilder<IMarketTrade> {
         if (collectionIds == null || collectionIds.length <= 0) {
             return query;
         }

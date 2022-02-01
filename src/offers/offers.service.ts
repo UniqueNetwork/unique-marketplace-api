@@ -13,6 +13,7 @@ import { OfferContractAskDto } from './dto/offer-dto';
 import { OffersFilter } from './dto/offers-filter';
 import { priceTransformer } from '../utils/price-transformer';
 import { BlockchainBlock, ContractAsk, SearchIndex } from '../entity';
+import { InjectSentry, SentryService } from '../utils/sentry';
 
 @Injectable()
 export class OffersService {
@@ -20,10 +21,12 @@ export class OffersService {
     private sortingColumns = [...this.offerSortingColumns, 'CreationDate'];
     private logger: Logger;
 
-    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {
+    constructor(
+        @Inject('DATABASE_CONNECTION') private connection: Connection,
+        @InjectSentry() private readonly sentryService: SentryService,
+    ) {
         this.logger = new Logger(OffersService.name);
     }
-
     /**
      * Get Offers
      * @description Returns sales offers in JSON format
@@ -31,14 +34,22 @@ export class OffersService {
      * @param {OffersFilter} offersFilter - DTO Offer filter
      * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate)
      */
-    async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResult<OfferContractAskDto>> {
+    async get(
+        pagination: PaginationRequest,
+        offersFilter: OffersFilter,
+        sort: OfferSortingRequest,
+    ): Promise<PaginationResult<OfferContractAskDto>> {
         let offers: SelectQueryBuilder<ContractAsk>;
         let paginationResult;
 
         try {
             offers = this.connection.manager
                 .createQueryBuilder(ContractAsk, 'offer')
-                .innerJoinAndSelect(BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask')
+                .innerJoinAndSelect(
+                    BlockchainBlock,
+                    'block',
+                    'block.network = offer.network and block.block_number = offer.block_number_ask',
+                )
                 .select('offer')
                 .addSelect('block.created_at', 'created_at');
 
@@ -47,6 +58,9 @@ export class OffersService {
             paginationResult = await paginate(offers, pagination);
         } catch (e) {
             this.logger.error(e.message);
+            this.sentryService.instance().captureException(new BadRequestException(e), {
+                tags: { section: 'contract_ask' },
+            });
             throw new BadRequestException({
                 statusCode: HttpStatus.BAD_REQUEST,
                 message:
@@ -184,15 +198,23 @@ export class OffersService {
             .createQueryBuilder(SearchIndex, 'searchIndex')
             .andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text });
         if (!nullOrWhitespace(locale)) {
-            matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale });
+            matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', {
+                locale: locale,
+            });
         }
 
-        const groupedMatches = matchedText.select('searchIndex.collection_id, searchIndex.token_id').groupBy('searchIndex.collection_id, searchIndex.token_id');
+        const groupedMatches = matchedText
+            .select('searchIndex.collection_id, searchIndex.token_id')
+            .groupBy('searchIndex.collection_id, searchIndex.token_id');
         //innerJoin doesn't add parentesises around joined value, which is required in case of complex subquery.
         const getQueryOld = groupedMatches.getQuery.bind(groupedMatches);
         groupedMatches.getQuery = () => `(${getQueryOld()})`;
         groupedMatches.getQuery.prototype = getQueryOld;
-        return query.innerJoin(() => groupedMatches, 'gr', 'gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"');
+        return query.innerJoin(
+            () => groupedMatches,
+            'gr',
+            'gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"',
+        );
     }
 
     /**

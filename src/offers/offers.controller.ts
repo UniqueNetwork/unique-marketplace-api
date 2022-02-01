@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Query, UseInterceptors } from '@nestjs/common';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResult } from '../utils/pagination/pagination-result';
@@ -9,9 +9,11 @@ import { ParseOffersFilterPipe } from './pipes/offers-filter.pipe';
 import { OffersService } from './offers.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import * as fs from 'fs';
+import { TraceInterceptor } from '../utils/sentry';
 
 @ApiTags('Offers')
 @Controller('offers')
+@UseInterceptors(TraceInterceptor)
 export class OffersController {
     constructor(private readonly offersService: OffersService) {}
 
