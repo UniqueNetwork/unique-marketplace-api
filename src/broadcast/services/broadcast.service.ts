@@ -51,4 +51,10 @@ export class BroadcastService {
 
     this.server.of('/').emit('bidPlaced', offer);
   }
+
+  sendAuctionClose(offer: OfferContractAskDto): void {
+    this.logger.debug(`auctionClosed - ${JSON.stringify(offer)}`);
+
+    this.server.of('/').emit('auctionClosed', offer);
+  }
 }

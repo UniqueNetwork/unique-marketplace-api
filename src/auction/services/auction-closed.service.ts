@@ -2,7 +2,7 @@ import { BroadcastService } from './../../broadcast/services/broadcast.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { AuctionEntity, BidEntity } from '../entities';
-import { Connection, createQueryBuilder, Repository } from 'typeorm';
+import { Connection, Repository } from 'typeorm';
 import { Auction, AuctionStatus, Bid } from '../types';
 
 
@@ -29,33 +29,42 @@ export class AuctionClosedService {
     const auctions: Array<Auction> = await this.listStops();
 
     for(const auction of auctions) {
-      console.log(auction.id);
+      const bids = await this.bids(auction.id);
+
+      await this.auctionClose(auction);
     }
-
-    await this.bids();
-
   }
 
-  async listStops(): Promise<Array<Auction>> {
+  private async listStops(): Promise<Array<Auction>> {
     const auctionEnds: Array<Auction> = await this.auctionRepository
       .createQueryBuilder('auction')
-      .select(['auction.id','auction.status','auction.stopAt'])
       .where('auction.status <> :status', { status: AuctionStatus.ended })
       .getMany();
 
     return auctionEnds;
   }
 
-  async bids(): Promise<Array<Bid>> {
+  private async auctionClose(auction: Auction): Promise<void> {
+    const results = await this.auctionRepository.update({
+       id: auction.id,
+       status: auction.status
+    }, {
+      status: AuctionStatus.ended
+    });
+
+    this.logger.debug(JSON.stringify(results));
+  }
+
+
+  private async bids(auctionId: string): Promise<Array<Bid>> {
 
     const bids  = await this.bidRepository
       .createQueryBuilder('bid')
-      //.select(['bid.bidder_address', 'bid.amount', 'bid.status', 'bid.is_withdrawn'])
-      //.where('bid.auction_id = :auctionId', { auctionId })
+      .select(['bid.bidderAddress', 'bid.amount', 'bid.status', 'bid.isWithdrawn'])
+      .where('bid.auction_id = :auctionId', { auctionId })
+      .andWhere('bid.is_withdrawn = :isWithdrawn', { isWithdrawn: false })
       .getMany();
 
-    console.log(bids);
-
-    return [];
+    return bids;
   }
 }
