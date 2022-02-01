@@ -5,17 +5,17 @@ export enum AuctionStatus {
 }
 
 export interface Auction {
-  id: string;
+  id?: string;
 
-  status: AuctionStatus;
+  status?: AuctionStatus;
 
-  startPrice: string;
+  startPrice?: string;
 
-  priceStep: string;
+  priceStep?: string;
 
-  stopAt: Date;
+  stopAt?: Date;
 
-  createdAt: Date;
+  createdAt?: Date;
 
-  updatedAt: Date;
+  updatedAt?: Date;
 }
