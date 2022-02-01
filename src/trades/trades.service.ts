@@ -47,7 +47,7 @@ export class TradesService {
             tradesQuery = this.applySort(tradesQuery, sort);
             paginationResult = await paginate(tradesQuery, paginationRequest);
         } catch (e) {
-            this.logger.error(e.message);
+            this.logger.error(e);
             throw new BadRequestException({
                 statusCode: HttpStatus.BAD_REQUEST,
                 message:
@@ -107,7 +107,7 @@ export class TradesService {
         if (JSON.stringify(sort.sort).includes('TradeDate') === false) sort.sort.push({ order: 1, column: 'TradeDate' });
 
         for (let param of sort.sort ?? []) {
-            let column = this.sortingColumns.find((column) => equalsIgnoreCase(param.column, column)).toLowerCase();
+            let column = this.sortingColumns.find((column) => equalsIgnoreCase(param.column, column));
 
             if (column === 'tokenid' || column === 'TokenId') {
                 column = 'token_id';
@@ -119,7 +119,7 @@ export class TradesService {
                 column = 'collection_id';
             }
 
-            if (column === null) continue;
+            if (column === null || column === undefined) continue;
             params.push({ ...param, column });
         }
 
@@ -129,8 +129,8 @@ export class TradesService {
 
         let first = true;
         for (let param of params) {
-            //let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'trade' : 'trade';
-            query = query[first ? 'orderBy' : 'addOrderBy'](`trade.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
+            let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'trade' : 'trade';
+            query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
             first = false;
         }
 
