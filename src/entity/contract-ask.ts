@@ -1,4 +1,4 @@
-import { Column, Entity, Index, ManyToOne, OneToOne } from 'typeorm';
+import { Column, Entity, Index, ManyToMany, ManyToOne, OneToOne } from 'typeorm';
 import { BlockchainBlock } from './blockchain-block';
 import { AuctionEntity } from "../auction/entities";
 
@@ -47,4 +47,6 @@ export class ContractAsk {
 
     @OneToOne(() => AuctionEntity, (auction) => auction.contractAsk, { cascade: ['insert']})
     auction?: AuctionEntity;
+    @OneToOne((type) => BlockchainBlock)
+    block: BlockchainBlock;
 }

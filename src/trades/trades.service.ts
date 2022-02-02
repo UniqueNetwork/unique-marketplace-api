@@ -11,6 +11,7 @@ import { paginate } from '../utils/pagination/paginate';
 import { MarketTradeDto } from './dto/trade-dto';
 import { MarketTrade } from '../entity';
 import { IMarketTrade } from './interfaces/trade.interface';
+import { InjectSentry, SentryService } from '../utils/sentry';
 
 @Injectable()
 export class TradesService {
@@ -18,7 +19,10 @@ export class TradesService {
     private sortingColumns = [...this.offerSortingColumns, 'TradeDate'];
     private logger: Logger;
 
-    constructor(@Inject('DATABASE_CONNECTION') private connection: Connection) {
+    constructor(
+        @Inject('DATABASE_CONNECTION') private connection: Connection,
+        @InjectSentry() private readonly sentryService: SentryService,
+    ) {
         this.logger = new Logger(TradesService.name);
     }
 
@@ -47,7 +51,10 @@ export class TradesService {
             tradesQuery = this.applySort(tradesQuery, sort);
             paginationResult = await paginate(tradesQuery, paginationRequest);
         } catch (e) {
-            this.logger.error(e.message);
+            this.logger.error(e);
+            this.sentryService.instance().captureException(new BadRequestException(e), {
+                tags: { section: 'market_trade' },
+            });
             throw new BadRequestException({
                 statusCode: HttpStatus.BAD_REQUEST,
                 message:
@@ -107,7 +114,7 @@ export class TradesService {
         if (JSON.stringify(sort.sort).includes('TradeDate') === false) sort.sort.push({ order: 1, column: 'TradeDate' });
 
         for (let param of sort.sort ?? []) {
-            let column = this.sortingColumns.find((column) => equalsIgnoreCase(param.column, column)).toLowerCase();
+            let column = this.sortingColumns.find((column) => equalsIgnoreCase(param.column, column));
 
             if (column === 'tokenid' || column === 'TokenId') {
                 column = 'token_id';
@@ -119,7 +126,7 @@ export class TradesService {
                 column = 'collection_id';
             }
 
-            if (column === null) continue;
+            if (column === null || column === undefined) continue;
             params.push({ ...param, column });
         }
 
@@ -129,8 +136,8 @@ export class TradesService {
 
         let first = true;
         for (let param of params) {
-            //let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'trade' : 'trade';
-            query = query[first ? 'orderBy' : 'addOrderBy'](`trade.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
+            let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'trade' : 'trade';
+            query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
             first = false;
         }
 
@@ -145,7 +152,10 @@ export class TradesService {
      * @see TradesService.get
      * @return ({SelectQueryBuilder<IMarketTrade>})
      */
-    private filterByCollectionIds(query: SelectQueryBuilder<IMarketTrade>, collectionIds: number[] | undefined): SelectQueryBuilder<IMarketTrade> {
+    private filterByCollectionIds(
+        query: SelectQueryBuilder<IMarketTrade>,
+        collectionIds: number[] | undefined,
+    ): SelectQueryBuilder<IMarketTrade> {
         if (collectionIds == null || collectionIds.length <= 0) {
             return query;
         }

@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, Param, Query } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { queryArray } from '../utils/decorators/query-array.decorator';
@@ -10,9 +10,11 @@ import { MarketTradeDto, ResponseMarketTradeDto } from './dto/trade-dto';
 import { TradesService } from './trades.service';
 import * as fs from 'fs';
 import { parseCollectionIdRequest } from '../utils/parsers';
+import { TraceInterceptor } from '../utils/sentry';
 
 @ApiTags('Trades')
 @Controller('trades')
+@UseInterceptors(TraceInterceptor)
 export class TradesController {
     constructor(private readonly tradesService: TradesService) {}
 

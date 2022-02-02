@@ -14,6 +14,7 @@
     "prod": "node dist/main",
     "coverage": "jest --config tests/jest.config.json --coverage --detectOpenHandles",
     "test": "jest --config tests/jest.config.json --detectOpenHandles",
+    "test:escrow": "jest --config tests/jest.config.json --detectOpenHandles tests/escrow.unique.test.ts",
     "test:watch": "jest --config tests/jest.config.json --watch --detectOpenHandles",
     "escrow:kusama": "node dist/cli.js start_escrow kusama",
     "escrow:unique": "node dist/cli.js start_escrow unique",
@@ -29,6 +30,7 @@
     "@nestjs/cli": "^8.2.0",
     "@nestjs/common": "8.2.4",
     "@nestjs/core": "8.2.4",
+    "@nestjs/graphql": "^9.1.2",
     "@nestjs/platform-express": "8.2.4",
     "@nestjs/platform-socket.io": "^8.2.6",
     "@nestjs/schedule": "^1.0.2",
@@ -44,6 +46,7 @@
     "@polkadot/util": "^8.3.3",
     "@polkadot/util-crypto": "^8.3.3",
     "@socket.io/postgres-adapter": "^0.2.0",
+    "@sentry/node": "^5.5.0",
     "@unique-nft/types": "0.2.0",
     "class-transformer": "0.5.1",
     "class-validator": "0.13.2",
@@ -57,7 +60,7 @@
     "swagger-ui-express": "4.3.0",
     "typeorm": "0.2.41",
     "uuid": "8.3.2",
-    "web3": "1.6.1",
+    "web3": "^1.7.0",
     "yargs": "17.3.0"
   },
   "devDependencies": {
