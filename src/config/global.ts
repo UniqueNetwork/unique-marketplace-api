@@ -14,7 +14,7 @@ export default {
         enabled: process.env.SENTRY_ENABLED || false,
         environment: process.env.SENTRY_ENV || 'dev', // | 'production' | 'some_environment',
         dsn: process.env.SENTRY_DSN || 'https://hash@domain.tld/sentryId',
-        debug: process.env.SENTRY_DEBUG || true,
+        debug: process.env.SENTRY_DEBUG || false,
         release: process.env.SENTRY_RELEASE || 'marketplace-api:develop',
     },
     swagger: {
