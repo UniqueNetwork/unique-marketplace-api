@@ -7,15 +7,15 @@ export enum BidStatus {
 }
 
 export interface Bid {
-  id?: string;
+  id: string;
 
-  auctionId?: string;
+  auctionId: string;
 
-  status?: BidStatus;
+  status: BidStatus;
 
-  amount?: string;
+  amount: string;
 
-  bidderAddress?: string;
+  bidderAddress: string;
 
-  isWithdrawn?: boolean;
+  isWithdrawn: boolean;
 }

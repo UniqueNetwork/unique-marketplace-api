@@ -26,7 +26,7 @@ export class AuctionClosedService {
   async handleInterval() {
     this.logger.debug('closed auction');
 
-    const auctions: Array<Auction> = await this.listStops();
+    const auctions: Array<Partial<Auction>> = await this.listStops();
 
     for(const auction of auctions) {
       const bids = await this.bids(auction.id);
@@ -35,16 +35,17 @@ export class AuctionClosedService {
     }
   }
 
-  private async listStops(): Promise<Array<Auction>> {
+  private async listStops(): Promise<Array<Partial<Auction>>> {
     const auctionEnds: Array<Auction> = await this.auctionRepository
       .createQueryBuilder('auction')
+      .select(['auction.id','auction.status','auction.stopAt'])
       .where('auction.status <> :status', { status: AuctionStatus.ended })
       .getMany();
 
     return auctionEnds;
   }
 
-  private async auctionClose(auction: Auction): Promise<void> {
+  private async auctionClose(auction: Partial<Auction>): Promise<void> {
     const results = await this.auctionRepository.update({
        id: auction.id,
        status: auction.status
@@ -56,7 +57,7 @@ export class AuctionClosedService {
   }
 
 
-  private async bids(auctionId: string): Promise<Array<Bid>> {
+  private async bids(auctionId: string): Promise<Array<Partial<Bid>>> {
 
     const bids  = await this.bidRepository
       .createQueryBuilder('bid')
