@@ -3,7 +3,7 @@ import { Connection, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResult, PaginationResultDto } from '../utils/pagination/pagination-result';
+import { PaginationResultDto } from '../utils/pagination/pagination-result';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
@@ -44,7 +44,7 @@ export class OffersService {
         pagination: PaginationRequest,
         offersFilter: OffersFilter,
         sort: OfferSortingRequest,
-    ): Promise<PaginationResult<OfferContractAskDto>> {
+    ): Promise<PaginationResultDto<OfferContractAskDto>> {
         let offers: SelectQueryBuilder<ContractAsk>;
         let paginationResult;
 
