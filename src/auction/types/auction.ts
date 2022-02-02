@@ -18,4 +18,6 @@ export interface Auction {
   createdAt: Date;
 
   updatedAt: Date;
+
+  contractAskId?: string;
 }
