@@ -1,6 +1,4 @@
-import { Inject } from "@nestjs/common"
-import {
-    SENTRY
-} from "../constants"
+import { Inject } from '@nestjs/common';
+import { SENTRY } from '../constants';
 
-export const InjectSentry = () => Inject( SENTRY )
+export const InjectSentry = () => Inject(SENTRY);

@@ -21,12 +21,12 @@ export const SentryLoggerService = () => {
                 release: config.sentry.release, // must create a release in sentry.io dashboard
                 logLevel: LogLevel.Debug,
                 sampleRate: 1,
-                //tracesSampleRate: 1,
-                // expressTracing: true,
+                tracesSampleRate: 1.0,
+                expressTracing: config.sentry.expressTracing,
                 close: {
                     enabled: true,
                     // Time in milliseconds to forcefully quit the application
-                    timeout: 10000,
+                    timeout: 2000,
                 },
             }),
         });
