@@ -60,8 +60,8 @@ export class SentryService {
         }
     }
 
-    captureException(exception: any) {
-        Sentry.captureException(exception);
+    captureException(exception: any, context?: CaptureContext): void {
+        Sentry.captureException(exception, context);
     }
 
     setContext(name: string, context: { [key: string]: any } | null) {
