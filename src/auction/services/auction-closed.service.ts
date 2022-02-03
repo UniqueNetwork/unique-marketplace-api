@@ -34,8 +34,6 @@ export class AuctionClosedService {
 
     for(const auction of auctions) {
       //const bids = await this.bids(auction.id);
-
-      
       const contractAsk = await this.contractAsk(auction);
 
       this.logger.log(JSON.stringify(contractAsk));
@@ -48,6 +46,7 @@ export class AuctionClosedService {
       .createQueryBuilder('auction')
       .select(['auction.id','auction.status','auction.stopAt', 'auction.contractAskId'])
       .where('auction.status <> :status', { status: AuctionStatus.ended })
+      .andWhere('auction.stopAt <= :stopAt', {stopAt: new Date()})
       .getMany();
 
     return auctionEnds;
