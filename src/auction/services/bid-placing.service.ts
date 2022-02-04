@@ -3,11 +3,18 @@ import { Connection, Repository, LessThan } from "typeorm";
 
 import { AuctionEntity, BidEntity } from "../entities";
 import { BroadcastService } from "../../broadcast/services/broadcast.service";
-import { PlaceBidRequest } from "../requests";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 import { BlockchainBlock, ContractAsk } from "../../entity";
 import { BidStatus } from "../types";
 import { WithdrawBidRequest } from "../requests/withdraw-bid";
+
+type PlaceBidArgs = {
+  collectionId: number;
+  tokenId: number;
+  amount: string;
+  bidderAddress: string;
+  tx: string;
+}
 
 @Injectable()
 export class BidPlacingService {
@@ -28,8 +35,10 @@ export class BidPlacingService {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
   }
 
-  async placeBid(placeBidRequest: PlaceBidRequest): Promise<OfferContractAskDto> {
-    const { collectionId, tokenId, amount, bidderAddress, bidTransferTransactionHex } = placeBidRequest;
+  async placeBid(placeBidArgs: PlaceBidArgs): Promise<OfferContractAskDto> {
+    const { collectionId, tokenId, amount, bidderAddress, tx } = placeBidArgs;
+
+    await this.sendTransferExtrinsic(tx);
 
     const {
       id: contractAskId,
@@ -125,7 +134,7 @@ export class BidPlacingService {
   }
 
   // todo - implement
-  private async transferBalance(balanceTransferTransaction: string): Promise<void> {
-    this.logger.debug(balanceTransferTransaction);
+  private async sendTransferExtrinsic(tx: string): Promise<void> {
+    this.logger.debug(tx);
   }
 }

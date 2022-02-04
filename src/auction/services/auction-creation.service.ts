@@ -4,10 +4,19 @@ import { Connection, Repository} from "typeorm";
 import { AuctionEntity} from "../entities";
 import { BroadcastService} from "../../broadcast/services/broadcast.service";
 import { BlockchainBlock, ContractAsk} from "../../entity";
-import { CreateAuctionRequest } from "../requests";
 import { v4 as uuid } from 'uuid';
 import { ASK_STATUS } from "../../escrow/constants";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
+
+type CreateAuctionArgs = {
+  collectionId: string;
+  tokenId: string;
+  ownerAddress: string,
+  stopAt: Date;
+  startPrice: string
+  priceStep: string;
+  tx: string;
+}
 
 @Injectable()
 export class AuctionCreationService {
@@ -26,31 +35,31 @@ export class AuctionCreationService {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
   }
 
-  async create(createAuctionRequest: CreateAuctionRequest): Promise<OfferContractAskDto> {
+  async create(createAuctionRequest: CreateAuctionArgs): Promise<OfferContractAskDto> {
     const {
-      collection_id,
-      token_id,
+      collectionId,
+      tokenId,
+      ownerAddress,
       stopAt,
       startPrice,
       priceStep,
-      currency,
-      tokenTransferTransactionHex,
+      tx,
     } = createAuctionRequest;
 
-    const block = await this.applyTransaction(tokenTransferTransactionHex);
+    const block = await this.sendTransferExtrinsic(tx);
     await this.blockchainBlockRepository.save(block);
 
     const contractAsk = await this.contractAskRepository.create({
       id: uuid(),
       block_number_ask: block.block_number,
       network: `dummy_network`,
-      collection_id,
-      token_id,
-      address_from: `dummy_address`,
-      address_to: `coming_soon`,
+      collection_id: collectionId,
+      token_id: tokenId,
+      address_from: ownerAddress,
+      address_to: '',
       status: ASK_STATUS.ACTIVE, // todo - add appropriate status
       price: startPrice,
-      currency,
+      currency: '',
       auction: {
         stopAt,
         status: AuctionStatus.created,
@@ -69,7 +78,9 @@ export class AuctionCreationService {
   }
 
   // todo - implement
-  private applyTransaction(nftTransferTransaction: string): BlockchainBlock {
+  private sendTransferExtrinsic(tx: string): BlockchainBlock {
+    this.logger.debug(tx);
+
     return this.blockchainBlockRepository.create({
       network: 'dummy_network',
       block_number: Date.now().toString(),
