@@ -2,8 +2,9 @@ import { EscrowService } from './service';
 import * as logging from '../utils/logging';
 import { delay } from '../utils/delay';
 
-
 export class Escrow {
+  static MODE_PROD = 'prod';
+  static MODE_TESTING = 'testing';
   api;
   admin;
   configObj;
@@ -11,33 +12,30 @@ export class Escrow {
   store;
   initialized = false;
   service: EscrowService;
-
   SECTION_TIMESTAMP = 'timestamp';
-  static MODE_PROD = 'prod';
-  static MODE_TESTING = 'testing';
 
-  constructor(config, service: EscrowService, mode=Escrow.MODE_PROD) {
+  constructor(config, service: EscrowService, mode = Escrow.MODE_PROD) {
     this.configObj = config;
     this.service = service;
     this.configMode = mode;
 
     this.store = {
       currentBlock: 0,
-      latestBlock: 0
-    }
+      latestBlock: 0,
+    };
   }
 
-  config(path, defaultVal=null) {
+  config(path, defaultVal = null) {
     const getOption = (path) => {
       let val = this.configObj;
       for (let key of path.split('.')) {
         val = val[key];
       }
       return val;
-    }
+    };
     let defaultOption = getOption(`blockchain.${path}`);
     let val = typeof defaultOption !== 'undefined' ? defaultOption : defaultVal;
-    if(this.configMode === Escrow.MODE_PROD) return val;
+    if (this.configMode === Escrow.MODE_PROD) return val;
     let testingVal = getOption(`blockchain.testing.${path}`);
     return typeof testingVal !== 'undefined' ? testingVal : val;
   }
@@ -51,9 +49,9 @@ export class Escrow {
   }
 
   isSuccessfulExtrinsic(eventRecords, extrinsicIndex) {
-    const events = eventRecords.filter(({ phase }) =>
-      phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(extrinsicIndex)
-    ).map(({ event }) => `${event.section}.${event.method}`);
+    const events = eventRecords
+      .filter(({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(extrinsicIndex))
+      .map(({ event }) => `${event.section}.${event.method}`);
 
     return events.includes('system.ExtrinsicSuccess');
   }
@@ -63,9 +61,9 @@ export class Escrow {
   }
 
   async subscribe() {
-    await this.api.rpc.chain.subscribeNewHeads(lastHeader => {
+    await this.api.rpc.chain.subscribeNewHeads((lastHeader) => {
       this.store.latestBlock = lastHeader.number.toNumber();
-      if(lastHeader.number % 100 === 0) logging.log(`New block #${lastHeader.number}`);
+      if (lastHeader.number % 100 === 0) logging.log(`New block #${lastHeader.number}`);
     });
   }
 
@@ -75,7 +73,7 @@ export class Escrow {
 
   async scanBlock(blockNum: bigint | number, force: boolean = false) {
     const network = this.getNetwork();
-    if(!force && (await this.service.isBlockScanned(blockNum, network))) return; // Block already scanned
+    if (!force && (await this.service.isBlockScanned(blockNum, network))) return; // Block already scanned
 
     const blockHash = await this.api.rpc.chain.getBlockHash(blockNum);
 
@@ -86,22 +84,28 @@ export class Escrow {
 
     for (let [extrinsicIndex, ex] of signedBlock.block.extrinsics.entries()) {
       let isSuccess = this.isSuccessfulExtrinsic(allRecords, extrinsicIndex);
-      if(ex.method.section === this.SECTION_TIMESTAMP && ex.method.method === 'set') {
+      if (ex.method.section === this.SECTION_TIMESTAMP && ex.method.method === 'set') {
         timestamp = ex.method.toJSON().args.now;
         continue;
       }
-      await this.extractBlockData(blockNum, isSuccess, ex);
+      let extrinsicEvents = allRecords
+        .filter((e) => {
+          let extApExt = e.phase.asApplyExtrinsic;
+          let extApIndex = e.phase.asApplyExtrinsic.eq(extrinsicIndex);
+          return extApExt && extApIndex;
+        })
+        .map((e) => e.toHuman());
 
+      await this.extractBlockData(blockNum, isSuccess, ex, extrinsicEvents);
     }
-    if(timestamp !== null) await this.service.addBlock(blockNum, timestamp, network);
+    if (timestamp !== null) await this.service.addBlock(blockNum, timestamp, network);
   }
 
-  async extractBlockData(blockNum, isSuccess, rawExtrinsic) {
+  async extractBlockData(blockNum, isSuccess, rawExtrinsic, events) {
     throw Error('NotImplemented');
   }
 
-
-  async processBlock(blockNum, force=false) {
+  async processBlock(blockNum, force = false) {
     throw Error('NotImplemented');
   }
 
@@ -115,21 +119,21 @@ export class Escrow {
 
   async getStartBlock() {
     let startFromBlock = this.getStartFromBlock();
-    if(startFromBlock === 'latest') return this.greaterThenZero(await this.getLatestBlockNumber() - 10);
+    if (startFromBlock === 'latest') return this.greaterThenZero((await this.getLatestBlockNumber()) - 10);
     let latestBlock = await this.service.getLastScannedBlock(this.getNetwork());
-    if(latestBlock?.block_number) return parseInt(latestBlock.block_number);
-    if(startFromBlock === 'current') return this.greaterThenZero(await this.getLatestBlockNumber() - 10);
+    if (latestBlock?.block_number) return parseInt(latestBlock.block_number);
+    if (startFromBlock === 'current') return this.greaterThenZero((await this.getLatestBlockNumber()) - 10);
     return parseInt(`${startFromBlock}`);
   }
 
   async mainLoop() {
-    while(true) {
+    while (true) {
       let lastLatest = this.store.latestBlock;
-      if(this.store.currentBlock % 10 === 0) logging.log(`Scanning block #${this.store.currentBlock}`);
+      if (this.store.currentBlock % 10 === 0) logging.log(`Scanning block #${this.store.currentBlock}`);
       await this.processBlock(this.store.currentBlock);
       this.store.currentBlock += 1;
-      if(this.store.currentBlock < lastLatest) continue;
-      while(lastLatest === this.store.latestBlock) await delay(100);
+      if (this.store.currentBlock < lastLatest) continue;
+      while (lastLatest === this.store.latestBlock) await delay(100);
     }
   }
 
