@@ -132,7 +132,7 @@ export class Escrow {
       if (this.store.currentBlock % 10 === 0) logging.log(`Scanning block #${this.store.currentBlock}`);
       await this.processBlock(this.store.currentBlock);
       this.store.currentBlock += 1;
-      if (this.store.currentBlock < lastLatest) continue;
+      if (this.store.currentBlock <= lastLatest) continue;
       while (lastLatest === this.store.latestBlock) await delay(100);
     }
   }
