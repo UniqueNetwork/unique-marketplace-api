@@ -230,7 +230,8 @@ export class UniqueEscrow extends Escrow {
   }
 
   async processWithdrawAllKSM(blockNum: number, events, singer) {
-    let withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', events[3].event.data[0].data);
+    let eventLogEVM = events.find((e) => e.event.method === 'Log' && e.event.section === 'evm'); // TODO: check this
+    let withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', eventLogEVM.event.data[0].data);
     let sender = withDrawData._sender;
     let balance = withDrawData.balance.toBigInt();
     let substrateAddress = await this.service.getSubstrateAddress(sender);

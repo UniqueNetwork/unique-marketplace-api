@@ -290,7 +290,7 @@ describe('Escrow test', () => {
       activeWithdraw = await service.getPendingKusamaWithdraw(config.blockchain.testing.kusama.network);
       await expect(await service.updateMoneyTransferStatus(activeWithdraw.id, MONEY_TRANSFER_STATUS.COMPLETED));
 
-      let checkTrade = await service.getTrades(buyer.address, seller.address);
+      let checkTrade = await service.getTradeSellerAndBuyer(buyer.address, seller.address, activeWithdraw.amount);
 
       expect(activeWithdraw.extra.address === seller.address.toString()).toBe(true);
       expect(activeWithdraw.extra.address === checkTrade.address_seller).toBe(true);

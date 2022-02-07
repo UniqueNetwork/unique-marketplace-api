@@ -202,11 +202,12 @@ export class EscrowService {
     await this.db.getRepository(MoneyTransfer).update({ id }, { status, updated_at: new Date() });
   }
 
-  async getTrades(buyer: string, seller: string): Promise<MarketTrade> {
+  async getTradeSellerAndBuyer(buyer: string, seller: string, price: string): Promise<MarketTrade> {
     const repository = this.db.getRepository(MarketTrade);
     return await repository.findOne({
       address_seller: seller,
       address_buyer: buyer,
+      price: price,
     });
   }
 
