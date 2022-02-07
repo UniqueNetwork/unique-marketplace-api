@@ -88,12 +88,9 @@ export class Escrow {
         timestamp = ex.method.toJSON().args.now;
         continue;
       }
+
       let extrinsicEvents = allRecords
-        .filter((e) => {
-          let extApExt = e.phase.asApplyExtrinsic;
-          let extApIndex = e.phase.asApplyExtrinsic.eq(extrinsicIndex);
-          return extApExt && extApIndex;
-        })
+        .filter(({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(extrinsicIndex))
         .map((e) => e.toHuman());
 
       await this.extractBlockData(blockNum, isSuccess, ex, extrinsicEvents);

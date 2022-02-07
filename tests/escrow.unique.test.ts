@@ -11,6 +11,8 @@ import { UniqueExplorer } from '../src/utils/blockchain/util';
 import { initApp, runMigrations } from './data';
 import { EscrowService } from '../src/escrow/service';
 import { UniqueEscrow } from '../src/escrow';
+import { alias } from 'yargs';
+import { MONEY_TRANSFER_STATUS } from '../src/escrow/constants';
 
 describe('Escrow test', () => {
   jest.setTimeout(60 * 60 * 1000);
@@ -18,7 +20,7 @@ describe('Escrow test', () => {
   let app: INestApplication;
   let api: ApiPromise;
   let web3conn, web3;
-  const cacheDir = path.join(__dirname, 'cache')
+  const cacheDir = path.join(__dirname, 'cache');
 
   beforeAll(async () => {
     app = await initApp();
@@ -37,63 +39,77 @@ describe('Escrow test', () => {
   });
 
   const clearCache = () => {
-    for(let file of ['contract.json', 'collection.json']) {
-      if(fs.existsSync(path.join(cacheDir, file))) fs.unlinkSync(path.join(cacheDir, file));
+    for (let file of ['contract.json', 'collection.json']) {
+      if (fs.existsSync(path.join(cacheDir, file))) fs.unlinkSync(path.join(cacheDir, file));
     }
-  }
+  };
 
   const deployContract = async (config, admin: IKeyringPair) => {
-    let cachedPath = path.join(cacheDir, 'contract.json'), cachedData: {contractAddress: string, contractOwnerSeed: string} = null;
+    let cachedPath = path.join(cacheDir, 'contract.json'),
+      cachedData: { contractAddress: string; contractOwnerSeed: string } = null;
     const readBCStatic = (filename) => fs.readFileSync(path.join(config.rootDir, '..', 'blockchain', filename)).toString();
-    if(fs.existsSync(cachedPath)) {
+    if (fs.existsSync(cachedPath)) {
       cachedData = JSON.parse(fs.readFileSync(cachedPath).toString());
-      let balance = (await api.rpc.eth.getBalance(cachedData.contractAddress)).toBigInt()
-      if(balance < 50n * lib.UNIQUE) {
+      let balance = (await api.rpc.eth.getBalance(cachedData.contractAddress)).toBigInt();
+      if (balance < 50n * lib.UNIQUE) {
         // balance to low
         clearCache();
         cachedData = null;
       }
     }
-    if(cachedData !== null) {
+    if (cachedData !== null) {
       let contractOwner = web3.eth.accounts.privateKeyToAccount(cachedData.contractOwnerSeed);
       web3.eth.accounts.wallet.add(contractOwner.privateKey);
       let contract = new web3.eth.Contract(JSON.parse(readBCStatic('MarketPlace.abi')), cachedData.contractAddress);
-      return {contract, contractOwner, helpers: lib.contractHelpers(web3, contractOwner.address)}
+      return { contract, contractOwner, helpers: lib.contractHelpers(web3, contractOwner.address) };
     }
 
     const contractOwner = await lib.createEthAccountWithBalance(api, web3);
     const contractAbi = new web3.eth.Contract(JSON.parse(readBCStatic('MarketPlace.abi')), undefined, {
-        from: contractOwner.address,
-        ...lib.GAS_ARGS,
+      from: contractOwner.address,
+      ...lib.GAS_ARGS,
     });
-    const contract = await contractAbi.deploy({ data: readBCStatic('MarketPlace.bin') }).send({ from: contractOwner.address, gas: 10000000 });
+    const contract = await contractAbi
+      .deploy({ data: readBCStatic('MarketPlace.bin') })
+      .send({ from: contractOwner.address, gas: 10000000 });
     await contract.methods.setEscrow(contractOwner.address, true).send({ from: contractOwner.address });
     const helpers = lib.contractHelpers(web3, contractOwner.address);
     await helpers.methods.toggleSponsoring(contract.options.address, true).send({ from: contractOwner.address });
     await helpers.methods.setSponsoringRateLimit(contract.options.address, 1).send({ from: contractOwner.address });
     await lib.transferBalanceToEth(api, admin, contract.options.address);
 
-    fs.writeFileSync(cachedPath, JSON.stringify({contractOwnerSeed: contractOwner.privateKey, contractAddress: contract.options.address}));
+    fs.writeFileSync(
+      cachedPath,
+      JSON.stringify({ contractOwnerSeed: contractOwner.privateKey, contractAddress: contract.options.address }),
+    );
 
     return { contractOwner, contract, helpers };
   };
 
   const createCollection = async (explorer: UniqueExplorer, admin: IKeyringPair, contractOwner: string) => {
-    let cachedPath = path.join(cacheDir, 'collection.json'), cachedData: {collectionId: number} = null;
-    if(fs.existsSync(cachedPath)) {
+    let cachedPath = path.join(cacheDir, 'collection.json'),
+      cachedData: { collectionId: number } = null;
+    if (fs.existsSync(cachedPath)) {
       cachedData = JSON.parse(fs.readFileSync(cachedPath).toString());
       let collection = await api.query.common.collectionById(cachedData.collectionId);
-      if(collection.toHuman() === null) {
+      if (collection.toHuman() === null) {
         // no more collection
         cachedData = null;
       }
     }
-    if(cachedData !== null) {
-      return {collectionId: cachedData.collectionId, evmCollection: lib.createEvmCollection(cachedData.collectionId, contractOwner, web3)}
+    if (cachedData !== null) {
+      return {
+        collectionId: cachedData.collectionId,
+        evmCollection: lib.createEvmCollection(cachedData.collectionId, contractOwner, web3),
+      };
     }
 
     const collectionId = await explorer.createCollection({ name: 'test', description: 'test collection', tokenPrefix: 'test' });
-    await unique.signTransaction(admin, api.tx.unique.setCollectionLimits(collectionId, { sponsorApproveTimeout: 1 }), 'api.tx.unique.setCollectionLimits');
+    await unique.signTransaction(
+      admin,
+      api.tx.unique.setCollectionLimits(collectionId, { sponsorApproveTimeout: 1 }),
+      'api.tx.unique.setCollectionLimits',
+    );
     const evmCollection = lib.createEvmCollection(collectionId, contractOwner, web3);
     await unique.signTransaction(
       admin,
@@ -103,7 +119,7 @@ describe('Escrow test', () => {
     await lib.transferBalanceToEth(api, admin, lib.subToEth(admin.address));
     await unique.signTransaction(admin, api.tx.unique.confirmSponsorship(collectionId), 'api.tx.unique.confirmSponsorship');
 
-    fs.writeFileSync(cachedPath, JSON.stringify({collectionId}));
+    fs.writeFileSync(cachedPath, JSON.stringify({ collectionId }));
 
     return { collectionId, evmCollection };
   };
@@ -152,14 +168,16 @@ describe('Escrow test', () => {
     await blocks.updateLatest();
     await service.modifyContractBalance(KYC_PRICE, seller.address, blocks.latest, config.blockchain.testing.kusama.network);
 
-    await contract.methods.depositKSM(PRICE, lib.subToEth(alice.address)).send({ from: contractOwner.address, ...lib.GAS_ARGS });
-    let r = await lib.executeEthTxOnSub(web3, api, alice, contract, (m) => m.withdrawAllKSM(lib.subToEth(alice.address)));
+    await service.modifyContractBalance(PRICE, alice.address, blocks.latest, config.blockchain.testing.kusama.network);
+    await workEscrow(blocks.start, blocks.latest);
+
+    //await contract.methods.depositKSM(PRICE, lib.subToEth(alice.address)).send({ from: contractOwner.address, ...lib.GAS_ARGS });
+    await lib.executeEthTxOnSub(web3, api, alice, contract, (m) => m.withdrawAllKSM(lib.subToEth(alice.address)));
 
     await blocks.updateLatest();
 
     // Escrow must register deposit for seller
     await workEscrow(blocks.start, blocks.latest);
-    console.log(1);
 
     // Seller must be added to contract allow list after KYC transfer
     expect((await api.query.evmContractHelpers.allowlist(contract.options.address, lib.subToEth(seller.address))).toJSON()).toBe(true);
@@ -258,7 +276,8 @@ describe('Escrow test', () => {
 
       // Escrow withdraw balance from contract and send KSM to seller
       let activeWithdraw = await service.getPendingKusamaWithdraw(config.blockchain.testing.kusama.network);
-      expect(activeWithdraw).toBeUndefined();
+      await expect(await service.updateMoneyTransferStatus(activeWithdraw.id, MONEY_TRANSFER_STATUS.COMPLETED));
+      expect(activeWithdraw.extra.address === alice.address).toBe(true);
 
       // Process buyKSM with escrow
       await blocks.updateLatest();
@@ -266,9 +285,16 @@ describe('Escrow test', () => {
 
       // TODO: check trade table
 
+      // Buyer
       await expect(await contract.methods.balanceKSM(lib.subToEth(seller.address)).call()).toEqual(KYC_PRICE.toString());
       activeWithdraw = await service.getPendingKusamaWithdraw(config.blockchain.testing.kusama.network);
-      expect(activeWithdraw).not.toBeUndefined();
+      await expect(await service.updateMoneyTransferStatus(activeWithdraw.id, MONEY_TRANSFER_STATUS.COMPLETED));
+
+      let checkTrade = await service.getTrades(buyer.address, seller.address);
+
+      expect(activeWithdraw.extra.address === seller.address.toString()).toBe(true);
+      expect(activeWithdraw.extra.address === checkTrade.address_seller).toBe(true);
+      expect(activeWithdraw.amount === checkTrade.price).toBe(true);
     }
 
     // Token is transferred to evm account of buyer

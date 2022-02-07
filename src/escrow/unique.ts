@@ -6,7 +6,6 @@ import * as unique from '../utils/blockchain/unique';
 import * as util from '../utils/blockchain/util';
 import { MONEY_TRANSFER_STATUS } from './constants';
 import { Interface } from 'ethers/lib/utils';
-import { BigNumber } from 'ethers';
 
 export class UniqueEscrow extends Escrow {
   inputDecoder;
@@ -230,6 +229,16 @@ export class UniqueEscrow extends Escrow {
     }
   }
 
+  async processWithdrawAllKSM(blockNum: number, events, singer) {
+    let withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', events[3].event.data[0].data);
+    let sender = withDrawData._sender;
+    let balance = withDrawData.balance.toBigInt();
+    let substrateAddress = await this.service.getSubstrateAddress(sender);
+    substrateAddress = substrateAddress ? substrateAddress : singer.toString();
+    await this.service.registerKusamaWithdraw(balance, substrateAddress, blockNum, this.config('kusama.network'));
+    logging.log(`Got WithdrawAllKSM (Sender: ${sender}, amount: ${balance}) in block #${blockNum}`);
+  }
+
   async processCall(blockNum, rawExtrinsic, events) {
     const extrinsic = rawExtrinsic.toHuman().method;
     const inputData = this.inputDecoder.decodeData(extrinsic.args.input);
@@ -242,11 +251,9 @@ export class UniqueEscrow extends Escrow {
     if (inputData.method === 'cancelAsk') {
       return await this.processCancelAsk(blockNum, extrinsic, inputData);
     }
-    // if (inputData.method === 'withdrawAllKSM') {
-    //   let withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', events[3].event.data[0].data);
-    //   let sender = withDrawData._sender;
-    //   let balance = withDrawData.balance.toBigInt();
-    // }
+    if (inputData.method === 'withdrawAllKSM') {
+      return await this.processWithdrawAllKSM(blockNum, events, rawExtrinsic.signer);
+    }
   }
 
   async processEthereum(blockNum, rawExtrinsic) {
