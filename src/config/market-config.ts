@@ -1,3 +1,4 @@
+import { SentryModuleOptions } from "../utils/sentry";
 
 interface EscrowConfig {
   wsEndpoint: string;
@@ -24,6 +25,7 @@ export interface MarketConfig {
   rootDir: string,
   autoDBMigrations: boolean,
   auction: AuctionConfig,
+  sentry: SentryModuleOptions,
   dev: {
     debugMigrations: boolean,
     debugScanBlock: boolean,

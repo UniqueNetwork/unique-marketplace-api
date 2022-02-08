@@ -1,29 +1,46 @@
-import { Injectable } from '@nestjs/common';
-import { getConfig } from '../config';
+import { Keyring } from "@polkadot/api";
+import { Inject, Injectable } from '@nestjs/common';
+
 import { SettingsDto } from './dto/settings.dto';
+import { MarketConfig } from "../config/market-config";
 
 @Injectable()
 export class SettingsService {
-    /**
-     * Giving settings for the frontend
-     * @return ({Promise<SettingsDto>})
-     */
-    async getConfig(): Promise<SettingsDto> {
-        const config = getConfig();
-        const result = {
-            blockchain: {
-                unique: {
-                    wsEndpoint: config.blockchain.unique.wsEndpoint,
-                    collectionIds: config.blockchain.unique.collectionIds,
-                    contractAddress: config.blockchain.unique.contractAddress,
-                },
-                kusama: {
-                    wsEndpoint: config.blockchain.kusama.wsEndpoint,
-                    marketCommission: config.blockchain.kusama.marketCommission,
-                },
-            },
-        };
+  private preparedSettings?: SettingsDto;
 
-        return result;
-    }
+  constructor(
+    @Inject('CONFIG') private config: MarketConfig,
+  ) {}
+
+  get settings(): SettingsDto {
+    if (this.preparedSettings) return this.preparedSettings;
+
+    const { blockchain, auction } = this.config;
+
+    const auctionAddress = auction.seed
+      ? new Keyring({ type: 'sr25519' }).addFromUri(auction.seed).address
+      : '';
+
+    const auctionPart = auctionAddress ? {
+      address: auctionAddress,
+      commission: auction.commission,
+    } : undefined;
+
+    this.preparedSettings = {
+      blockchain: {
+        unique: {
+          wsEndpoint: blockchain.unique.wsEndpoint,
+          collectionIds: blockchain.unique.collectionIds,
+          contractAddress: blockchain.unique.contractAddress,
+        },
+        kusama: {
+          wsEndpoint: blockchain.kusama.wsEndpoint,
+          marketCommission: blockchain.kusama.marketCommission.toString(),
+        },
+      },
+      auction: auctionPart,
+    };
+
+    return this.preparedSettings;
+  }
 }
