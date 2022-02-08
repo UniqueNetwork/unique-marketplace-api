@@ -11,6 +11,6 @@ export class SettingsController {
     @Get('/')
     @ApiResponse({ type: SettingsDto, status: HttpStatus.OK })
     async getSettings(): Promise<SettingsDto> {
-        return this.settingsService.settings;
+        return this.settingsService.getSettings();
     }
 }
