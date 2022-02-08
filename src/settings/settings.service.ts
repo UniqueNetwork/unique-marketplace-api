@@ -1,46 +1,32 @@
-import { Keyring } from "@polkadot/api";
 import { Inject, Injectable } from '@nestjs/common';
-
 import { SettingsDto } from './dto/settings.dto';
-import { MarketConfig } from "../config/market-config";
+import { seedToAddress } from '../utils/blockchain/util';
 
 @Injectable()
 export class SettingsService {
-  private preparedSettings?: SettingsDto;
+  constructor(@Inject('CONFIG') private config) {}
 
-  constructor(
-    @Inject('CONFIG') private config: MarketConfig,
-  ) {}
+    /**
+     * Giving settings for the frontend
+     * @return ({Promise<SettingsDto>})
+     */
+    async getConfig(): Promise<SettingsDto> {
+        const config = this.config;
+        const result = {
+            blockchain: {
+                escrowAddress: await seedToAddress(config.blockchain.escrowSeed),
+                unique: {
+                    wsEndpoint: config.blockchain.unique.wsEndpoint,
+                    collectionIds: config.blockchain.unique.collectionIds,
+                    contractAddress: config.blockchain.unique.contractAddress,
+                },
+                kusama: {
+                    wsEndpoint: config.blockchain.kusama.wsEndpoint,
+                    marketCommission: config.blockchain.kusama.marketCommission,
+                },
+            },
+        };
 
-  get settings(): SettingsDto {
-    if (this.preparedSettings) return this.preparedSettings;
-
-    const { blockchain, auction } = this.config;
-
-    const auctionAddress = auction.seed
-      ? new Keyring({ type: 'sr25519' }).addFromUri(auction.seed).address
-      : '';
-
-    const auctionPart = auctionAddress ? {
-      address: auctionAddress,
-      commission: auction.commission,
-    } : undefined;
-
-    this.preparedSettings = {
-      blockchain: {
-        unique: {
-          wsEndpoint: blockchain.unique.wsEndpoint,
-          collectionIds: blockchain.unique.collectionIds,
-          contractAddress: blockchain.unique.contractAddress,
-        },
-        kusama: {
-          wsEndpoint: blockchain.kusama.wsEndpoint,
-          marketCommission: blockchain.kusama.marketCommission.toString(),
-        },
-      },
-      auction: auctionPart,
-    };
-
-    return this.preparedSettings;
-  }
+        return result;
+    }
 }

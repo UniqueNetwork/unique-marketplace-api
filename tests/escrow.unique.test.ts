@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { INestApplication, Logger } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { IKeyringPair } from '@polkadot/types/types';
 import { ApiPromise } from '@polkadot/api';
 
@@ -11,16 +11,16 @@ import { UniqueExplorer } from '../src/utils/blockchain/util';
 import { initApp, runMigrations } from './data';
 import { EscrowService } from '../src/escrow/service';
 import { UniqueEscrow } from '../src/escrow';
-import { alias } from 'yargs';
 import { MONEY_TRANSFER_STATUS } from '../src/escrow/constants';
 
 describe('Escrow test', () => {
   jest.setTimeout(60 * 60 * 1000);
-  const logger = new Logger();
+
   let app: INestApplication;
   let api: ApiPromise;
   let web3conn, web3;
   const cacheDir = path.join(__dirname, 'cache');
+  const KYC_PRICE = 1_000n;
 
   beforeAll(async () => {
     app = await initApp();
@@ -124,10 +124,11 @@ describe('Escrow test', () => {
     return { collectionId, evmCollection };
   };
 
-  it('With escrow', async () => {
-    const PRICE = 2_000_000_000_000n; // 2 KSM
-    const KYC_PRICE = 1_000n;
-    const config = app.get('CONFIG');
+  const getEscrow = async (config) => {
+    const service = app.get(EscrowService, { strict: false });
+    let escrow = new UniqueEscrow(config, service, UniqueEscrow.MODE_TESTING);
+    await escrow.init();
+
     let blocks = {
       start: 0,
       latest: (await api.rpc.chain.getHeader()).number.toNumber(),
@@ -137,10 +138,21 @@ describe('Escrow test', () => {
       },
     };
 
+    const workEscrow = async (fromBlock: number, toBlock: number) => {
+      for (let block = fromBlock; block <= toBlock; block++) {
+        await escrow.processBlock(block);
+      }
+    };
+
+    return {escrow, workEscrow, blocks, service};
+  }
+
+  const init = async () => {
+    const config = app.get('CONFIG');
     const alice = util.privateKey(config.blockchain.testing.escrowSeed);
     const explorer = new UniqueExplorer(api, alice);
 
-    const { contract, contractOwner, helpers } = await deployContract(config, alice);
+    const { contract, contractOwner } = await deployContract(config, alice);
 
     const { collectionId, evmCollection } = await createCollection(explorer, alice, contractOwner.address);
 
@@ -150,106 +162,170 @@ describe('Escrow test', () => {
       contractAddress: contract.options.address,
       collectionIds: [collectionId],
     };
+    config.blockchain.testing.kusama.marketCommission = 10;
 
-    const service = app.get(EscrowService, { strict: false });
-    let escrow = new UniqueEscrow(config, service, UniqueEscrow.MODE_TESTING);
-    await escrow.init();
+    const { service, workEscrow, blocks, escrow } = await getEscrow(config);
 
-    const workEscrow = async (fromBlock: number, toBlock: number) => {
-      for (let block = fromBlock; block <= toBlock; block++) {
-        await escrow.processBlock(block);
-      }
+    return {
+      config, alice, explorer, contract, contractOwner, collectionId, evmCollection, service, workEscrow, blocks, escrow
     };
+  }
+
+  const addAsk = async (tokenId, price, seller, state: {evmCollection, contract, explorer, collectionId, blocks, workEscrow, config, service}) => {
+    // Give contract permissions to manipulate token
+    let res = await lib.executeEthTxOnSub(web3, api, seller, state.evmCollection, (m) => m.approve(state.contract.options.address, tokenId));
+    await expect(res.success).toBe(true);
+    // Add ask to contract
+    res = await lib.executeEthTxOnSub(web3, api, seller, state.contract, (m) =>
+      m.addAsk(price, '0x0000000000000000000000000000000000000001', state.evmCollection.options.address, tokenId),
+    );
+    await expect(res.success).toBe(true);
+
+    // Token is transferred to matcher
+    await expect(util.normalizeAccountId(await state.explorer.getTokenOwner(state.collectionId, tokenId))).toEqual({
+      Ethereum: state.contract.options.address.toLowerCase(),
+    });
+
+    // Escrow must create new contract_ask for this token
+    await state.blocks.updateLatest();
+    await state.workEscrow(state.blocks.start, state.blocks.latest);
+
+    let activeAsk = await state.service.getActiveAsk(state.collectionId, tokenId, state.config.blockchain.testing.unique.network);
+    await expect(activeAsk).not.toBeUndefined();
+  };
+
+  const processKYC = async (user: IKeyringPair, state: {service, blocks, config, workEscrow, contract}) => {
+    // KYC action (transfer to escrow, kusama escrow daemon perform this call normally)
+    await state.service.modifyContractBalance(KYC_PRICE, user.address, state.blocks.latest, state.config.blockchain.testing.kusama.network);
+
+    // Escrow must register deposit for user
+    await state.blocks.updateLatest();
+    await state.workEscrow(state.blocks.start, state.blocks.latest);
+
+    // Seller must be added to contract allow list after KYC transfer
+    await expect((await api.query.evmContractHelpers.allowlist(state.contract.options.address, lib.subToEth(user.address))).toJSON()).toBe(true);
+
+    await expect(await state.contract.methods.balanceKSM(lib.subToEth(user.address)).call()).toEqual(KYC_PRICE.toString());
+
+    // Escrow must set finished status for transfer
+    await expect(await state.service.getPendingContractBalance(state.config.blockchain.testing.kusama.network)).toBeUndefined();
+  }
+
+  const transferTokenToEVM = async (user: IKeyringPair, tokenId: number, state: {collectionId, explorer}) => {
+    await unique.signTransaction(
+      user,
+      api.tx.unique.transfer(util.normalizeAccountId({ Ethereum: lib.subToEth(user.address) }), state.collectionId, tokenId, 1),
+      'api.tx.unique.transfer',
+    );
+    await expect(util.normalizeAccountId(await state.explorer.getTokenOwner(state.collectionId, BigInt(tokenId)))).toEqual({
+      Ethereum: lib.subToEthLowercase(user.address),
+    });
+  }
+
+  it('Withdraw balance', async () => {
+    const TO_WITHDRAW = 2_000_000_000n; // 2 KSM
+    const { config, alice, service, workEscrow, blocks, contract, escrow } = await init();
+
+    // No active withdraw
+    let activeWithdraw = await service.getPendingKusamaWithdraw(config.blockchain.testing.kusama.network);
+    await expect(activeWithdraw).toBeUndefined();
+
+    await service.modifyContractBalance(TO_WITHDRAW, alice.address, blocks.latest, config.blockchain.testing.kusama.network);
+
+    await lib.executeEthTxOnSub(web3, api, alice, contract, (m) => m.withdrawAllKSM(lib.subToEth(alice.address)));
+
+    await blocks.updateLatest();
+    await workEscrow(blocks.start, blocks.latest);
+
+    // Withdraw with all balance amount
+    activeWithdraw = await service.getPendingKusamaWithdraw(config.blockchain.testing.kusama.network);
+    await expect(activeWithdraw.extra.address).toEqual(alice.address.toString());
+    await expect(activeWithdraw.amount).toEqual(TO_WITHDRAW.toString());
+
+    // Set status to completed (kusama escrow daemon perform this call normally)
+    await service.updateMoneyTransferStatus(activeWithdraw.id, MONEY_TRANSFER_STATUS.COMPLETED);
+    await escrow.destroy();
+  });
+
+  it('Get token traits', async () => {
+    // const PRICE = 2_000_000_000_000n; // 2 KSM
+    // const state = await init();
+    //
+    // const { explorer, collectionId } = state;
+    //
+    // const seller = util.privateKey(`//Seller/${Date.now()}`);
+    //
+    // await processKYC(seller, state);
+    //
+    // const tokenId = (await explorer.createToken({ collectionId, owner: seller.address })).tokenId;
+    //
+    // await transferTokenToEVM(seller, tokenId, state);
+    //
+    // await addAsk(tokenId, PRICE, seller, state);
+
+    // await blocks.updateLatest();
+    // await workEscrow(blocks.start, blocks.latest);
+    //
+    // await escrow.destroy();
+
+    // TODO: check search_index table
+  });
+
+  it('Cancel ask', async () => {
+    const PRICE = 2_000_000_000_000n; // 2 KSM
+    const state = await init();
+
+    const { config, explorer, contract, collectionId, evmCollection, service, workEscrow, blocks, escrow } = state;
+
+    const seller = util.privateKey(`//Seller/${Date.now()}`);
+
+    await processKYC(seller, state);
+
+    const cancelTokenId = (await explorer.createToken({ collectionId, owner: seller.address })).tokenId;
+
+    await transferTokenToEVM(seller, cancelTokenId, state);
+
+    await addAsk(cancelTokenId, PRICE, seller, state);
+
+    // Cancel ask on contract
+    let res = await lib.executeEthTxOnSub(web3, api, seller, contract, (m) => m.cancelAsk(evmCollection.options.address, cancelTokenId));
+    await expect(res.success).toBe(true);
+
+    // Escrow must set contract_ask status for this token to cancelled
+    await blocks.updateLatest();
+    await workEscrow(blocks.start, blocks.latest);
+
+    let activeAsk = await service.getActiveAsk(collectionId, cancelTokenId, config.blockchain.testing.unique.network);
+    await expect(activeAsk).toBeUndefined();
+
+    // Token is transferred back to previous owner (seller)
+    await expect(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, cancelTokenId))).toEqual(
+      util.normalizeAccountId({ Ethereum: lib.subToEth(seller.address) }),
+    );
+
+    await escrow.destroy();
+  });
+
+  it('Buy token', async () => {
+    const PRICE_WITHOUT_COMISSION = 1_000_000_000_000n; // 1 KSM
+    const PRICE = PRICE_WITHOUT_COMISSION * 1100n / 1000n; // 1.1 KSM
+
+    const state = await init();
+
+    const { config, explorer, contract, collectionId, evmCollection, service, workEscrow, blocks, escrow } = state;
 
     const seller = util.privateKey(`//Seller/${Date.now()}`);
     const buyer = util.privateKey(`//Buyer/${Date.now()}`);
 
-    // KYC action (transfer to escrow, kusama escrow daemon perform this call normally)
-    await blocks.updateLatest();
-    await service.modifyContractBalance(KYC_PRICE, seller.address, blocks.latest, config.blockchain.testing.kusama.network);
-
-    await service.modifyContractBalance(PRICE, alice.address, blocks.latest, config.blockchain.testing.kusama.network);
-    await workEscrow(blocks.start, blocks.latest);
-
-    //await contract.methods.depositKSM(PRICE, lib.subToEth(alice.address)).send({ from: contractOwner.address, ...lib.GAS_ARGS });
-    await lib.executeEthTxOnSub(web3, api, alice, contract, (m) => m.withdrawAllKSM(lib.subToEth(alice.address)));
-
-    await blocks.updateLatest();
-
-    // Escrow must register deposit for seller
-    await workEscrow(blocks.start, blocks.latest);
-
-    // Seller must be added to contract allow list after KYC transfer
-    expect((await api.query.evmContractHelpers.allowlist(contract.options.address, lib.subToEth(seller.address))).toJSON()).toBe(true);
-
-    await expect(await contract.methods.balanceKSM(lib.subToEth(seller.address)).call()).toEqual(KYC_PRICE.toString());
-
-    // Escrow must set finished status for transfer
-    expect(await service.getPendingContractBalance(config.blockchain.testing.kusama.network)).toBeUndefined();
+    await processKYC(seller, state);
 
     const sellTokenId = (await explorer.createToken({ collectionId, owner: seller.address })).tokenId;
-    const cancelTokenId = (await explorer.createToken({ collectionId, owner: seller.address })).tokenId;
 
     // To transfer item to matcher it first needs to be transferred to EVM account of seller
-    for (let tokenId of [sellTokenId, cancelTokenId]) {
-      await unique.signTransaction(
-        seller,
-        api.tx.unique.transfer(util.normalizeAccountId({ Ethereum: lib.subToEth(seller.address) }), collectionId, tokenId, 1),
-        'api.tx.unique.transfer',
-      );
-      await expect(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, tokenId))).toEqual({
-        Ethereum: lib.subToEthLowercase(seller.address),
-      });
-    }
-
-    const addAsk = async (tokenId) => {
-      // Give contract permissions to manipulate token
-      let res = await lib.executeEthTxOnSub(web3, api, seller, evmCollection, (m) => m.approve(contract.options.address, tokenId));
-      await expect(res.success).toBe(true);
-      // Add ask to contract
-      res = await lib.executeEthTxOnSub(web3, api, seller, contract, (m) =>
-        m.addAsk(PRICE, '0x0000000000000000000000000000000000000001', evmCollection.options.address, tokenId),
-      );
-      await expect(res.success).toBe(true);
-
-      // Token is transferred to matcher
-      await expect(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, tokenId))).toEqual({
-        Ethereum: contract.options.address.toLowerCase(),
-      });
-
-      // Escrow must create new contract_ask for this token
-      await blocks.updateLatest();
-      await workEscrow(blocks.start, blocks.latest);
-
-      let activeAsk = await service.getActiveAsk(collectionId, tokenId, config.blockchain.testing.unique.network);
-      expect(activeAsk).not.toBeUndefined();
-    };
-
-    // Cancelled ask
-    {
-      await addAsk(cancelTokenId);
-
-      // Cancel ask on contract
-      let res = await lib.executeEthTxOnSub(web3, api, seller, contract, (m) => m.cancelAsk(evmCollection.options.address, cancelTokenId));
-      await expect(res.success).toBe(true);
-
-      // Escrow must set contract_ask status for this token to cancelled
-      await blocks.updateLatest();
-      await workEscrow(blocks.start, blocks.latest);
-
-      let activeAsk = await service.getActiveAsk(collectionId, cancelTokenId, config.blockchain.testing.unique.network);
-      expect(activeAsk).toBeUndefined();
-
-      // Token is transferred back to previous owner (seller)
-      await expect(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, cancelTokenId))).toEqual(
-        util.normalizeAccountId({ Ethereum: lib.subToEth(seller.address) }),
-      );
-    }
+    await transferTokenToEVM(seller, sellTokenId, state);
 
     // Ask
-    {
-      await addAsk(sellTokenId);
-    }
+    await addAsk(sellTokenId, PRICE, seller, state);
 
     // Give buyer KSM
     await blocks.updateLatest();
@@ -259,7 +335,7 @@ describe('Escrow test', () => {
     await workEscrow(blocks.start, blocks.latest);
 
     // Buyer must be added to contract allow list after deposit
-    expect((await api.query.evmContractHelpers.allowlist(contract.options.address, lib.subToEth(buyer.address))).toJSON()).toBe(true);
+    await expect((await api.query.evmContractHelpers.allowlist(contract.options.address, lib.subToEth(buyer.address))).toJSON()).toBe(true);
 
     // Buy
     {
@@ -276,25 +352,26 @@ describe('Escrow test', () => {
 
       // Escrow withdraw balance from contract and send KSM to seller
       let activeWithdraw = await service.getPendingKusamaWithdraw(config.blockchain.testing.kusama.network);
-      await expect(await service.updateMoneyTransferStatus(activeWithdraw.id, MONEY_TRANSFER_STATUS.COMPLETED));
-      expect(activeWithdraw.extra.address === alice.address).toBe(true);
+      await expect(activeWithdraw).toBeUndefined();
+      let checkTrade = await service.getTradeSellerAndBuyer(buyer.address, seller.address, PRICE_WITHOUT_COMISSION.toString());
+      await expect(checkTrade).toBeUndefined();
 
       // Process buyKSM with escrow
       await blocks.updateLatest();
       await workEscrow(blocks.start, blocks.latest);
 
-      // TODO: check trade table
-
       // Buyer
       await expect(await contract.methods.balanceKSM(lib.subToEth(seller.address)).call()).toEqual(KYC_PRICE.toString());
       activeWithdraw = await service.getPendingKusamaWithdraw(config.blockchain.testing.kusama.network);
-      await expect(await service.updateMoneyTransferStatus(activeWithdraw.id, MONEY_TRANSFER_STATUS.COMPLETED));
+      await expect(activeWithdraw.amount).toEqual(PRICE_WITHOUT_COMISSION.toString());
 
-      let checkTrade = await service.getTradeSellerAndBuyer(buyer.address, seller.address, activeWithdraw.amount);
+      checkTrade = await service.getTradeSellerAndBuyer(buyer.address, seller.address, PRICE_WITHOUT_COMISSION.toString());
 
-      expect(activeWithdraw.extra.address === seller.address.toString()).toBe(true);
-      expect(activeWithdraw.extra.address === checkTrade.address_seller).toBe(true);
-      expect(activeWithdraw.amount === checkTrade.price).toBe(true);
+      await expect(activeWithdraw.extra.address).toEqual(seller.address.toString());
+      await expect(activeWithdraw.extra.address).toEqual(checkTrade.address_seller);
+      await expect(activeWithdraw.amount).toEqual(checkTrade.price);
+
+      await service.updateMoneyTransferStatus(activeWithdraw.id, MONEY_TRANSFER_STATUS.COMPLETED);
     }
 
     // Token is transferred to evm account of buyer
@@ -319,5 +396,7 @@ describe('Escrow test', () => {
     await expect(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, sellTokenId))).toEqual(
       util.normalizeAccountId({ Substrate: buyer.address }),
     );
+
+    await escrow.destroy();
   });
 });

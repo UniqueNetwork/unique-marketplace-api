@@ -21,6 +21,9 @@ class SettingBlockchainKusama {
 
 class SettingBlockchain {
     @ApiProperty({})
+    escrowAddress: string;
+
+    @ApiProperty({})
     unique: SettingBlockchainUnique;
 
     @ApiProperty({})

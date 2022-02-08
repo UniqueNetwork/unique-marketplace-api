@@ -44,6 +44,10 @@ export class Escrow {
     throw Error('NotImplemented');
   }
 
+  async destroy() {
+    throw Error('NotImplemented');
+  }
+
   async connectApi() {
     throw Error('NotImplemented');
   }

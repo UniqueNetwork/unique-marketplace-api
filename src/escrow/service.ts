@@ -138,9 +138,9 @@ export class EscrowService {
     await repository.upsert({ block_number: `${blockNum}`, network: this.getNetwork(network), created_at }, ['block_number', 'network']);
   }
 
-  async modifyContractBalance(amount, address, blockNumber, network: string) {
+  async modifyContractBalance(amount, address, blockNumber, network: string): Promise<MoneyTransfer> {
     const repository = this.db.getRepository(MoneyTransfer);
-    await repository.insert({
+    let transfer = repository.create({
       id: uuid(),
       amount,
       block_number: blockNumber,
@@ -152,6 +152,8 @@ export class EscrowService {
       extra: { address },
       currency: '2', // TODO: check this
     });
+    await repository.save(transfer);
+    return transfer;
   }
 
   async registerKusamaWithdraw(amount, address, blockNumber, network) {
