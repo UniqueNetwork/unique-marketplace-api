@@ -1,4 +1,6 @@
 import * as path from 'path';
+import { MarketConfig } from "./market-config";
+
 export default {
   postgresUrl: process.env.POSTGRES_URL || 'postgres://marketplace:12345@marketplace-postgres:5432/marketplace_db',
   testingPostgresUrl: 'postgres://postgresman:test12345@test-postgres:6432/postgres_db',
@@ -59,4 +61,8 @@ export default {
       },
     },
   },
-};
+  auction: {
+    seed: '',
+    commission: 10,
+  }
+} as MarketConfig;

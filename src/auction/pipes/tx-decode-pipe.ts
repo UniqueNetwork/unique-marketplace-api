@@ -10,7 +10,10 @@ import { TxArgs, TxInfo } from "../types";
 
 @Injectable()
 export class TxDecodePipe implements PipeTransform<unknown, TxInfo> {
-  constructor(@Inject('UniqueApi') private readonly api: ApiPromise) {}
+  constructor(
+    @Inject('UniqueApi') private readonly uniqueApi: ApiPromise,
+    @Inject('KusamaApi') private readonly kusamaApi: ApiPromise,
+  ) {}
 
   private static buildError(metadata: ArgumentMetadata, message: string): BadRequestException {
     const property = metadata.data ? `property ${metadata.data}` : 'data';
@@ -27,8 +30,17 @@ export class TxDecodePipe implements PipeTransform<unknown, TxInfo> {
     }
 
     try {
-      const extrinsic = this.api.createType('Extrinsic', value);
-      const call = this.api.createType('Call', extrinsic.method);
+      let extrinsic;
+      let call;
+
+      // todo - split by providers
+      try {
+        extrinsic = this.uniqueApi.createType('Extrinsic', value);
+        call = this.uniqueApi.createType('Call', extrinsic.method);
+      } catch (error) {
+        extrinsic = this.kusamaApi.createType('Extrinsic', value);
+        call = this.kusamaApi.createType('Call', extrinsic.method);
+      }
 
       const argsDef = JSON.parse(call.Type.args);
 

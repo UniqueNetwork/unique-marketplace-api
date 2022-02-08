@@ -11,6 +11,11 @@ interface UniqueEscrowConfig extends EscrowConfig {
   contractAddress: string | null;
 }
 
+interface AuctionConfig {
+  seed: string;
+  commission: number;
+}
+
 export interface MarketConfig {
   postgresUrl: string,
   testingPostgresUrl: string,
@@ -18,6 +23,7 @@ export interface MarketConfig {
   disableSecurity: boolean,
   rootDir: string,
   autoDBMigrations: boolean,
+  auction: AuctionConfig,
   dev: {
     debugMigrations: boolean,
     debugScanBlock: boolean,

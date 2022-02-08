@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger} from "@nestjs/common";
+import {BadRequestException, Inject, Injectable, Logger} from "@nestjs/common";
 import { AuctionStatus} from "../types";
 import { Connection, Repository} from "typeorm";
 import { AuctionEntity} from "../entities";
@@ -7,12 +7,16 @@ import { BlockchainBlock, ContractAsk} from "../../entity";
 import { v4 as uuid } from 'uuid';
 import { ASK_STATUS } from "../../escrow/constants";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
+import { ApiPromise } from "@polkadot/api";
+import { DateHelper } from "../../utils/date-helper";
+import { ExtrinsicSubmitter } from "./extrinsic-submitter";
+import { MarketConfig } from "../../config/market-config";
 
 type CreateAuctionArgs = {
   collectionId: string;
   tokenId: string;
   ownerAddress: string,
-  stopAt: Date;
+  days: number;
   startPrice: string
   priceStep: string;
   tx: string;
@@ -29,6 +33,9 @@ export class AuctionCreationService {
   constructor(
     @Inject('DATABASE_CONNECTION') connection: Connection,
     private broadcastService: BroadcastService,
+    @Inject('UniqueApi') private uniqueApi: ApiPromise,
+    private readonly extrinsicSubmitter: ExtrinsicSubmitter,
+    @Inject('CONFIG') private config: MarketConfig,
   ) {
     this.contractAskRepository = connection.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
@@ -40,7 +47,7 @@ export class AuctionCreationService {
       collectionId,
       tokenId,
       ownerAddress,
-      stopAt,
+      days,
       startPrice,
       priceStep,
       tx,
@@ -49,10 +56,12 @@ export class AuctionCreationService {
     const block = await this.sendTransferExtrinsic(tx);
     await this.blockchainBlockRepository.save(block);
 
+    this.logger.debug(`token transfer block number: ${block.block_number}`);
+
     const contractAsk = await this.contractAskRepository.create({
       id: uuid(),
       block_number_ask: block.block_number,
-      network: `dummy_network`,
+      network: this.config.blockchain.unique.network,
       collection_id: collectionId,
       token_id: tokenId,
       address_from: ownerAddress,
@@ -61,7 +70,7 @@ export class AuctionCreationService {
       price: startPrice,
       currency: '',
       auction: {
-        stopAt,
+        stopAt: DateHelper.addDays(days),
         status: AuctionStatus.created,
         startPrice,
         priceStep,
@@ -78,13 +87,17 @@ export class AuctionCreationService {
   }
 
   // todo - implement
-  private sendTransferExtrinsic(tx: string): BlockchainBlock {
-    this.logger.debug(tx);
+  private async sendTransferExtrinsic(tx: string): Promise<BlockchainBlock> {
+    try {
+      const signedBlock = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 
-    return this.blockchainBlockRepository.create({
-      network: 'dummy_network',
-      block_number: Date.now().toString(),
-      created_at: new Date(),
-    });
+      return this.blockchainBlockRepository.create({
+        network: this.config.blockchain.unique.network,
+        block_number: signedBlock?.block.header.number.toString() || 'no_number',
+        created_at: new Date(),
+      });
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
   }
 }

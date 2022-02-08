@@ -12,7 +12,7 @@ import { TxDecodePipe } from "../pipes/tx-decode-pipe";
 import { Type } from "class-transformer";
 import { TxInfo } from "../types";
 
-const balanceTransferExample = `0x310284000a91113393e01ebe11f932f89ccd2c3dd713aebbf4fde4d643e8873790477a0701bea24a0dea49163bb9fcdaa0a23d1e6751be3ad9d7329dee13abfd57796e4435dd5234cae38b0b9ed38fb303b9c6a06d63ac15b8cce003525973b7a2ee47ee87c40000001e00005005b924a85aa096ed31f5ce56bcc9aff8e145335d6c7f65fb6c091784e28242250c`;
+const balanceTransferExample = `0x450284001e9b0e86d2f6aa12ec6d55cbe40385260d9d82241b2414c788bcf221c7bb0d3e016625be208b9f805a1491e3c5a80e80b8a4990fc00dfb9c6d1e61e0971a725a5c99fc079bf22b2505994fba8a97df6f4c6a1cda44e87b1eacb44a452283e69282e50304000400000a91113393e01ebe11f932f89ccd2c3dd713aebbf4fde4d643e8873790477a070b00602f460214`;
 
 export type PlaceBidRequest = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & { tx: string };
 

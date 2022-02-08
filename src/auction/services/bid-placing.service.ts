@@ -7,6 +7,9 @@ import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 import { BlockchainBlock, ContractAsk } from "../../entity";
 import { BidStatus } from "../types";
 import { WithdrawBidRequest } from "../requests/withdraw-bid";
+import { ApiPromise } from "@polkadot/api";
+import { MarketConfig } from "../../config/market-config";
+import { ExtrinsicSubmitter} from "./extrinsic-submitter";
 
 type PlaceBidArgs = {
   collectionId: number;
@@ -28,6 +31,9 @@ export class BidPlacingService {
   constructor(
     @Inject('DATABASE_CONNECTION') connection: Connection,
     private broadcastService: BroadcastService,
+    @Inject('KusamaApi') private kusamaApi: ApiPromise,
+    @Inject('CONFIG') private config: MarketConfig,
+    private readonly extrinsicSubmitter: ExtrinsicSubmitter
   ) {
     this.bidRepository = connection.manager.getRepository(BidEntity);
     this.contractAskRepository = connection.getRepository(ContractAsk);
@@ -38,7 +44,13 @@ export class BidPlacingService {
   async placeBid(placeBidArgs: PlaceBidArgs): Promise<OfferContractAskDto> {
     const { collectionId, tokenId, amount, bidderAddress, tx } = placeBidArgs;
 
-    await this.sendTransferExtrinsic(tx);
+    await this.getContractAsk(collectionId, tokenId);
+
+    try {
+      await this.extrinsicSubmitter.submit(this.kusamaApi, tx);
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
 
     const {
       id: contractAskId,
@@ -65,7 +77,6 @@ export class BidPlacingService {
     await this.bidRepository.save(bid);
 
     await this.contractAskRepository.update({ id: contractAskId }, { price: bid.amount });
-
 
     const offer = await this.getOffer(collectionId, tokenId);
 
@@ -131,10 +142,5 @@ export class BidPlacingService {
       .getOne();
 
     return OfferContractAskDto.fromContractAsk(contractAsk);
-  }
-
-  // todo - implement
-  private async sendTransferExtrinsic(tx: string): Promise<void> {
-    this.logger.debug(tx);
   }
 }
