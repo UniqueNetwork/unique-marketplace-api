@@ -1,4 +1,3 @@
-// import { evmToAddress } from '@polkadot/util-crypto';
 import { Escrow } from './base';
 import * as logging from '../utils/logging';
 import * as lib from '../utils/blockchain/web3';
@@ -6,11 +5,13 @@ import * as unique from '../utils/blockchain/unique';
 import * as util from '../utils/blockchain/util';
 import { MONEY_TRANSFER_STATUS } from './constants';
 import { Interface } from 'ethers/lib/utils';
+import { MoneyTransfer } from '../entity';
 
 export class UniqueEscrow extends Escrow {
   inputDecoder;
   etherDecoder;
   explorer;
+  web3conn;
   web3;
   contractOwner;
   SECTION_UNIQUE = 'unique';
@@ -35,26 +36,30 @@ export class UniqueEscrow extends Escrow {
     this.inputDecoder = new InputDataDecoder(this.getAbi());
     this.etherDecoder = new Interface(this.getAbi());
     this.explorer = new util.UniqueExplorer(this.api, this.admin);
-    this.web3 = lib.connectWeb3(this.config('unique.wsEndpoint')).web3;
+    this.web3conn = lib.connectWeb3(this.config('unique.wsEndpoint'));
+    this.web3 = this.web3conn.web3;
     this.contractOwner = this.web3.eth.accounts.privateKeyToAccount(this.config('unique.contractOwnerSeed'));
+  }
+
+  async destroy() {
+    if(!this.initialized) return;
+    this.web3conn.provider.connection.close()
+    await this.api.disconnect()
   }
 
   getAbi() {
     return JSON.parse(util.blockchainStaticFile('MarketPlace.abi'));
   }
 
-  getContract(): { web3: any; contract: any; helpers: any } {
-    const web3 = lib.connectWeb3(this.config('unique.wsEndpoint')).web3;
+  async withContract(func) {
+    const web3conn = lib.connectWeb3(this.config('unique.wsEndpoint'));
+    const web3 = web3conn.web3;
     web3.eth.accounts.wallet.add(this.contractOwner.privateKey);
-
-    return {
-      web3,
-      contract: new web3.eth.Contract(this.getAbi(), this.config('unique.contractAddress')),
-      helpers: lib.contractHelpers(web3, this.contractOwner.address),
-    };
+    await func(web3, new web3.eth.Contract(this.getAbi(), this.config('unique.contractAddress')), lib.contractHelpers(web3, this.contractOwner.address));
+    web3conn.provider.connection.close();
   }
 
-  async addToAllowList(substrateAddress, data?: { contract: any; helpers: any }) {
+  async addToAllowList(substrateAddress, contract, helpers) {
     let contractAddress = this.config('unique.contractAddress');
     let ethAddress = lib.subToEth(substrateAddress),
       toAdd = [];
@@ -66,9 +71,8 @@ export class UniqueEscrow extends Escrow {
     }
     if (!toAdd.length) return;
 
-    if (!data) data = this.getContract();
     for (let address of toAdd) {
-      await data.helpers.methods.toggleAllowed(data.contract.options.address, address, true).send({ from: this.contractOwner.address });
+      await helpers.methods.toggleAllowed(contract.options.address, address, true).send({ from: this.contractOwner.address });
     }
   }
 
@@ -82,7 +86,7 @@ export class UniqueEscrow extends Escrow {
   }
 
   async connectApi() {
-    this.api = await unique.connectApi(this.config('unique.wsEndpoint'), true);
+    this.api = await unique.connectApi(this.config('unique.wsEndpoint'), this.configMode === Escrow.MODE_PROD);
     this.admin = util.privateKey(this.config('escrowSeed'));
   }
 
@@ -183,7 +187,6 @@ export class UniqueEscrow extends Escrow {
       this.getNetwork(),
     );
     await this.service.addSearchIndexes(tokenKeywords, collectionId, tokenId, this.getNetwork());
-    await this.addToAllowList(addressFrom);
   }
 
   async processBuyKSM(blockNum, extrinsic, inputData) {
@@ -205,8 +208,9 @@ export class UniqueEscrow extends Escrow {
 
     await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
 
-    // Balance on smart-contract (Next tick in this escrow)
-    await this.service.modifyContractBalance(-realPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
+    // Balance on smart-contract (Process now, instead of next-tick)
+    let transfer = await this.service.modifyContractBalance(-realPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
+    await this.modifyBalanceOnContract(transfer);
     // Real KSM (Processed on kusama escrow)
     await this.service.registerKusamaWithdraw(origPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
 
@@ -288,21 +292,18 @@ export class UniqueEscrow extends Escrow {
     }
   }
 
-  async processContractBalance() {
-    while (true) {
-      let deposit = await this.service.getPendingContractBalance(this.config('kusama.network'));
-      if (!deposit) break;
-      await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.IN_PROGRESS);
-      let method = 'depositKSM';
-      try {
-        logging.log(`Unique deposit for money transfer #${deposit.id} started`);
-        const amount = BigInt(deposit.amount);
-        const ethAddress = lib.subToEth(deposit.extra.address);
-        await this.service.registerAccountPair(deposit.extra.address, ethAddress);
-        logging.log(['amount', amount.toString(), 'ethAddress', ethAddress]);
-        const { contract, helpers } = this.getContract();
-        await this.addToAllowList(deposit.extra.address, { contract: contract, helpers });
+  async modifyBalanceOnContract(deposit: MoneyTransfer) {
+    await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.IN_PROGRESS);
+    let method = 'depositKSM';
+    try {
+      logging.log(`Unique deposit for money transfer #${deposit.id} started`);
+      const amount = BigInt(deposit.amount);
+      const ethAddress = lib.subToEth(deposit.extra.address);
+      await this.service.registerAccountPair(deposit.extra.address, ethAddress);
+      logging.log(['amount', amount.toString(), 'ethAddress', ethAddress]);
 
+      await this.withContract(async (web3, contract, helpers) => {
+        await this.addToAllowList(deposit.extra.address, contract, helpers);
         if (amount < 0) {
           method = 'withdrawKSM';
           await contract.methods.withdrawKSM(-amount, ethAddress).send({
@@ -315,14 +316,22 @@ export class UniqueEscrow extends Escrow {
             ...lib.GAS_ARGS,
           });
         }
+      });
 
-        await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.COMPLETED);
-        logging.log(`Unique ${method} for money transfer #${deposit.id} successful`);
-      } catch (e) {
-        await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.FAILED);
-        logging.log(`Unique ${method} for money transfer #${deposit.id} failed`, logging.level.ERROR);
-        logging.log(e, logging.level.ERROR);
-      }
+      await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.COMPLETED);
+      logging.log(`Unique ${method} for money transfer #${deposit.id} successful`);
+    } catch (e) {
+      await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.FAILED);
+      logging.log(`Unique ${method} for money transfer #${deposit.id} failed`, logging.level.ERROR);
+      logging.log(e, logging.level.ERROR);
+    }
+  }
+
+  async processContractBalance() {
+    while (true) {
+      let deposit = await this.service.getPendingContractBalance(this.config('kusama.network'));
+      if (!deposit) break;
+      await this.modifyBalanceOnContract(deposit);
     }
   }
 

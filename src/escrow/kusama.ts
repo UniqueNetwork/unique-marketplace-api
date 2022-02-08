@@ -21,11 +21,16 @@ export class KusamaEscrow extends Escrow {
 
   async init() {
     this.initialized = true;
-    this.api = await kusama.connectApi(this.config('kusama.wsEndpoint'), true);
+    this.api = await kusama.connectApi(this.config('kusama.wsEndpoint'), this.configMode === Escrow.MODE_PROD);
     this.admin = util.privateKey(this.config('escrowSeed'));
     this.adminAddress = new Keyring({ type: 'sr25519', ss58Format: this.config('kusama.ss58Format') }).addFromUri(
       this.config('escrowSeed'),
     ).address;
+  }
+
+  async destroy() {
+    if(!this.initialized) return;
+    await this.api.disconnect();
   }
 
   async getBalance(address: string) {

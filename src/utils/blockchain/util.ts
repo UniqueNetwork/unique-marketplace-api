@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import {ApiPromise, Keyring} from '@polkadot/api';
+import { ApiPromise, Keyring } from '@polkadot/api';
+import { cryptoWaitReady } from '@polkadot/util-crypto';
 import { IKeyringPair } from '@polkadot/types/types';
 
 import { signTransaction, transactionStatus } from './polka';
@@ -182,8 +183,14 @@ const blockchainStaticFile = (filename: string): string => {
   return fs.readFileSync(path.join(__dirname, '..', '..','..', 'blockchain', filename)).toString();
 }
 
+const seedToAddress = async (seed: string): Promise<string> => {
+  await cryptoWaitReady();
+  const keyring = new Keyring({type: 'sr25519'});
+  return keyring.addFromUri(seed).address;
+}
+
 
 export {
   vec2str, str2vec, UniqueExplorer, normalizeAccountId, privateKey, extractCollectionIdFromAddress,
-  blockchainStaticFile
+  blockchainStaticFile, seedToAddress
 }
