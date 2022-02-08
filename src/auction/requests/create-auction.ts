@@ -9,7 +9,7 @@ import { Type } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
 import { Auction, TxInfo } from "../types";
 import { Body, ValidationPipe } from "@nestjs/common";
-import { TxDecodePipe } from "../pipes/tx-decode-pipe";
+import { UniqueApiTxDecodePipe } from "../pipes/tx-decode-pipe";
 
 const tokenTransferExample = `0x890284000a91113393e01ebe11f932f89ccd2c3dd713aebbf4fde4d643e8873790477a07015612fac581422d11fb6f3c5862f2b164046ba4208f7d13a0c5c09ae5d5794b76f856c2c2b5e2c98eca1291e57ed93189f39b018c55dd441c30cc80d36b2d1d86140000003d11009a0fdb82d88cb545207f4323e74c116aa961cc3403f5651ac9811888905f782b170000007b00000001000000000000000000000000000000`;
 
@@ -84,6 +84,6 @@ class TokenTransferTxInfoDto implements TokenTransferTxInfo {
 
 export const DecodedTokenTransfer = Body(
   'tx',
-  TxDecodePipe,
+  UniqueApiTxDecodePipe,
   new ValidationPipe({ expectedType: TokenTransferTxInfoDto }),
 );

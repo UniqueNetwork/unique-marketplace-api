@@ -4,8 +4,7 @@ import { BidPlacingService } from './services/bid-placing.service';
 import { AuctionController } from './auction.controller';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuctionClosedService } from './services/auction-closed.service';
-import { uniqueApiProvider } from './providers/unique-api-provider';
-import { kusamaApiProvider } from './providers/kusama-api-provider';
+import { polkadotApiProviders } from './providers/polkadot-api-providers';
 import { ConfigModule } from "../config/module";
 import { ExtrinsicSubmitter } from "./services/extrinsic-submitter";
 
@@ -19,8 +18,7 @@ import { ExtrinsicSubmitter } from "./services/extrinsic-submitter";
     AuctionCreationService,
     BidPlacingService,
     AuctionClosedService,
-    uniqueApiProvider,
-    kusamaApiProvider,
+    ...polkadotApiProviders,
   ],
   controllers: [AuctionController]
 })

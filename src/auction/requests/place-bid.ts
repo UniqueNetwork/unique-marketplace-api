@@ -8,7 +8,7 @@ import {
 import { ApiProperty } from "@nestjs/swagger";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 import { Body, ValidationPipe } from "@nestjs/common";
-import { TxDecodePipe } from "../pipes/tx-decode-pipe";
+import { KusamaApiTxDecodePipe } from "../pipes/tx-decode-pipe";
 import { Type } from "class-transformer";
 import { TxInfo } from "../types";
 
@@ -66,6 +66,6 @@ class BalanceTransferTxInfoDto implements BalanceTransferTxInfo {
 
 export const DecodedBalanceTransfer = Body(
   'tx',
-  TxDecodePipe,
+  KusamaApiTxDecodePipe,
   new ValidationPipe({ expectedType: BalanceTransferTxInfoDto }),
 );
