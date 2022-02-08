@@ -1,15 +1,15 @@
 // import { evmToAddress } from '@polkadot/util-crypto';
-
 import { Escrow } from './base';
 import * as logging from '../utils/logging';
 import * as lib from '../utils/blockchain/web3';
 import * as unique from '../utils/blockchain/unique';
 import * as util from '../utils/blockchain/util';
 import { MONEY_TRANSFER_STATUS } from './constants';
-
+import { Interface } from 'ethers/lib/utils';
 
 export class UniqueEscrow extends Escrow {
   inputDecoder;
+  etherDecoder;
   explorer;
   web3;
   contractOwner;
@@ -20,11 +20,11 @@ export class UniqueEscrow extends Escrow {
   BLOCKED_SCHEMA_KEYS = ['ipfsJson'];
 
   address2string(address): string {
-    if(typeof address === 'string') return address;
-    if(address.Ethereum) return address.Ethereum;
-    if(address.ethereum) return address.ethereum;
-    if(address.Substrate) return address.Substrate;
-    if(address.substrate) return address.substrate;
+    if (typeof address === 'string') return address;
+    if (address.Ethereum) return address.Ethereum;
+    if (address.ethereum) return address.ethereum;
+    if (address.Substrate) return address.Substrate;
+    if (address.substrate) return address.substrate;
     throw Error('Invalid address');
   }
 
@@ -33,6 +33,7 @@ export class UniqueEscrow extends Escrow {
     await this.connectApi();
     const InputDataDecoder = require('ethereum-input-data-decoder');
     this.inputDecoder = new InputDataDecoder(this.getAbi());
+    this.etherDecoder = new Interface(this.getAbi());
     this.explorer = new util.UniqueExplorer(this.api, this.admin);
     this.web3 = lib.connectWeb3(this.config('unique.wsEndpoint')).web3;
     this.contractOwner = this.web3.eth.accounts.privateKeyToAccount(this.config('unique.contractOwnerSeed'));
@@ -42,36 +43,37 @@ export class UniqueEscrow extends Escrow {
     return JSON.parse(util.blockchainStaticFile('MarketPlace.abi'));
   }
 
-  getContract(): {web3: any, contract: any, helpers: any} {
+  getContract(): { web3: any; contract: any; helpers: any } {
     const web3 = lib.connectWeb3(this.config('unique.wsEndpoint')).web3;
     web3.eth.accounts.wallet.add(this.contractOwner.privateKey);
 
     return {
       web3,
       contract: new web3.eth.Contract(this.getAbi(), this.config('unique.contractAddress')),
-      helpers: lib.contractHelpers(web3, this.contractOwner.address)
+      helpers: lib.contractHelpers(web3, this.contractOwner.address),
     };
   }
 
-  async addToAllowList(substrateAddress, data?: {contract: any, helpers: any}) {
+  async addToAllowList(substrateAddress, data?: { contract: any; helpers: any }) {
     let contractAddress = this.config('unique.contractAddress');
-    let ethAddress = lib.subToEth(substrateAddress), toAdd = [];
+    let ethAddress = lib.subToEth(substrateAddress),
+      toAdd = [];
     // let toCheck = [substrateAddress, ethAddress, evmToAddress(ethAddress, 42, 'blake2')];
     let toCheck = [ethAddress];
-    for(let address of toCheck) {
+    for (let address of toCheck) {
       let isAllowed = (await this.api.query.evmContractHelpers.allowlist(contractAddress, address)).toJSON();
-      if(!isAllowed) toAdd.push(address);
+      if (!isAllowed) toAdd.push(address);
     }
-    if(!toAdd.length) return;
+    if (!toAdd.length) return;
 
-    if(!data) data = this.getContract();
-    for(let address of toAdd) {
-      await data.helpers.methods.toggleAllowed(data.contract.options.address, address, true).send({from: this.contractOwner.address});
+    if (!data) data = this.getContract();
+    for (let address of toAdd) {
+      await data.helpers.methods.toggleAllowed(data.contract.options.address, address, true).send({ from: this.contractOwner.address });
     }
   }
 
   isCollectionManaged(collectionId: number) {
-    return (this.config('unique.collectionIds').indexOf(collectionId) !== -1);
+    return this.config('unique.collectionIds').indexOf(collectionId) !== -1;
   }
 
   getPriceWithoutCommission(price: bigint) {
@@ -89,7 +91,7 @@ export class UniqueEscrow extends Escrow {
       let valueJsonComment = protoSchema.fields[key].resolvedType.options[value];
       let translationObject = JSON.parse(valueJsonComment);
       if (translationObject) {
-        yield* Object.keys(translationObject).map(k => ({ locale: k, text: translationObject[k] }));
+        yield* Object.keys(translationObject).map((k) => ({ locale: k, text: translationObject[k] }));
       }
     } catch (e) {
       logging.log('Error parsing schema when trying to convert enum to string', logging.level.ERROR);
@@ -98,10 +100,10 @@ export class UniqueEscrow extends Escrow {
   }
 
   *getKeywords(protoSchema, dataObj) {
-    for(let key of Object.keys(dataObj)) {
-      if(this.BLOCKED_SCHEMA_KEYS.indexOf(key) > -1) continue;
-      yield {locale: null, text: key};
-      if (protoSchema.fields[key].resolvedType && protoSchema.fields[key].resolvedType.constructor.name.toString() === "Enum") {
+    for (let key of Object.keys(dataObj)) {
+      if (this.BLOCKED_SCHEMA_KEYS.indexOf(key) > -1) continue;
+      yield { locale: null, text: key };
+      if (protoSchema.fields[key].resolvedType && protoSchema.fields[key].resolvedType.constructor.name.toString() === 'Enum') {
         if (Array.isArray(dataObj[key])) {
           for (let i = 0; i < dataObj[key].length; i++) {
             yield* this.convertEnumToString(dataObj[key][i], key, protoSchema);
@@ -110,7 +112,7 @@ export class UniqueEscrow extends Escrow {
           yield* this.convertEnumToString(dataObj[key], key, protoSchema);
         }
       } else {
-        yield {locale: null, text: dataObj[key]};
+        yield { locale: null, text: dataObj[key] };
       }
     }
   }
@@ -119,18 +121,17 @@ export class UniqueEscrow extends Escrow {
     let keywords = [];
     try {
       let data = await this.explorer.getTokenData(tokenId, collectionId);
-      keywords.push({locale: null, text: data.collection.toHuman().tokenPrefix});
+      keywords.push({ locale: null, text: data.collection.toHuman().tokenPrefix });
       for (let k of this.getKeywords(data.schema.NFTMeta, data.data.human)) {
         keywords.push(k);
       }
-    }
-    catch (e) {
+    } catch (e) {
       logging.log(`Unable to get search indexes for token #${tokenId} from collection #${collectionId}`, logging.level.ERROR);
       logging.log(e, logging.level.ERROR);
     }
-    keywords.push({locale: null, text: tokenId.toString()});
+    keywords.push({ locale: null, text: tokenId.toString() });
 
-    return keywords.filter(x => typeof x.text === 'string' && x.text.trim() !== '');
+    return keywords.filter((x) => typeof x.text === 'string' && x.text.trim() !== '');
   }
 
   async processTransfer(blockNum, rawExtrinsic) {
@@ -139,10 +140,17 @@ export class UniqueEscrow extends Escrow {
     const addressTo = util.normalizeAccountId(extrinsic.args.recipient);
     const collectionId = parseInt(extrinsic.args.collection_id);
     const tokenId = parseInt(extrinsic.args.item_id);
-    if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
-    await this.service.registerTransfer(blockNum, {
-      collectionId, tokenId, addressTo: this.address2string(addressTo), addressFrom: this.address2string(addressFrom)
-    }, this.getNetwork());
+    if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
+    await this.service.registerTransfer(
+      blockNum,
+      {
+        collectionId,
+        tokenId,
+        addressTo: this.address2string(addressTo),
+        addressFrom: this.address2string(addressFrom),
+      },
+      this.getNetwork(),
+    );
     logging.log(`Got nft transfer (collectionId: ${collectionId}, tokenId: ${tokenId}) in block #${blockNum}`);
   }
 
@@ -155,16 +163,25 @@ export class UniqueEscrow extends Escrow {
     const collectionEVMAddress = inputData.inputs[2];
     const collectionId = util.extractCollectionIdFromAddress(collectionEVMAddress);
     const tokenId = inputData.inputs[3].toNumber();
-    if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
+    if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     await this.service.registerAccountPair(addressFrom, this.address2string(addressFromEth));
 
     let isToContract = this.address2string(addressTo).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
-    if(!isToContract) return;
+    if (!isToContract) return;
     logging.log(`Got ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum}`);
     const tokenKeywords = await this.getSearchIndexes(collectionId, tokenId);
-    await this.service.registerAsk(blockNum, {
-      collectionId, tokenId, addressTo: this.address2string(addressTo), addressFrom, price, currency
-    }, this.getNetwork());
+    await this.service.registerAsk(
+      blockNum,
+      {
+        collectionId,
+        tokenId,
+        addressTo: this.address2string(addressTo),
+        addressFrom,
+        price,
+        currency,
+      },
+      this.getNetwork(),
+    );
     await this.service.addSearchIndexes(tokenKeywords, collectionId, tokenId, this.getNetwork());
     await this.addToAllowList(addressFrom);
   }
@@ -179,7 +196,7 @@ export class UniqueEscrow extends Escrow {
     // const receiver = util.normalizeAccountId(inputData.inputs[3]);
     const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
 
-    if(!activeAsk) return;
+    if (!activeAsk) return;
     const realPrice = BigInt(activeAsk.price);
     const origPrice = this.getPriceWithoutCommission(realPrice);
     const buyerEth = this.address2string(buyer);
@@ -193,43 +210,58 @@ export class UniqueEscrow extends Escrow {
     // Real KSM (Processed on kusama escrow)
     await this.service.registerKusamaWithdraw(origPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
 
-    logging.log(`Got buyKSM (collectionId: ${collectionId}, tokenId: ${tokenId}, buyer: ${buyerAddress}, price: ${activeAsk.price}, price without commission: ${origPrice}) in block #${blockNum}`);
+    logging.log(
+      `Got buyKSM (collectionId: ${collectionId}, tokenId: ${tokenId}, buyer: ${buyerAddress}, price: ${activeAsk.price}, price without commission: ${origPrice}) in block #${blockNum}`,
+    );
   }
 
   async processCancelAsk(blockNum, extrinsic, inputData) {
     const collectionEVMAddress = inputData.inputs[0];
     const collectionId = util.extractCollectionIdFromAddress(collectionEVMAddress);
-    if(!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
+    if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     const tokenId = inputData.inputs[1].toNumber();
     const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
     logging.log(`Got cancelAsk (collectionId: ${collectionId}, tokenId: ${tokenId}) in block #${blockNum}`);
-    if(!activeAsk) {
+    if (!activeAsk) {
       logging.log(`No active offer for token ${tokenId} from collection ${collectionId}, nothing to cancel`, logging.level.WARNING);
-    }
-    else {
+    } else {
       await this.service.cancelAsk(collectionId, tokenId, blockNum, this.getNetwork());
     }
   }
 
-  async processCall(blockNum, rawExtrinsic) {
+  async processWithdrawAllKSM(blockNum: number, events, singer) {
+    let eventLogEVM = events.find((e) => e.event.method === 'Log' && e.event.section === 'evm'); // TODO: check this
+    let withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', eventLogEVM.event.data[0].data);
+    let sender = withDrawData._sender;
+    let balance = withDrawData.balance.toBigInt();
+    let substrateAddress = await this.service.getSubstrateAddress(sender);
+    substrateAddress = substrateAddress ? substrateAddress : singer.toString();
+    await this.service.registerKusamaWithdraw(balance, substrateAddress, blockNum, this.config('kusama.network'));
+    logging.log(`Got WithdrawAllKSM (Sender: ${sender}, amount: ${balance}) in block #${blockNum}`);
+  }
+
+  async processCall(blockNum, rawExtrinsic, events) {
     const extrinsic = rawExtrinsic.toHuman().method;
     const inputData = this.inputDecoder.decodeData(extrinsic.args.input);
-    if(inputData.method === 'addAsk') {
+    if (inputData.method === 'addAsk') {
       return await this.processAddAsk(blockNum, extrinsic, inputData, rawExtrinsic.signer);
     }
-    if(inputData.method === 'buyKSM') {
+    if (inputData.method === 'buyKSM') {
       return await this.processBuyKSM(blockNum, extrinsic, inputData);
     }
-    if(inputData.method === 'cancelAsk') {
+    if (inputData.method === 'cancelAsk') {
       return await this.processCancelAsk(blockNum, extrinsic, inputData);
+    }
+    if (inputData.method === 'withdrawAllKSM') {
+      return await this.processWithdrawAllKSM(blockNum, events, rawExtrinsic.signer);
     }
   }
 
   async processEthereum(blockNum, rawExtrinsic) {
     const extrinsic = rawExtrinsic.toHuman().method;
-    if(!('transaction' in extrinsic.args)) return;
+    if (!('transaction' in extrinsic.args)) return;
     const inputData = this.inputDecoder.decodeData(extrinsic.args.transaction.input);
-    if(inputData.method === 'depositKSM') {
+    if (inputData.method === 'depositKSM') {
       const amount = inputData.inputs[0].toString();
       const sender = util.normalizeAccountId(inputData.inputs[1]);
       logging.log(`Got depositKSM (Sender: ${this.address2string(sender)}, amount: ${amount}) in block #${blockNum}`);
@@ -240,25 +272,26 @@ export class UniqueEscrow extends Escrow {
     return this.config('unique.network');
   }
 
-  async extractBlockData(blockNum, isSuccess, rawExtrinsic) {
-    if(!isSuccess) return;
-    if(['parachainSystem'].indexOf(rawExtrinsic.method.section) > -1) return;
-    if(this.configObj.dev.debugScanBlock && rawExtrinsic.method.section != 'timestamp') logging.log([blockNum, rawExtrinsic.method.section, rawExtrinsic.method.method]);
-    if(rawExtrinsic.method.section === this.SECTION_UNIQUE && rawExtrinsic.method.method === 'transfer') {
+  async extractBlockData(blockNum, isSuccess, rawExtrinsic, events) {
+    if (!isSuccess) return;
+    if (['parachainSystem'].indexOf(rawExtrinsic.method.section) > -1) return;
+    if (this.configObj.dev.debugScanBlock && rawExtrinsic.method.section != 'timestamp')
+      logging.log([blockNum, rawExtrinsic.method.section, rawExtrinsic.method.method]);
+    if (rawExtrinsic.method.section === this.SECTION_UNIQUE && rawExtrinsic.method.method === 'transfer') {
       return await this.processTransfer(blockNum, rawExtrinsic);
     }
-    if(rawExtrinsic.method.section === this.SECTION_CONTRACT && rawExtrinsic.method.method === 'call') {
-      return await this.processCall(blockNum, rawExtrinsic);
+    if (rawExtrinsic.method.section === this.SECTION_CONTRACT && rawExtrinsic.method.method === 'call') {
+      return await this.processCall(blockNum, rawExtrinsic, events);
     }
-    if(rawExtrinsic.method.section === this.SECTION_ETHEREUM && rawExtrinsic.method.method === 'transact') {
+    if (rawExtrinsic.method.section === this.SECTION_ETHEREUM && rawExtrinsic.method.method === 'transact') {
       return await this.processEthereum(blockNum, rawExtrinsic);
     }
   }
 
   async processContractBalance() {
-    while(true) {
+    while (true) {
       let deposit = await this.service.getPendingContractBalance(this.config('kusama.network'));
-      if(!deposit) break;
+      if (!deposit) break;
       await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.IN_PROGRESS);
       let method = 'depositKSM';
       try {
@@ -268,24 +301,24 @@ export class UniqueEscrow extends Escrow {
         await this.service.registerAccountPair(deposit.extra.address, ethAddress);
         logging.log(['amount', amount.toString(), 'ethAddress', ethAddress]);
         const { contract, helpers } = this.getContract();
-        await this.addToAllowList(deposit.extra.address, {contract: contract, helpers});
+        await this.addToAllowList(deposit.extra.address, { contract: contract, helpers });
 
-        if(amount < 0) {
-          method = 'withdrawKSM'
+        if (amount < 0) {
+          method = 'withdrawKSM';
           await contract.methods.withdrawKSM(-amount, ethAddress).send({
-            from: this.contractOwner.address, ...lib.GAS_ARGS
+            from: this.contractOwner.address,
+            ...lib.GAS_ARGS,
           });
-        }
-        else {
+        } else {
           await contract.methods.depositKSM(amount, ethAddress).send({
-            from: this.contractOwner.address, ...lib.GAS_ARGS
+            from: this.contractOwner.address,
+            ...lib.GAS_ARGS,
           });
         }
 
         await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.COMPLETED);
         logging.log(`Unique ${method} for money transfer #${deposit.id} successful`);
-      }
-      catch(e) {
+      } catch (e) {
         await this.service.updateMoneyTransferStatus(deposit.id, MONEY_TRANSFER_STATUS.FAILED);
         logging.log(`Unique ${method} for money transfer #${deposit.id} failed`, logging.level.ERROR);
         logging.log(e, logging.level.ERROR);
@@ -293,10 +326,10 @@ export class UniqueEscrow extends Escrow {
     }
   }
 
-  async processBlock(blockNum, force=false) {
+  async processBlock(blockNum, force = false) {
     try {
       await this.scanBlock(blockNum, force);
-    } catch(e) {
+    } catch (e) {
       logging.log(`Unable to scan block #${blockNum} (WTF?)`, logging.level.ERROR);
       logging.log(e, logging.level.ERROR);
     }
@@ -308,10 +341,14 @@ export class UniqueEscrow extends Escrow {
   }
 
   async work() {
-    if(!this.initialized) throw Error('Unable to start uninitialized escrow. Call "await escrow.init()" before work');
+    if (!this.initialized) throw Error('Unable to start uninitialized escrow. Call "await escrow.init()" before work');
     this.store.currentBlock = await this.getStartBlock();
     this.store.latestBlock = await this.getLatestBlockNumber();
-    logging.log(`Unique escrow starting from block #${this.store.currentBlock} (mode: ${this.config('unique.startFromBlock')}, maxBlock: ${this.store.latestBlock})`)
+    logging.log(
+      `Unique escrow starting from block #${this.store.currentBlock} (mode: ${this.config('unique.startFromBlock')}, maxBlock: ${
+        this.store.latestBlock
+      })`,
+    );
     logging.log(`Unique escrow contract owner address: ${this.contractOwner.address}`);
     logging.log(`Unique escrow contract address: ${this.config('unique.contractAddress')}`);
     await this.subscribe();
