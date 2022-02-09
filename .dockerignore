@@ -15,4 +15,4 @@ src/config/*
 !src/config/global.ts
 !src/config/module.ts
 !src/config/providers.ts
-src/util/playground/*.dev.ts
+src/utils/playground/*.dev.ts

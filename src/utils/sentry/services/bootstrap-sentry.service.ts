@@ -12,6 +12,8 @@ export class BootstrapSentry implements OnApplicationShutdown {
     private readonly adapterHost: HttpAdapterHost,
     @Inject(SENTRY_MODULE_OPTIONS)
     private readonly options: SentryModuleOptions,
+    @Inject('CONFIG')
+    private readonly config
   ) {
     const { expressTracing, integrations, ...restOptions } = options;
     let _integrations: Options['integrations'];
@@ -27,6 +29,8 @@ export class BootstrapSentry implements OnApplicationShutdown {
     Sentry.init({
       ...restOptions,
       integrations: _integrations,
+      enabled: this.config.sentry.enabled,
+      dsn: this.config.sentry.enabled ? this.config.sentry.dsn : null
     });
   }
 

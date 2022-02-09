@@ -11,10 +11,10 @@ export default {
     debugScanBlock: false,
   },
   sentry: {
-    enabled: process.env.SENTRY_ENABLED || false,
+    enabled: process.env.SENTRY_ENABLED === 'true',
     environment: process.env.SENTRY_ENV || 'dev', // | 'production' | 'some_environment',
     dsn: process.env.SENTRY_DSN || 'https://hash@domain.tld/sentryId',
-    debug: process.env.SENTRY_DEBUG || false,
+    debug: process.env.SENTRY_DEBUG === 'true',
     release: process.env.SENTRY_RELEASE || '',
   },
   swagger: {
