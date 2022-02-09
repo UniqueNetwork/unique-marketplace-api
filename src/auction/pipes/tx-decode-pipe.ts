@@ -1,4 +1,5 @@
 import { ApiPromise } from "@polkadot/api";
+import { decodeAddress, encodeAddress } from "@polkadot/util-crypto";
 import {
   BadRequestException,
   Inject,
@@ -64,5 +65,14 @@ export class UniqueApiTxDecodePipe extends TxDecodePipe {
 export class KusamaApiTxDecodePipe extends TxDecodePipe {
   constructor(@Inject('KusamaApi') api: ApiPromise) {
     super(api);
+  }
+
+  transform(value: unknown, metadata: ArgumentMetadata): TxInfo {
+    const txInfo = super.transform(value, metadata);
+
+    return {
+      ...txInfo,
+      signerAddress: encodeAddress(decodeAddress(txInfo.signerAddress)),
+    }
   }
 }

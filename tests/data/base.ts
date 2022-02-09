@@ -29,13 +29,14 @@ export const initApp = async (config?: any, overrideProviders?: OverrideProvider
       .overrideProvider('CONFIG')
       .useFactory({ factory: testConfigFactory(config) })
 
-  if (overrideProviders) overrideProviders(testingModuleBuilder);
+    if (overrideProviders) overrideProviders(testingModuleBuilder);
 
-  const moduleFixture = await testingModuleBuilder.compile();
+    const moduleFixture = await testingModuleBuilder.compile();
 
     const app = moduleFixture.createNestApplication();
     ignoreQueryCase(app);
     useGlobalPipes(app);
+
     return app;
 };
 

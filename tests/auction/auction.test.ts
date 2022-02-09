@@ -1,91 +1,56 @@
-import { INestApplication } from "@nestjs/common";
 import * as request from 'supertest';
 
-import { ApiPromise } from "@polkadot/api";
-import { waitReady } from '@polkadot/wasm-crypto';
-import { KeyringPair } from "@polkadot/keyring/types";
-
-import { initApp, prepareSearchData, runMigrations } from "../data";
-import { ExtrinsicSubmitter } from "../../src/auction/services/extrinsic-submitter";
 import { CreateAuctionRequest } from "../../src/auction/requests";
 import * as util from "../../src/utils/blockchain/util";
+import { OfferContractAskDto } from "../../src/offers/dto/offer-dto";
+import {
+  AuctionTestEntities,
+  createAuction,
+  getAuctionTestEntities,
+  placeBid,
+} from "./base";
+
 
 describe('Auction creation method', () => {
-  let app: INestApplication;
-  let uniqueApi: ApiPromise;
+  const collectionId = 11;
+  const tokenId = 22;
 
-  let seller: KeyringPair;
-  let buyer: KeyringPair;
-  let market: KeyringPair;
-
-  const extrinsicSubmitterMock = {
-    submit: jest.fn().mockResolvedValue({
-      block: { header: { number: 1 } }
-    })
-  };
+  let testEntities: AuctionTestEntities;
 
   beforeAll(async () => {
-    await waitReady();
-
-    seller = util.privateKey(`//Seller/${Date.now()}`);
-    buyer = util.privateKey(`//Buyer/${Date.now()}`);
-    market = util.privateKey(`//Market/${Date.now()}`);
-
-    app = await initApp(undefined, (builder) => {
-      builder.overrideProvider(ExtrinsicSubmitter).useValue(extrinsicSubmitterMock)
-    });
-
-    uniqueApi = app.get<ApiPromise>('UniqueApi');
-
-    await runMigrations(app.get('CONFIG'));
-    await app.init();
-    await prepareSearchData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+    testEntities = await getAuctionTestEntities();
   });
 
   afterAll(async () => {
-    await app.close();
+    await testEntities.app.close();
   });
 
   it('successful auction creation', async () => {
-    const collectionId = '11';
-    const tokenId = '22';
+    const createAuctionResponse = await createAuction(testEntities, collectionId, tokenId);
 
-    const marketAddress = util.normalizeAccountId({ Substrate: market.address });
+    expect(createAuctionResponse.status).toEqual(201);
 
-    const signedExtrinsic = await uniqueApi.tx
-      .unique
-      .transfer(marketAddress, collectionId, tokenId, 1)
-      .signAsync(seller);
+    let auctionOffer = createAuctionResponse.body as OfferContractAskDto;
 
-    const response = await request(app.getHttpServer())
-      .post('/auction/create_auction')
-      .send({
-        startPrice: '100',
-        priceStep: '10',
-        days: 7,
-        tx: signedExtrinsic.toJSON(),
-      } as CreateAuctionRequest)
-      .expect(201);
+    expect(auctionOffer).toMatchObject({
+      collectionId,
+      tokenId,
+      seller: testEntities.actors.seller.address,
+    })
 
-    expect(response.body).toEqual({
-        auction: {
-          priceStep: "10",
-          startPrice: "100",
-          status: "created",
-          stopAt: expect.any(String),
-        },
-        collectionId: 11,
-        tokenId: 22,
-        price: "100",
-        quoteId: 0,
-        seller: seller.address,
-      }
-    );
+    const placedBidResponse = await placeBid(testEntities, collectionId, tokenId);
+    expect(placedBidResponse.status).toEqual(201);
+
+    auctionOffer = placedBidResponse.body as OfferContractAskDto;
+
+    expect(auctionOffer.auction.bids).toEqual([{
+      bidderAddress: testEntities.actors.buyer.address,
+      amount: '100',
+    }]);
   });
 
   it('bad request - unsigned tx', async () => {
-    const collectionId = '11';
-    const tokenId = '22';
+    const { app, uniqueApi, actors: { market } } = testEntities;
 
     const marketAddress = util.normalizeAccountId({ Substrate: market.address });
 
