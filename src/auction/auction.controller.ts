@@ -31,7 +31,7 @@ export class AuctionController {
     return await this.auctionCreationService.create({
       ...createAuctionRequest,
       collectionId: txInfo.args.collection_id,
-      ownerAddress: txInfo.address,
+      ownerAddress: txInfo.signerAddress,
       tokenId: txInfo.args.item_id,
     });
   }
@@ -45,7 +45,7 @@ export class AuctionController {
 
     return await this.bidPlacingService.placeBid({
       ...placeBidRequest,
-      bidderAddress: txInfo.address,
+      bidderAddress: txInfo.signerAddress,
       amount: txInfo.args.value,
     });
   }

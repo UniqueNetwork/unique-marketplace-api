@@ -29,7 +29,8 @@ export class PlaceBidRequestDto implements PlaceBidRequest {
 }
 
 export interface BalanceTransferTxInfo extends TxInfo {
-  address: string;
+  isSigned: true,
+  signerAddress: string;
   method: 'transfer',
   section: 'balances';
   args: {
@@ -48,9 +49,12 @@ class BalanceTransferTxArgsDto {
 }
 
 class BalanceTransferTxInfoDto implements BalanceTransferTxInfo {
+  @Equals(true, { message: 'tx must be signed'})
+  isSigned: true;
+
   @IsString()
   @IsNotEmpty()
-  address: string;
+  signerAddress: string;
 
   @IsDefined()
   @ValidateNested()

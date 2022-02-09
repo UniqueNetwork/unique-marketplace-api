@@ -1,7 +1,8 @@
 export type TxArgs = Record<string, string | Record<string, any>>;
 
 export interface TxInfo {
-  address: string;
+  isSigned: boolean;
+  signerAddress: string;
   method: string;
   section: string;
   args: TxArgs;

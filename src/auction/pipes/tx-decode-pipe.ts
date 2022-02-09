@@ -39,7 +39,8 @@ class TxDecodePipe implements PipeTransform<unknown, TxInfo> {
       }, {} as TxArgs);
 
       return {
-        address: extrinsic.signer.toString(),
+        isSigned: extrinsic.isSigned,
+        signerAddress: extrinsic.signer.toString(),
         method: call.method,
         section: call.section,
         args,

@@ -38,7 +38,8 @@ export class CreateAuctionRequestDto implements CreateAuctionRequest {
 }
 
 export interface TokenTransferTxInfo extends TxInfo {
-  address: string;
+  isSigned: true;
+  signerAddress: string;
   method: 'transfer',
   section: 'unique';
   args: {
@@ -66,9 +67,12 @@ class TokenTransferTxArgsDto {
 }
 
 class TokenTransferTxInfoDto implements TokenTransferTxInfo {
+  @Equals(true, { message: 'tx must be signed'})
+  isSigned: true;
+
   @IsString()
   @IsNotEmpty()
-  address: string;
+  signerAddress: string;
 
   @IsDefined()
   @ValidateNested()
