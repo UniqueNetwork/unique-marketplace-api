@@ -1,4 +1,4 @@
-import {Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique} from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { Bid, BidStatus } from "../types";
 import { AuctionEntity } from "./auction-entity";
 
@@ -6,14 +6,15 @@ import { AuctionEntity } from "./auction-entity";
   'UNIQUE_user_auction',
   ['auctionId', 'bidderAddress'],
 )
-@Entity("bid" , { schema: "public" } )
+@Entity("bids" , { schema: "public" } )
 export class BidEntity implements Bid {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({
-    type: 'bigint',
+    type: 'varchar',
     nullable: false,
+    name: 'amount',
   })
   amount: string;
 
@@ -25,7 +26,7 @@ export class BidEntity implements Bid {
   auctionId: string;
 
   @Column({
-    type: 'text',
+    type: 'varchar',
     nullable: false,
     name: 'bidder_address'
   })

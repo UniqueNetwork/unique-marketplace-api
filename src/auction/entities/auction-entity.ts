@@ -3,7 +3,7 @@ import { Auction, AuctionStatus } from "../types";
 import { BidEntity } from "./bid-entity";
 import { ContractAsk } from "../../entity";
 
-@Entity("auction" , { schema: "public" } )
+@Entity("auctions" , { schema: "public" } )
 export class AuctionEntity implements Auction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -40,7 +40,8 @@ export class AuctionEntity implements Auction {
   @Column({
     type: "enum",
     enum: AuctionStatus,
-    default: AuctionStatus.created
+    default: AuctionStatus.created,
+    name: 'status',
   })
   status: AuctionStatus;
 
