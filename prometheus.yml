@@ -19,7 +19,7 @@ scrape_configs:
     - targets:
       - marketplace-web:5000
   - job_name: 'marketplace-backend'
-    metrics_path: /api/metrics
+    metrics_path: /api/system/metrics
     static_configs:
     - targets:
        - marketplace-web:5000
