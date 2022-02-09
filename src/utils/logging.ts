@@ -41,7 +41,7 @@ const log = (message, level = logLevel.INFO) => {
         msgs = [];
     for (let msg of rawMsgs) {
         try {
-            if (typeof message !== 'string') {
+            if (typeof msg !== 'string') {
                 msgs.push(JSON.stringify(msg));
             } else {
                 msgs.push(msg);

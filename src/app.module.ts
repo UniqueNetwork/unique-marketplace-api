@@ -13,9 +13,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { SettingsController, SettingsService } from './settings';
 import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
-import { SentryModule } from './utils/sentry';
-import { LogLevel } from '@sentry/types';
-import { getConfig } from './config';
+
 
 @Module({
     imports: [
