@@ -13,22 +13,28 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { SettingsController, SettingsService } from './settings';
 import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
-import { SentryModule } from './utils/sentry';
-import { LogLevel } from '@sentry/types';
-import { getConfig } from './config';
+import { HealthController } from './utils/health/health.controller';
+import { HealthService } from './utils/health/health.service';
+import { PrometheusService } from './utils/prometheus/prometheus.service';
+import { TerminusModule } from '@nestjs/terminus';
+import { MetricsController } from './utils/metrics/metrics.controller';
+import { MetricsService } from './utils/metrics/metrics.service';
+import { HttpModule, HttpService } from '@nestjs/axios';
 
 @Module({
-    imports: [
-        ServeStaticModule.forRoot({
-            rootPath: join(__dirname, '..', 'blockchain'),
-        }),
-        SentryLoggerService(),
-        DatabaseModule,
-        ConfigModule,
-        CommandModule,
-        EscrowModule,
-    ],
-    controllers: [OffersController, TradesController, SettingsController],
-    providers: [OffersService, TradesService, PlaygroundCommand, SettingsService],
+  imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'blockchain'),
+    }),
+    SentryLoggerService(),
+    DatabaseModule,
+    HttpModule,
+    ConfigModule,
+    CommandModule,
+    EscrowModule,
+    TerminusModule,
+  ],
+  controllers: [OffersController, TradesController, SettingsController, HealthController, MetricsController],
+  providers: [OffersService, TradesService, PlaygroundCommand, SettingsService, HealthService, MetricsService, PrometheusService],
 })
 export class AppModule {}

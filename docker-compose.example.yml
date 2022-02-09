@@ -55,3 +55,13 @@ services:
     container_name: marketplace-escrow-kusama
     command: [ "npm", "run", "escrow:kusama" ]
     <<: *marketplace-backend
+
+  marketplace-prometheus:
+    image: prom/prometheus
+    container_name: marketplace-prometheus
+    ports:
+      - 9090:9090
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
