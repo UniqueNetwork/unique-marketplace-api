@@ -24,10 +24,10 @@ const waitConnectionReady = async (api: ApiPromise, logger: Logger, wsEndpoint: 
 }
 
 const uniqueApiProvider: Provider<Promise<ApiPromise>> = {
-  provide: 'UniqueApi',
+  provide: 'UNIQUE_API',
   inject: ['CONFIG'],
   useFactory: async (config: MarketConfig) => {
-    const logger = new Logger('UniqueApi');
+    const logger = new Logger('UNIQUE_API');
 
     const { wsEndpoint } = config.blockchain.unique;
     const wsProvider = new WsProvider(wsEndpoint);
@@ -43,10 +43,10 @@ const uniqueApiProvider: Provider<Promise<ApiPromise>> = {
 }
 
 const kusamaApiProvider: Provider<Promise<ApiPromise>> = {
-  provide: 'KusamaApi',
+  provide: 'KUSAMA_API',
   inject: ['CONFIG'],
   useFactory: async (config: MarketConfig) => {
-    const logger = new Logger('KusamaApi');
+    const logger = new Logger('KUSAMA_API');
 
     const { wsEndpoint } = config.blockchain.kusama;
     const wsProvider = new WsProvider(wsEndpoint);

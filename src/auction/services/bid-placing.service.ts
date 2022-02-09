@@ -31,7 +31,7 @@ export class BidPlacingService {
   constructor(
     @Inject('DATABASE_CONNECTION') connection: Connection,
     private broadcastService: BroadcastService,
-    @Inject('KusamaApi') private kusamaApi: ApiPromise,
+    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter
   ) {

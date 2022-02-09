@@ -56,14 +56,14 @@ class TxDecodePipe implements PipeTransform<unknown, TxInfo> {
 
 @Injectable()
 export class UniqueApiTxDecodePipe extends TxDecodePipe {
-  constructor(@Inject('UniqueApi') api: ApiPromise) {
+  constructor(@Inject('UNIQUE_API') api: ApiPromise) {
     super(api);
   }
 }
 
 @Injectable()
 export class KusamaApiTxDecodePipe extends TxDecodePipe {
-  constructor(@Inject('KusamaApi') api: ApiPromise) {
+  constructor(@Inject('KUSAMA_API') api: ApiPromise) {
     super(api);
   }
 

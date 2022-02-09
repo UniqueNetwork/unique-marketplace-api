@@ -33,7 +33,7 @@ export class AuctionCreationService {
   constructor(
     @Inject('DATABASE_CONNECTION') connection: Connection,
     private broadcastService: BroadcastService,
-    @Inject('UniqueApi') private uniqueApi: ApiPromise,
+    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @Inject('CONFIG') private config: MarketConfig,
   ) {

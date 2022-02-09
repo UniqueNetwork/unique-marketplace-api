@@ -40,8 +40,8 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
     builder.overrideProvider(ExtrinsicSubmitter).useValue(extrinsicSubmitter)
   });
 
-  const uniqueApi = app.get<ApiPromise>('UniqueApi');
-  const kusamaApi = app.get<ApiPromise>('KusamaApi');
+  const uniqueApi = app.get<ApiPromise>('UNIQUE_API');
+  const kusamaApi = app.get<ApiPromise>('KUSAMA_API');
 
   await runMigrations(app.get('CONFIG'));
   await app.init();
