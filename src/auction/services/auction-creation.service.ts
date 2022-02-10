@@ -86,7 +86,6 @@ export class AuctionCreationService {
     return offer;
   }
 
-  // todo - implement
   private async sendTransferExtrinsic(tx: string): Promise<BlockchainBlock> {
     try {
       const signedBlock = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
@@ -97,7 +96,9 @@ export class AuctionCreationService {
         created_at: new Date(),
       });
     } catch (error) {
-      throw new BadRequestException(error);
+      this.logger.warn(error);
+
+      throw new BadRequestException(error.message);
     }
   }
 }

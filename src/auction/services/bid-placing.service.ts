@@ -49,7 +49,7 @@ export class BidPlacingService {
     try {
       await this.extrinsicSubmitter.submit(this.kusamaApi, tx);
     } catch (error) {
-      throw new BadRequestException(error);
+      throw new BadRequestException(error.message);
     }
 
     const {

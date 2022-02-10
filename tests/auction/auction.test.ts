@@ -54,7 +54,7 @@ describe('Auction creation method', () => {
 
     const marketAddress = util.normalizeAccountId({ Substrate: market.address });
 
-    const signedExtrinsic = await uniqueApi.tx
+    const unsignedExtrinsic = await uniqueApi.tx
       .unique
       .transfer(marketAddress, collectionId, tokenId, 1)
 
@@ -64,7 +64,7 @@ describe('Auction creation method', () => {
         startPrice: '100',
         priceStep: '10',
         days: 7,
-        tx: signedExtrinsic.toJSON(),
+        tx: unsignedExtrinsic.toJSON(),
       } as CreateAuctionRequest)
       .expect(400);
 

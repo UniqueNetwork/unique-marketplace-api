@@ -7,8 +7,6 @@ import {
 } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
-import { Body, ValidationPipe } from "@nestjs/common";
-import { KusamaApiTxDecodePipe } from "../pipes/tx-decode-pipe";
 import { Type } from "class-transformer";
 import { TxInfo } from "../types";
 
@@ -17,10 +15,10 @@ const balanceTransferExample = `0x450284001e9b0e86d2f6aa12ec6d55cbe40385260d9d82
 export type PlaceBidRequest = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & { tx: string };
 
 export class PlaceBidRequestDto implements PlaceBidRequest {
-  @ApiProperty()
+  @ApiProperty({ example: 1 })
   collectionId: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 2 })
   tokenId: number;
 
   @ApiProperty({ example: balanceTransferExample })
@@ -41,6 +39,7 @@ export interface BalanceTransferTxInfo extends TxInfo {
 
 class BalanceTransferTxArgsDto {
   @IsDefined()
+  @IsString()
   dest: any;
 
   @IsString()
@@ -48,7 +47,7 @@ class BalanceTransferTxArgsDto {
   value: string;
 }
 
-class BalanceTransferTxInfoDto implements BalanceTransferTxInfo {
+export class BalanceTransferTxInfoDto implements BalanceTransferTxInfo {
   @Equals(true, { message: 'tx must be signed'})
   isSigned: true;
 
@@ -67,9 +66,3 @@ class BalanceTransferTxInfoDto implements BalanceTransferTxInfo {
   @Equals('balances')
   section: "balances";
 }
-
-export const DecodedBalanceTransfer = Body(
-  'tx',
-  KusamaApiTxDecodePipe,
-  new ValidationPipe({ expectedType: BalanceTransferTxInfoDto }),
-);

@@ -7,6 +7,7 @@ import { AuctionClosedService } from './services/auction-closed.service';
 import { polkadotApiProviders } from './providers/polkadot-api-providers';
 import { ConfigModule } from "../config/module";
 import { ExtrinsicSubmitter } from "./services/extrinsic-submitter";
+import { TxDecoder } from "./services/tx-decoder";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ExtrinsicSubmitter } from "./services/extrinsic-submitter";
     AuctionCreationService,
     BidPlacingService,
     AuctionClosedService,
+    TxDecoder,
     ...polkadotApiProviders,
   ],
   controllers: [AuctionController]
