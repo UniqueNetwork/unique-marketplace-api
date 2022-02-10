@@ -13,7 +13,7 @@ interface MapGauge {
 
 @Injectable()
 export class PrometheusService {
-  private readonly serviceTitle = 'Marketplace-Prometheus';
+  private readonly serviceTitle = 'MarketplaceInside';
   private readonly servicePrefix = 'MarketMetrics_';
   private registeredMetrics: MapHistogram = {};
   private registeredGauges: MapGauge = {};

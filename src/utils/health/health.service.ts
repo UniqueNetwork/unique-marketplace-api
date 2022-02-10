@@ -3,11 +3,8 @@ import { HealthCheck, HealthCheckResult, HealthCheckService, HttpHealthIndicator
 import { PrometheusService } from '../prometheus/prometheus.service';
 import { HealthIndicator } from './interfaces/health-indicator.interface';
 import { AppHealthIndicator } from './indicators/app-health.indicator';
-
-import { OffersService } from '../../offers/offers.service';
-import { OffersHealthIndicator } from '../../offers/offers.health';
-import { TradesService } from '../../trades/trades.service';
-import { TradesHealthIndicator } from '../../trades/trades.health';
+import { OffersHealthIndicator, OffersService } from '../../offers';
+import { TradesHealthIndicator, TradesService } from '../../trades';
 
 @Injectable()
 export class HealthService {
