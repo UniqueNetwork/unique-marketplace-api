@@ -9,7 +9,7 @@ export const getConnectionOptions = (config = getConfig(), test: boolean = false
         type: 'postgres',
         url: test ? config.testingPostgresUrl : config.postgresUrl,
         entities: [__dirname + '/../**/entity.{t,j}s', __dirname + '/../entity/*.{t,j}s'],
-        migrations: [__dirname + '/../migrations/*.ts'],
+        migrations: [__dirname + '/../migrations/*.{t,j}s'],
         synchronize: false,
         logging: logger ? logger : config.dev.debugMigrations,
         cli: {

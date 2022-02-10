@@ -22,6 +22,11 @@ x-marketplace: &marketplace-backend
     KUSAMA_START_FROM_BLOCK: 'current'
     COMMISSION_PERCENT: '10'
     AUTO_DB_MIGRATIONS: 'false'
+    SENTRY_ENABLED: 'false'
+    SENTRY_ENV: 'production'
+    SENTRY_DSN: 'https://hash@domain.tld/sentryId'
+  depends_on:
+    - marketplace-postgres
 
 services:
   marketplace-postgres:
@@ -40,8 +45,8 @@ services:
       - ../postgresql/marketplace:/var/lib/postgresql/data
       - /etc/localtime:/etc/localtime:ro
 
-  marketplace-web:
-    container_name: marketplace-web
+  marketplace-api:
+    container_name: marketplace-api
     ports:
       - 5000:5000
     <<: *marketplace-backend

@@ -232,10 +232,17 @@ describe('Escrow test', () => {
 
     await service.modifyContractBalance(TO_WITHDRAW, alice.address, blocks.latest, config.blockchain.testing.kusama.network);
 
+    await blocks.updateLatest();
+    await workEscrow(blocks.start, blocks.latest);
+
+    await expect(await contract.methods.balanceKSM(lib.subToEth(alice.address)).call()).toEqual(TO_WITHDRAW.toString());
+
     await lib.executeEthTxOnSub(web3, api, alice, contract, (m) => m.withdrawAllKSM(lib.subToEth(alice.address)));
 
     await blocks.updateLatest();
     await workEscrow(blocks.start, blocks.latest);
+
+    await expect(await contract.methods.balanceKSM(lib.subToEth(alice.address)).call()).toEqual('0');
 
     // Withdraw with all balance amount
     activeWithdraw = await service.getPendingKusamaWithdraw(config.blockchain.testing.kusama.network);
