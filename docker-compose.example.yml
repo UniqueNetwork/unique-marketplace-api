@@ -60,3 +60,4 @@ services:
     container_name: marketplace-escrow-kusama
     command: [ "npm", "run", "escrow:kusama" ]
     <<: *marketplace-backend
+
