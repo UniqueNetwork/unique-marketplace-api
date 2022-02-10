@@ -191,5 +191,23 @@ describe('Offers service', () => {
             await expect(response.body.items.length).toBe(2);
         });
     });
+
+    describe('get /offer/{collectionId}/{tokenId}', () => {
+      it('token exists', async () => {
+        const collectionId = 2;
+        const tokenId = 25;
+
+        const response = await request(app.getHttpServer()).get(`/offer/${collectionId}/${tokenId}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toMatchObject({ collectionId, tokenId });
+      });
+
+      it('token not found', async () => {
+        const response = await request(app.getHttpServer()).get(`/offer/0/0`);
+
+        expect(response.statusCode).toBe(404);
+      });
+    })
     // Bad request
 });

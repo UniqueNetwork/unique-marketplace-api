@@ -30,7 +30,7 @@ describe('Auction creation method', () => {
 
     expect(createAuctionResponse.status).toEqual(201);
 
-    let auctionOffer = createAuctionResponse.body as OfferContractAskDto;
+    const auctionOffer = createAuctionResponse.body as OfferContractAskDto;
 
     expect(auctionOffer).toMatchObject({
       collectionId,
@@ -41,12 +41,16 @@ describe('Auction creation method', () => {
     const placedBidResponse = await placeBid(testEntities, collectionId, tokenId);
     expect(placedBidResponse.status).toEqual(201);
 
-    auctionOffer = placedBidResponse.body as OfferContractAskDto;
+    const offerWithBids = placedBidResponse.body as OfferContractAskDto;
 
-    expect(auctionOffer.auction.bids).toEqual([{
+    expect(offerWithBids.auction.bids).toEqual([{
       bidderAddress: testEntities.actors.buyer.address,
       amount: '100',
     }]);
+
+    const offerByCollectionAndToken = await request(testEntities.app.getHttpServer()).get(`/offer/${collectionId}/${tokenId}`);
+
+    expect(offerByCollectionAndToken.body).toEqual(offerWithBids);
   });
 
   it('bad request - unsigned tx', async () => {

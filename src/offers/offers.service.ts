@@ -97,6 +97,42 @@ export class OffersService {
       })
     }
 
+    async getOne(filter: { collectionId: number, tokenId: number }): Promise<OfferContractAskDto | null> {
+      const { collectionId, tokenId } = filter;
+
+      const contractAsk = await this.connection.manager
+        .createQueryBuilder(ContractAsk, 'offer')
+        .where('offer.collection_id = :collectionId', { collectionId })
+        .andWhere('offer.token_id = :tokenId', { tokenId })
+        .andWhere(`offer.status = :status`, { status: 'active' })
+        .innerJoinAndSelect(
+          BlockchainBlock,
+          'block',
+          'block.network = offer.network and block.block_number = offer.block_number_ask',
+        )
+        .select('offer')
+        .addSelect('block.created_at', 'created_at')
+        .leftJoinAndMapOne(
+          'offer.auction',
+          AuctionEntity,
+          'auction',
+          'auction.contract_ask_id = offer.id'
+        )
+        .leftJoinAndMapMany(
+          'auction.bids',
+          BidEntity,
+          'bid',
+          'bid.auction_id = auction.id and bid.is_withdrawn = false')
+        .innerJoinAndMapOne(
+          'offer.block',
+          BlockchainBlock,
+          'blocks',
+          'offer.network = blocks.network and blocks.block_number = offer.block_number_ask',
+        ).getOne();
+
+      return contractAsk && OfferContractAskDto.fromContractAsk(contractAsk)
+    }
+
     /**
      * Adds fields to the sort and sorts the data
      * in ascending and descending order, depending on the request

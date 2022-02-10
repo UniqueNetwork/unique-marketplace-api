@@ -1,4 +1,13 @@
-import { Controller, Get, HttpStatus, Query, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Query,
+  UseInterceptors,
+  ParseIntPipe,
+} from '@nestjs/common';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResultDto } from '../utils/pagination/pagination-result';
@@ -12,12 +21,12 @@ import * as fs from 'fs';
 import { TraceInterceptor } from '../utils/sentry';
 
 @ApiTags('Offers')
-@Controller('offers')
+@Controller()
 @UseInterceptors(TraceInterceptor)
 export class OffersController {
     constructor(private readonly offersService: OffersService) {}
 
-    @Get()
+    @Get('offers')
     @ApiOperation({
         summary: 'Get offers, filters and seller',
         description: fs.readFileSync('docs/offers.md').toString(),
@@ -29,5 +38,20 @@ export class OffersController {
         @Query() sort: OfferSortingRequest,
     ): Promise<PaginationResultDto<OfferContractAskDto>> {
         return this.offersService.get(pagination, offersFilter, sort);
+    }
+
+    @Get('offer/:collectionId/:tokenId')
+    @ApiResponse({ type: OfferContractAskDto, status: HttpStatus.OK })
+    async getOneOffer(
+      @Param('collectionId', ParseIntPipe) collectionId: number,
+      @Param('tokenId', ParseIntPipe) tokenId: number,
+    ): Promise<OfferContractAskDto> {
+      const offer = await this.offersService.getOne({ collectionId, tokenId })
+
+      if (offer) return offer;
+
+      throw new NotFoundException(
+        `No active offer for collection ${collectionId}, token ${tokenId}`,
+      );
     }
 }
