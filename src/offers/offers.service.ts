@@ -3,7 +3,7 @@ import { Connection, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResult } from '../utils/pagination/pagination-result';
+import { PaginationResultDto } from '../utils/pagination/pagination-result';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
@@ -12,7 +12,13 @@ import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 import { OfferContractAskDto } from './dto/offer-dto';
 import { OffersFilter } from './dto/offers-filter';
 import { priceTransformer } from '../utils/price-transformer';
-import { BlockchainBlock, ContractAsk, SearchIndex } from '../entity';
+import {
+  BlockchainBlock,
+  ContractAsk,
+  SearchIndex,
+  AuctionEntity,
+  BidEntity,
+} from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 
 @Injectable()
@@ -38,7 +44,7 @@ export class OffersService {
         pagination: PaginationRequest,
         offersFilter: OffersFilter,
         sort: OfferSortingRequest,
-    ): Promise<PaginationResult<OfferContractAskDto>> {
+    ): Promise<PaginationResultDto<OfferContractAskDto>> {
         let offers: SelectQueryBuilder<ContractAsk>;
         let paginationResult;
 
@@ -52,6 +58,17 @@ export class OffersService {
                 )
                 .select('offer')
                 .addSelect('block.created_at', 'created_at')
+                .leftJoinAndMapOne(
+                  'offer.auction',
+                  AuctionEntity,
+                  'auction',
+                  'auction.contract_ask_id = offer.id'
+                )
+                .leftJoinAndMapMany(
+                  'auction.bids',
+                  BidEntity,
+                  'bid',
+                  'bid.auction_id = auction.id and bid.is_withdrawn = false')
                 .innerJoinAndMapOne(
                     'offer.block',
                     BlockchainBlock,
@@ -74,10 +91,10 @@ export class OffersService {
             });
         }
 
-        return {
-            ...paginationResult,
-            items: paginationResult.items.map(this.serializeOffersToDto),
-        };
+      return new PaginationResultDto(OfferContractAskDto, {
+        ...paginationResult,
+        items: paginationResult.items.map(OfferContractAskDto.fromContractAsk),
+      })
     }
 
     /**

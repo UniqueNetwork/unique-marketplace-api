@@ -1,4 +1,4 @@
-import { cyan, red, green, blue, alpha } from 'cli-color';
+import { cyan, red, green } from 'cli-color';
 import { SentryService } from './sentry/';
 const sentryServ = new SentryService();
 const addLeadZero = (num) => {

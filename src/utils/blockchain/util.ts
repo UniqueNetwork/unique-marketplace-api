@@ -131,7 +131,17 @@ class UniqueExplorer {
 }
 
 
-const normalizeAccountId = input => {
+type AnyAccountFormat = string
+  | { address: string }
+  | { Ethereum: string }
+  | { ethereum: string }
+  | { Substrate: string }
+  | { substrate: string }
+  | Object;
+
+type NormalizedAccountFormat = { Ethereum: string } | { Substrate: string };
+
+const normalizeAccountId = (input: AnyAccountFormat): NormalizedAccountFormat => {
   if (typeof input === 'string') {
     if (input.length === 48 || input.length === 47) {
       return {Substrate: input};
@@ -156,7 +166,7 @@ const normalizeAccountId = input => {
     };
   } else if ('Substrate' in input) {
     return input;
-  }else if ('substrate' in input) {
+  } else if ('substrate' in input) {
     return {
       Substrate: (input as any).substrate,
     };

@@ -1,5 +1,6 @@
 import { Column, Entity, Index, ManyToMany, ManyToOne, OneToOne } from 'typeorm';
 import { BlockchainBlock } from './blockchain-block';
+import { AuctionEntity } from "../auction/entities";
 
 @Index('IX_contract_ask_collection_id_token_id', ['collection_id', 'token_id'])
 @Index('IX_contract_ask_status', ['status'])
@@ -41,6 +42,11 @@ export class ContractAsk {
     @Column('bigint', { name: 'block_number_buy', nullable: true })
     block_number_buy: string;
 
+    @OneToOne((type) => BlockchainBlock, (BlockchainBlock) => BlockchainBlock.network)
+    created_at: Date;
+
+    @OneToOne(() => AuctionEntity, (auction) => auction.contractAsk, { cascade: ['insert']})
+    auction?: AuctionEntity;
     @OneToOne((type) => BlockchainBlock)
     block: BlockchainBlock;
 }

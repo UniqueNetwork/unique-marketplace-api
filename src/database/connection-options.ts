@@ -4,7 +4,7 @@ import { getConfig } from '../config';
 import { ProjectNamingStrategy } from './naming_strategy';
 import { join } from 'path';
 
-export const getConnectionOptions = (config = getConfig(), test: boolean = false, logger: boolean = false): ConnectionOptions => {
+export const getConnectionOptions = (config = getConfig(), test = false, logger = true): ConnectionOptions => {
     return {
         type: 'postgres',
         url: test ? config.testingPostgresUrl : config.postgresUrl,

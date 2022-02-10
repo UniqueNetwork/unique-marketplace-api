@@ -1,3 +1,5 @@
+import { MarketConfig } from "./market-config";
+
 export const mergeDeep = (...objects) => {
   const isObject = obj => obj && typeof obj === 'object' && !Array.isArray(obj);
 
@@ -19,7 +21,7 @@ export const mergeDeep = (...objects) => {
 }
 
 
-export const getConfig = (mode?: string) => {
+export const getConfig = (mode?: string): MarketConfig => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const config = require('./global').default;
   if(typeof mode === 'undefined') mode = process.env.RUN_MODE || 'dev';

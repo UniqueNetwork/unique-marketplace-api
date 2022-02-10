@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { createConnection } from 'typeorm';
 
 import { getConfig } from '../../src/config';
@@ -18,21 +18,29 @@ const testConfigFactory = (extra?) => () => {
     return config;
 };
 
-export const initApp = async (config?): Promise<INestApplication> => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+type OverrideProviders = (builder: TestingModuleBuilder) => void;
+
+export const initApp = async (config?: any, overrideProviders?: OverrideProviders): Promise<INestApplication> => {
+    const testingModuleBuilder = await Test.createTestingModule({
         imports: [AppModule],
-    })
-        .overrideProvider('CONFIG')
-        .useFactory({ factory: testConfigFactory(config) })
-        .compile();
+    });
+
+    testingModuleBuilder
+      .overrideProvider('CONFIG')
+      .useFactory({ factory: testConfigFactory(config) })
+
+    if (overrideProviders) overrideProviders(testingModuleBuilder);
+
+    const moduleFixture = await testingModuleBuilder.compile();
 
     const app = moduleFixture.createNestApplication();
     ignoreQueryCase(app);
     useGlobalPipes(app);
+
     return app;
 };
 
-export const getMigrationsConnection = async (config, logging: boolean = false) => {
+export const getMigrationsConnection = async (config, logging = false) => {
     const connectionOptions = getConnectionOptions(config, true, logging);
     return await createConnection({ ...connectionOptions, name: 'migrations' });
 };

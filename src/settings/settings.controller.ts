@@ -10,7 +10,7 @@ export class SettingsController {
 
     @Get('/')
     @ApiResponse({ type: SettingsDto, status: HttpStatus.OK })
-    async getSettings() {
-        return await this.settingsService.getConfig();
+    async getSettings(): Promise<SettingsDto> {
+        return this.settingsService.getSettings();
     }
 }

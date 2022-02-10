@@ -12,6 +12,8 @@ import { PlaygroundCommand } from './utils/playground';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { SettingsController, SettingsService } from './settings';
+import { AuctionModule } from "./auction/auction.module";
+import { BroadcastModule } from "./broadcast/broadcast.module";
 import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
 
 
@@ -25,6 +27,8 @@ import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
         ConfigModule,
         CommandModule,
         EscrowModule,
+        AuctionModule,
+        BroadcastModule,
     ],
     controllers: [OffersController, TradesController, SettingsController],
     providers: [OffersService, TradesService, PlaygroundCommand, SettingsService],
