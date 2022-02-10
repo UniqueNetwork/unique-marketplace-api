@@ -13,7 +13,7 @@ export class PlaygroundCommand {
   })
   async playground(
     @Positional({name: 'playground'}) playground: string,
-    @Positional({name: 'arg', type: 'string', array: true}) arg: string[]
+    @Positional({name: 'arg'}) arg: string[]
   ) {
     let args = typeof arg === 'undefined' ? [] : arg;
     let module;
