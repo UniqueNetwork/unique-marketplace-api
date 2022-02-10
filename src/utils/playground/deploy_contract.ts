@@ -12,7 +12,7 @@ const DEPLOY_COST = 50n * lib.UNIQUE;
 const CONTRACT_MIN_BALANCE = 1_000n * lib.UNIQUE;
 const ESCROW_MIN_BALANCE = 50n * lib.UNIQUE;
 
-export const main = async(moduleRef) => {
+export const main = async(moduleRef, args: string[]) => {
   let summary = [];
   const config = moduleRef.get('CONFIG', {strict: false});
   if(config.blockchain.escrowSeed === null) {
@@ -64,6 +64,9 @@ export const main = async(moduleRef) => {
   summary.push(`CONTRACT_ETH_OWNER_SEED: '${ownerSeed}'`);
   if(config.blockchain.unique.contractAddress !== null) {
     logging.log('Contract already deployed. Check your CONTRACT_ADDRESS env or "blockchain.unique.contractAddress" config section', logging.level.WARNING);
+
+    summary.push(`CONTRACT_ADDRESS: '${config.blockchain.unique.contractAddress}'`);
+
     return await disconnect();
   }
   let balance = BigInt((await api.query.system.account(escrow.address)).data.free.toJSON());

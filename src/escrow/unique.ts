@@ -244,7 +244,15 @@ export class UniqueEscrow extends Escrow {
       }
       return;
     }
-    let withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', eventLogEVM.event.data[0].data);
+    let withDrawData;
+    try{
+      withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', eventLogEVM.event.data[0].data);
+    }
+    catch (e) {
+      logging.log(`Failed to decode WithdrawnKSM event for ${singer} in block #${blockNum}`, logging.level.ERROR);
+      logging.log(e, logging.level.ERROR);
+      return;
+    }
     let sender = withDrawData._sender;
     let balance = withDrawData.balance.toBigInt();
     let substrateAddress = await this.service.getSubstrateAddress(sender);

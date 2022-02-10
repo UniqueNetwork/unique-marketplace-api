@@ -1,4 +1,4 @@
-import { Command, Positional } from 'nestjs-command';
+import { Command, Positional, Option } from 'nestjs-command';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from "@nestjs/core";
 
@@ -11,7 +11,11 @@ export class PlaygroundCommand {
     command: 'playground <playground>',
     describe: 'Run playground',
   })
-  async playground(@Positional({name: 'playground'}) playground: string) {
+  async playground(
+    @Positional({name: 'playground'}) playground: string,
+    @Positional({name: 'arg', type: 'string', array: true}) arg: string[]
+  ) {
+    let args = typeof arg === 'undefined' ? [] : arg;
     let module;
     try {
       module = await import(`./playground/${playground}`);
@@ -25,6 +29,6 @@ export class PlaygroundCommand {
         throw e;
       }
     }
-    await module.main(this.moduleRef);
+    await module.main(this.moduleRef, args);
   }
 }
