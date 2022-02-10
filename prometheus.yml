@@ -17,9 +17,9 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
     - targets:
-      - marketplace-web:5000
-  - job_name: 'marketplace-backend'
+      - marketplace-api:5000
+  - job_name: 'marketplace-api'
     metrics_path: /api/system/metrics
     static_configs:
     - targets:
-       - marketplace-web:5000
+       - marketplace-api:5000

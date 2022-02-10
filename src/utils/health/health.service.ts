@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { HealthCheck, HealthCheckResult, HealthCheckService, HttpHealthIndicator } from '@nestjs/terminus';
 import { PrometheusService } from '../prometheus/prometheus.service';
 import { HealthIndicator } from './interfaces/health-indicator.interface';
@@ -12,6 +12,7 @@ export class HealthService {
   private readonly logger = new Logger(HealthService.name);
 
   constructor(
+    @Inject('CONFIG') private readonly config,
     private health: HealthCheckService,
     private http: HttpHealthIndicator,
     private promClientService: PrometheusService,
@@ -19,7 +20,7 @@ export class HealthService {
     private tradesService: TradesService,
   ) {
     this.listOfThingsToMonitor = [
-      new AppHealthIndicator(this.http, 'http://localhost:5000', this.promClientService),
+      new AppHealthIndicator(this.http, 'http://localhost:' + this.config.listenPort, this.promClientService),
       new OffersHealthIndicator(this.offersService, this.promClientService),
       new TradesHealthIndicator(this.tradesService, this.promClientService),
     ];
