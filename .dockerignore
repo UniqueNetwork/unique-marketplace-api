@@ -16,4 +16,4 @@ src/config/*
 !src/config/module.ts
 !src/config/providers.ts
 !src/config/market-config.ts
-src/util/playground/*.dev.ts
+src/utils/playground/*.dev.ts

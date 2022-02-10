@@ -15,9 +15,7 @@ import { SettingsController, SettingsService } from './settings';
 import { AuctionModule } from "./auction/auction.module";
 import { BroadcastModule } from "./broadcast/broadcast.module";
 import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
-import { SentryModule } from './utils/sentry';
-import { LogLevel } from '@sentry/types';
-import { getConfig } from './config';
+
 
 @Module({
     imports: [
