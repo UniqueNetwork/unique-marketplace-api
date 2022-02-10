@@ -70,4 +70,28 @@ describe('Auction creation method', () => {
 
     expect(response.text).toContain('tx must be signed');
   });
+
+  it('bad request - wrong tx recipient', async () => {
+    const { app, uniqueApi, actors: { buyer, seller, market } } = testEntities;
+
+    const marketAddress = util.normalizeAccountId({ Substrate: buyer.address });
+
+    const invalidRecipientExtrinsic = await uniqueApi.tx
+      .unique
+      .transfer(marketAddress, collectionId, tokenId, 1)
+      .signAsync(seller);
+
+    const response = await request(app.getHttpServer())
+      .post('/auction/create_auction')
+      .send({
+        startPrice: '100',
+        priceStep: '10',
+        days: 7,
+        tx: invalidRecipientExtrinsic.toJSON(),
+      } as CreateAuctionRequest)
+      .expect(400);
+
+    expect(response.text).toContain('should be market');
+    expect(response.text).toContain(market.address);
+  });
 })

@@ -1,4 +1,11 @@
-import {BadRequestException, Inject, Injectable, Logger, ValidationPipe} from "@nestjs/common";
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleInit,
+  ValidationPipe,
+} from "@nestjs/common";
 
 import { ApiPromise } from "@polkadot/api";
 import {
@@ -8,21 +15,24 @@ import {
   TokenTransferTxInfoDto,
 } from "../requests";
 import { TxArgs, TxInfo } from "../types";
-import {normalizeAccountId} from "../../utils/blockchain/util";
+import { normalizeAccountId, seedToAddress } from "../../utils/blockchain/util";
 import { plainToInstance, ClassConstructor } from 'class-transformer';
 import { validate } from 'class-validator';
 import {decodeAddress, encodeAddress} from "@polkadot/util-crypto";
 import {ValidationError} from "@nestjs/common/interfaces/external/validation-error.interface";
+import { MarketConfig } from "../../config/market-config";
 
 
 @Injectable()
-export class TxDecoder {
+export class TxDecoder implements OnModuleInit {
   private readonly logger = new Logger(TxDecoder.name);
   private readonly exceptionFactory: (validationErrors?: ValidationError[]) => unknown;
+  private marketAuctionAddress: string;
 
   constructor(
     @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @Inject('CONFIG') private config: MarketConfig,
   ) {
     this.exceptionFactory = new ValidationPipe().createExceptionFactory();
   }
@@ -35,10 +45,11 @@ export class TxDecoder {
       txInfo.args.recipient = normalizedAccount.Substrate;
     }
 
-    const tokenTransferTxInfo = plainToInstance(TokenTransferTxInfoDto, txInfo);
-    await this.validate(tokenTransferTxInfo);
+    const validTx = await this.transformAndValidate(TokenTransferTxInfoDto, txInfo);
 
-    return tokenTransferTxInfo;
+    this.checkRecipient(validTx.args.recipient);
+
+    return validTx;
   }
 
   async decodeBalanceTransfer(tx: string): Promise<BalanceTransferTxInfo> {
@@ -50,18 +61,22 @@ export class TxDecoder {
       txInfo.args.dest = encodeAddress(decodeAddress(txInfo.args.dest.id));
     }
 
-    return await this.transformAndValidate(BalanceTransferTxInfoDto, txInfo);
+    const validTx = await this.transformAndValidate(BalanceTransferTxInfoDto, txInfo);
+
+    this.checkRecipient(validTx.args.dest);
+
+    return validTx;
   }
 
-  async validate(txInfoDto: any): Promise<void> {
-    const errors = await validate(txInfoDto);
-
-    if (errors.length) {
-      throw await this.exceptionFactory(errors);
+  private checkRecipient(recipient: string): void {
+    if (recipient !== this.marketAuctionAddress) {
+      throw new BadRequestException(
+        `Recipient of transfer should be market account (${this.marketAuctionAddress})`
+      );
     }
   }
 
-  async transformAndValidate<T extends object>(classConstructor: ClassConstructor<T>, txInfo: TxInfo): Promise<T> {
+  private async transformAndValidate<T extends object>(classConstructor: ClassConstructor<T>, txInfo: TxInfo): Promise<T> {
     const txInfoDto = plainToInstance(classConstructor, txInfo);
 
     const errors = await validate(txInfoDto);
@@ -98,6 +113,12 @@ export class TxDecoder {
       this.logger.error(error);
 
       throw new BadRequestException(error.message);
+    }
+  }
+
+  async onModuleInit(): Promise<void> {
+    if (this.config.auction.seed) {
+      this.marketAuctionAddress = await seedToAddress(this.config.auction.seed);
     }
   }
 }
