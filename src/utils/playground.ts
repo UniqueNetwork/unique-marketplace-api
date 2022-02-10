@@ -1,4 +1,4 @@
-import { Command, Positional, Option } from 'nestjs-command';
+import { Command, Positional } from 'nestjs-command';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from "@nestjs/core";
 
