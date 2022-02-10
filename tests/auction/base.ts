@@ -9,6 +9,7 @@ import { ExtrinsicSubmitter } from "../../src/auction/services/extrinsic-submitt
 import * as util from "../../src/utils/blockchain/util";
 import { initApp, prepareSearchData, runMigrations } from "../data";
 import { CreateAuctionRequest, PlaceBidRequest } from "../../src/auction/requests";
+import { MarketConfig } from "../../src/config/market-config";
 
 
 export type AuctionTestEntities = {
@@ -26,7 +27,8 @@ export type AuctionTestEntities = {
 export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => {
   await waitReady();
 
-  const market = util.privateKey(`//Market/${Date.now()}`);
+  const marketSeed = `//Market/${Date.now()}`;
+  const market = util.privateKey(marketSeed);
   const seller = util.privateKey(`//Seller/${Date.now()}`);
   const buyer = util.privateKey(`//Buyer/${Date.now()}`);
 
@@ -36,7 +38,14 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
     }),
   } as unknown as ExtrinsicSubmitter;
 
-  const app = await initApp(undefined, (builder) => {
+  const configPart: Partial<MarketConfig> = {
+    auction: {
+      seed: marketSeed,
+      commission: 10,
+    },
+  };
+
+  const app = await initApp(configPart, (builder) => {
     builder.overrideProvider(ExtrinsicSubmitter).useValue(extrinsicSubmitter)
   });
 

@@ -10,8 +10,9 @@ import { PaginationRequest } from '../../src/utils/pagination/pagination-request
 import { OffersFilter } from '../../src/offers/dto/offers-filter';
 import * as request from 'supertest';
 import { getConnectionOptions } from '../../src/database/connection-options';
+import { MarketConfig } from "../../src/config/market-config";
 
-const testConfigFactory = (extra?) => () => {
+const testConfigFactory = (extra?: Partial<MarketConfig>) => (): MarketConfig => {
     let config = getConfig();
     config.postgresUrl = config.testingPostgresUrl;
     config = { ...config, ...(extra || {}) };
@@ -20,7 +21,7 @@ const testConfigFactory = (extra?) => () => {
 
 type OverrideProviders = (builder: TestingModuleBuilder) => void;
 
-export const initApp = async (config?: any, overrideProviders?: OverrideProviders): Promise<INestApplication> => {
+export const initApp = async (config?: Partial<MarketConfig>, overrideProviders?: OverrideProviders): Promise<INestApplication> => {
     const testingModuleBuilder = await Test.createTestingModule({
         imports: [AppModule],
     });
