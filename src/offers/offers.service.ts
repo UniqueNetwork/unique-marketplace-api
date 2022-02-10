@@ -49,32 +49,8 @@ export class OffersService {
         let paginationResult;
 
         try {
-            offers = this.connection.manager
-                .createQueryBuilder(ContractAsk, 'offer')
-                .innerJoinAndSelect(
-                    BlockchainBlock,
-                    'block',
-                    'block.network = offer.network and block.block_number = offer.block_number_ask',
-                )
-                .select('offer')
-                .addSelect('block.created_at', 'created_at')
-                .leftJoinAndMapOne(
-                  'offer.auction',
-                  AuctionEntity,
-                  'auction',
-                  'auction.contract_ask_id = offer.id'
-                )
-                .leftJoinAndMapMany(
-                  'auction.bids',
-                  BidEntity,
-                  'bid',
-                  'bid.auction_id = auction.id and bid.is_withdrawn = false')
-                .innerJoinAndMapOne(
-                    'offer.block',
-                    BlockchainBlock,
-                    'blocks',
-                    'offer.network = blocks.network and blocks.block_number = offer.block_number_ask',
-                );
+            offers = this.connection.manager.createQueryBuilder(ContractAsk, 'offer');
+            this.addRelations(offers);
 
             offers = this.filter(offers, offersFilter);
             offers = this.applySort(offers, sort);
@@ -100,37 +76,44 @@ export class OffersService {
     async getOne(filter: { collectionId: number, tokenId: number }): Promise<OfferContractAskDto | null> {
       const { collectionId, tokenId } = filter;
 
-      const contractAsk = await this.connection.manager
+      const queryBuilder = this.connection.manager
         .createQueryBuilder(ContractAsk, 'offer')
         .where('offer.collection_id = :collectionId', { collectionId })
         .andWhere('offer.token_id = :tokenId', { tokenId })
-        .andWhere(`offer.status = :status`, { status: 'active' })
-        .innerJoinAndSelect(
+        .andWhere(`offer.status = :status`, { status: 'active' });
+
+      this.addRelations(queryBuilder);
+
+      const contractAsk = await queryBuilder.getOne();
+
+      return contractAsk && OfferContractAskDto.fromContractAsk(contractAsk)
+    }
+
+    private addRelations(queryBuilder: SelectQueryBuilder<ContractAsk>): void {
+      queryBuilder.innerJoinAndSelect(
           BlockchainBlock,
           'block',
           'block.network = offer.network and block.block_number = offer.block_number_ask',
         )
-        .select('offer')
-        .addSelect('block.created_at', 'created_at')
-        .leftJoinAndMapOne(
-          'offer.auction',
-          AuctionEntity,
-          'auction',
-          'auction.contract_ask_id = offer.id'
-        )
-        .leftJoinAndMapMany(
-          'auction.bids',
-          BidEntity,
-          'bid',
-          'bid.auction_id = auction.id and bid.is_withdrawn = false')
-        .innerJoinAndMapOne(
-          'offer.block',
-          BlockchainBlock,
-          'blocks',
-          'offer.network = blocks.network and blocks.block_number = offer.block_number_ask',
-        ).getOne();
-
-      return contractAsk && OfferContractAskDto.fromContractAsk(contractAsk)
+          .select('offer')
+          .addSelect('block.created_at', 'created_at')
+          .leftJoinAndMapOne(
+            'offer.auction',
+            AuctionEntity,
+            'auction',
+            'auction.contract_ask_id = offer.id'
+          )
+          .leftJoinAndMapMany(
+            'auction.bids',
+            BidEntity,
+            'bid',
+            'bid.auction_id = auction.id and bid.is_withdrawn = false')
+          .innerJoinAndMapOne(
+            'offer.block',
+            BlockchainBlock,
+            'blocks',
+            'offer.network = blocks.network and blocks.block_number = offer.block_number_ask',
+          );
     }
 
     /**
