@@ -62,7 +62,7 @@ export default {
     },
   },
   auction: {
-    seed: '',
-    commission: 10,
+    seed: process.env.AUCTION_SEED || '',
+    commission: parseInt(process.env.AUCTION_COMMISSION || '10', 10),
   }
 } as MarketConfig;
