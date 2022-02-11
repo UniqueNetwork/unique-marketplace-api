@@ -10,6 +10,8 @@ import * as util from "../../src/utils/blockchain/util";
 import { initApp, prepareSearchData, runMigrations } from "../data";
 import { CreateAuctionRequest, PlaceBidRequest } from "../../src/auction/requests";
 import { MarketConfig } from "../../src/config/market-config";
+import { connect as connectSocket, Socket } from "socket.io-client";
+import { ServerToClientEvents, ClientToServerEvents } from "../../src/broadcast/types";
 
 
 export type AuctionTestEntities = {
@@ -17,6 +19,7 @@ export type AuctionTestEntities = {
   uniqueApi: ApiPromise;
   kusamaApi: ApiPromise;
   extrinsicSubmitter: ExtrinsicSubmitter;
+  clientSocket: Socket<ServerToClientEvents, ClientToServerEvents>;
   actors: {
     seller: KeyringPair;
     buyer: KeyringPair;
@@ -56,11 +59,20 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
   await app.init();
   await prepareSearchData(app.get('DATABASE_CONNECTION').createQueryBuilder());
 
+
+  const { address, port } = app.getHttpServer().listen().address();
+  const clientSocket = connectSocket(`http://[${address}]:${port}`, { transports: ["polling"]} );
+
+  await new Promise<void>((resolve) => {
+    clientSocket.once('connect', () => resolve())
+  });
+
   return {
     app,
     uniqueApi,
     kusamaApi,
     extrinsicSubmitter,
+    clientSocket,
     actors: {
       market,
       seller,

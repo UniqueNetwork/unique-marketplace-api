@@ -11,6 +11,16 @@ import {
 } from "./base";
 
 
+const getEventHook = (): [Promise<void>, CallableFunction] => {
+  let onResolve: CallableFunction = null;
+
+  const wait = new Promise<void>((resolve) => {
+    onResolve = resolve;
+  });
+
+  return [wait, onResolve];
+}
+
 describe('Auction creation method', () => {
   const collectionId = 11;
   const tokenId = 22;
@@ -26,7 +36,28 @@ describe('Auction creation method', () => {
   });
 
   it('successful auction creation', async () => {
+    const socketEvents: [string, any][] = [];
+
+    const [untilClientSubscribed, clientSubscribed] = getEventHook();
+    const [untilClientReceivedBid, clientReceivedBid] = getEventHook();
+
+    testEntities.clientSocket.on('auctionStarted', (offer) => {
+      socketEvents.push(['auctionStarted', offer]);
+
+      testEntities.clientSocket.emit('subscribeToAuction', offer);
+
+      setTimeout(clientSubscribed, 1000);
+    });
+
+    testEntities.clientSocket.on('bidPlaced', (offer) => {
+      socketEvents.push(['bidPlaced', offer]);
+
+      clientReceivedBid();
+    });
+
     const createAuctionResponse = await createAuction(testEntities, collectionId, tokenId);
+
+    await untilClientSubscribed;
 
     expect(createAuctionResponse.status).toEqual(201);
 
@@ -36,7 +67,7 @@ describe('Auction creation method', () => {
       collectionId,
       tokenId,
       seller: testEntities.actors.seller.address,
-    })
+    });
 
     const placedBidResponse = await placeBid(testEntities, collectionId, tokenId);
     expect(placedBidResponse.status).toEqual(201);
@@ -51,7 +82,14 @@ describe('Auction creation method', () => {
     const offerByCollectionAndToken = await request(testEntities.app.getHttpServer()).get(`/offer/${collectionId}/${tokenId}`);
 
     expect(offerByCollectionAndToken.body).toEqual(offerWithBids);
-  });
+
+    await untilClientReceivedBid;
+
+    expect(socketEvents).toEqual([
+      ['auctionStarted', auctionOffer],
+      ['bidPlaced', offerWithBids],
+    ]);
+  }, 30_000);
 
   it('bad request - unsigned tx', async () => {
     const { app, uniqueApi, actors: { market } } = testEntities;
