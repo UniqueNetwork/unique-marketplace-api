@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 
-import { BroadcastIOServer, BroadcastIOSocket } from "../types";
+import { BroadcastIOServer, BroadcastIOSocket, TokenIds } from "../types";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 
 @Injectable()
@@ -16,19 +16,27 @@ export class BroadcastService {
     this.logger.debug(`initialised`);
   }
 
+  private static getAuctionRoomId({ collectionId, tokenId }: TokenIds): string {
+    return `auction-${collectionId}-${tokenId}`;
+  }
+
   private handleSocketConnection(socket: BroadcastIOSocket): void {
     this.logger.debug(`Socket ${socket.id} connected`);
 
-    socket.on('subscribeToAuction',async (auctionId) => {
-      this.logger.debug(`Socket ${socket.id} subscribeTo ${auctionId}`)
+    socket.on('subscribeToAuction', async (ids) => {
+      const roomId = BroadcastService.getAuctionRoomId(ids);
 
-      socket.join(`auction-${auctionId}`);
+      this.logger.debug(`Socket ${socket.id} subscribeTo ${roomId}`);
+
+      await socket.join(roomId);
     });
 
-    socket.on('unsubscribeFromAuction',async (auctionId) => {
-      this.logger.debug(`Socket ${socket.id} unsubscribeFrom ${auctionId}`)
+    socket.on('unsubscribeFromAuction', async (ids) => {
+      const roomId = BroadcastService.getAuctionRoomId(ids);
 
-      socket.leave(`auction-${auctionId}`);
+      this.logger.debug(`Socket ${socket.id} unsubscribeFrom ${roomId}`)
+
+      await socket.leave(roomId);
     });
 
     socket.on('disconnecting', (reason) => {
@@ -47,14 +55,18 @@ export class BroadcastService {
   }
 
   sendBidPlaced(offer: OfferContractAskDto): void {
-    this.logger.debug(`bidPlaced - ${JSON.stringify(offer)}`);
+    const roomId = BroadcastService.getAuctionRoomId(offer);
 
-    this.server.of('/').emit('bidPlaced', offer);
+    this.logger.debug(`bidPlaced - ${roomId} - ${JSON.stringify(offer)}`);
+
+    this.server.in(roomId).emit('bidPlaced', offer);
   }
 
   sendAuctionClose(offer: OfferContractAskDto): void {
-    this.logger.debug(`auctionClosed - ${JSON.stringify(offer)}`);
+    const roomId = BroadcastService.getAuctionRoomId(offer);
 
-    this.server.of('/').emit('auctionClosed', offer);
+    this.logger.debug(`auctionClosed - ${roomId} - ${JSON.stringify(offer)}`);
+
+    this.server.in(roomId).emit('auctionClosed', offer);
   }
 }
