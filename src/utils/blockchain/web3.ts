@@ -19,7 +19,7 @@ const CENTIUNIQUE = 10n * MILLIUNIQUE;
 const UNIQUE = 100n * CENTIUNIQUE;
 
 const connectWeb3 = opalUrl => {
-  const provider = new Web3.providers.WebsocketProvider(opalUrl);
+  const provider = new Web3.providers.WebsocketProvider(opalUrl, {reconnect: {auto: true, maxAttempts: 5, delay: 1000}});
   const web3 = new Web3(provider);
 
   return {web3, provider};
@@ -84,6 +84,8 @@ const executeEthTxOnSub = async (web3, api: ApiPromise, admin, to: any, mkTx: (m
     GAS_ARGS.gas,
     await web3.eth.getGasPrice(),
     null,
+    null,
+    []
   );
   const result = await signTransaction(admin, tx, 'api.tx.evm.call') as any;
   return {success: result.result.events.some(({event: {section, method}}) => section == 'evm' && method == 'Executed'), result: result};

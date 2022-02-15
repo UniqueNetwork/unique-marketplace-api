@@ -11,7 +11,11 @@ export class PlaygroundCommand {
     command: 'playground <playground>',
     describe: 'Run playground',
   })
-  async playground(@Positional({name: 'playground'}) playground: string) {
+  async playground(
+    @Positional({name: 'playground'}) playground: string,
+    @Positional({name: 'arg'}) arg: string[]
+  ) {
+    let args = typeof arg === 'undefined' ? [] : arg;
     let module;
     try {
       module = await import(`./playground/${playground}`);
@@ -25,6 +29,6 @@ export class PlaygroundCommand {
         throw e;
       }
     }
-    await module.main(this.moduleRef);
+    await module.main(this.moduleRef, args);
   }
 }
