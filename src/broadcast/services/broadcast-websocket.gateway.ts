@@ -9,15 +9,8 @@ import { GatewayMetadata } from "@nestjs/websockets/interfaces/gateway-metadata.
 import { BroadcastService } from "./broadcast.service";
 import { BroadcastIOServer } from "../types";
 
-const allowAnyOrigin = (requestOrigin: string, callback: (err: Error | null, origin: string) => void) => {
-  callback(null, requestOrigin);
-}
-
 @WebSocketGateway({
-  cors: {
-    origin: allowAnyOrigin,
-    credentials: true,
-  },
+  cors: { credentials: false },
 } as GatewayMetadata)
 export class BroadcastWebSocketGateway implements OnGatewayInit {
   @WebSocketServer()

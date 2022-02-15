@@ -77,6 +77,8 @@ describe('Auction creation method', () => {
     expect(offerWithBids.auction.bids).toEqual([{
       bidderAddress: testEntities.actors.buyer.address,
       amount: '100',
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
     }]);
 
     const offerByCollectionAndToken = await request(testEntities.app.getHttpServer()).get(`/offer/${collectionId}/${tokenId}`);
