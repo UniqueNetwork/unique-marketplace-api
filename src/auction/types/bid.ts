@@ -18,4 +18,8 @@ export interface Bid {
   bidderAddress: string;
 
   isWithdrawn: boolean;
+
+  createdAt: Date;
+
+  updatedAt: Date;
 }

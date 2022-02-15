@@ -27,7 +27,7 @@ export class CreateAuctionRequestDto implements CreateAuctionRequest {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(7)
+  @Max(21)
   days: number;
 
   @ApiProperty({ example: tokenTransferExample })

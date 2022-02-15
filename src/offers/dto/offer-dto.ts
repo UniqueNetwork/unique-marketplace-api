@@ -24,6 +24,8 @@ class BidDto implements Bid {
   @Exclude() isWithdrawn: boolean;
   @Exclude() status: BidStatus;
 
+  @Expose() createdAt: Date;
+  @Expose() updatedAt: Date;
   @Expose() amount: string;
   @Expose() bidderAddress: string;
 }

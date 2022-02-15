@@ -53,4 +53,16 @@ export class BidEntity implements Bid {
     name: 'is_withdrawn'
   })
   isWithdrawn: boolean;
+
+  @Column({
+    type: "timestamp without time zone",
+    name: 'created_at'
+  })
+  createdAt: Date;
+
+  @Column({
+    type: "timestamp without time zone",
+    name: 'updated_at'
+  })
+  updatedAt: Date;
 }
