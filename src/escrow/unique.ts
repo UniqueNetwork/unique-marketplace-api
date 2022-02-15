@@ -148,7 +148,8 @@ export class UniqueEscrow extends Escrow {
   async processTransfer(blockNum, rawExtrinsic) {
     const extrinsic = rawExtrinsic.toHuman().method;
     const addressFrom = util.normalizeAccountId(this.normalizeSubstrate(rawExtrinsic.signer.toString()));
-    const addressTo = util.normalizeAccountId(this.normalizeSubstrate(extrinsic.args.recipient));
+    let addressTo = util.normalizeAccountId(extrinsic.args.recipient);
+    addressTo = (addressTo.Substrate) ? this.normalizeSubstrate(addressTo.Substrate) : addressTo.Ethereum;
     const collectionId = parseInt(extrinsic.args.collection_id);
     const tokenId = parseInt(extrinsic.args.item_id);
     if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market

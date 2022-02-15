@@ -132,6 +132,11 @@ export class EscrowService {
     });
   }
 
+  async getTokenTransfers(collectionId: number, tokenId: number, network: string) {
+    const repository = this.db.getRepository(NFTTransfer);
+    return repository.find({network: this.getNetwork(network), collection_id: collectionId.toString(), token_id: tokenId.toString()});
+  }
+
   async addBlock(blockNum: bigint | number, timestamp: number, network?: string) {
     const repository = this.db.getRepository(BlockchainBlock);
     const created_at = new Date(timestamp);
