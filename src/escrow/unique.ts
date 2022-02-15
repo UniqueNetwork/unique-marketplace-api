@@ -211,6 +211,9 @@ export class UniqueEscrow extends Escrow {
     const origPrice = this.getPriceWithoutCommission(realPrice);
     const buyerEth = this.address2string(buyer);
     const buyerSub = await this.service.getSubstrateAddress(buyerEth);
+    if(!buyerSub) {
+      logging.log(`No substrate address pair for ${buyerEth} eth address`, logging.level.WARNING);
+    }
     const buyerAddress = buyerSub ? buyerSub : buyerEth;
 
     await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
