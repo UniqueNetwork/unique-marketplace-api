@@ -400,8 +400,10 @@ describe('Escrow test', () => {
     );
 
     // Token is transferred to substrate account of buyer, seller received funds
-    await expect(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, sellTokenId))).toEqual(
-      util.normalizeAccountId({ Substrate: buyer.address }),
+    await expect(
+      escrow.normalizeSubstrate(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, sellTokenId)).Substrate)
+    ).toEqual(
+      util.normalizeAccountId(buyer.address).Substrate
     );
 
     await escrow.destroy();
