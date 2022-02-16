@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { ApiPromise, Keyring } from '@polkadot/api';
-import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { cryptoWaitReady, decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { IKeyringPair } from '@polkadot/types/types';
 
 import { signTransaction, transactionStatus } from './polka';
@@ -199,8 +199,13 @@ const seedToAddress = async (seed: string): Promise<string> => {
   return keyring.addFromUri(seed).address;
 }
 
+const convertAddress = async (address: string, ss58Format?: number): Promise<string> => {
+  await cryptoWaitReady();
+
+  return encodeAddress(decodeAddress(address), ss58Format);
+};
 
 export {
   vec2str, str2vec, UniqueExplorer, normalizeAccountId, privateKey, extractCollectionIdFromAddress,
-  blockchainStaticFile, seedToAddress
+  blockchainStaticFile, seedToAddress, convertAddress,
 }

@@ -1,6 +1,7 @@
-import {Inject, Injectable, Logger} from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger} from '@nestjs/common';
+import { ApiPromise } from "@polkadot/api";
 import { SettingsDto } from './dto/settings.dto';
-import { seedToAddress } from '../utils/blockchain/util';
+import { convertAddress, seedToAddress } from '../utils/blockchain/util';
 import { MarketConfig } from "../config/market-config";
 
 @Injectable()
@@ -9,7 +10,10 @@ export class SettingsService {
 
   private readonly logger = new Logger(SettingsService.name);
 
-  constructor(@Inject('CONFIG') private config: MarketConfig) {}
+  constructor(
+    @Inject('CONFIG') private config: MarketConfig,
+    @Inject(forwardRef(() => 'UNIQUE_API')) private uniqueApi: ApiPromise,
+  ) {}
 
   async prepareSettings(): Promise<SettingsDto> {
       const { blockchain, auction } = this.config;
@@ -31,9 +35,12 @@ export class SettingsService {
 
       if (auction.seed) {
         try {
+          let auctionAddress = await seedToAddress(auction.seed);
+          auctionAddress = await convertAddress(auctionAddress, this.uniqueApi.registry.chainSS58);
+
           settings.auction = {
             commission: auction.commission,
-            address: await seedToAddress(auction.seed)
+            address: auctionAddress,
           };
         } catch (error) {
           this.logger.warn(error);

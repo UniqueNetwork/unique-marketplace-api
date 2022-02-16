@@ -22,6 +22,7 @@ import { TxDecoder } from "./services/tx-decoder";
     TxDecoder,
     ...polkadotApiProviders,
   ],
-  controllers: [AuctionController]
+  controllers: [AuctionController],
+  exports: ['KUSAMA_API', 'UNIQUE_API'],
 })
 export class AuctionModule {}
