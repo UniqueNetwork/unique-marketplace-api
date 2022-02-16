@@ -8,11 +8,11 @@ import { signTransaction, transactionStatus } from '../blockchain/polka';
 import * as logging from '../logging'
 
 
-const DEPLOY_COST = 50n * lib.UNIQUE;
-const CONTRACT_MIN_BALANCE = 1_000n * lib.UNIQUE;
-const ESCROW_MIN_BALANCE = 50n * lib.UNIQUE;
+const DEPLOY_COST = 9n * lib.UNIQUE;
+const CONTRACT_MIN_BALANCE = 40n * lib.UNIQUE;
+const ESCROW_MIN_BALANCE = (5n * lib.UNIQUE) / 10n;
 
-export const main = async(moduleRef) => {
+export const main = async(moduleRef, args: string[]) => {
   let summary = [];
   const config = moduleRef.get('CONFIG', {strict: false});
   if(config.blockchain.escrowSeed === null) {
@@ -33,16 +33,26 @@ export const main = async(moduleRef) => {
     await api.disconnect();
   }
 
+  const getBalance = async address => {
+    return ((await api.query.system.account(address)) as any).data.free.toBigInt();
+  }
+
+  const addSubstrateMirror = async address => {
+    summary.push(`\n\nSubstrate mirror of contract address (for balances): ${evmToAddress(address)}`);
+    summary.push(`Current contract balance: ${await getBalance(evmToAddress(address))}`);
+  }
+
   const escrow = util.privateKey(config.blockchain.escrowSeed);
+
   logging.log(['Escrow substrate address:', escrow.address]);
   {
-    let balance = BigInt((await api.query.system.account(escrow.address)).data.free.toJSON());
+    let balance = await getBalance(escrow.address);
     logging.log(['Balance on escrow:', balance.toString()]);
   }
   if(config.blockchain.unique.contractOwnerSeed === null) {
     logging.log('No existed CONTRACT_ETH_OWNER_SEED, creating new eth account');
-    let balance = BigInt((await api.query.system.account(escrow.address)).data.free.toJSON());
-    let minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE + DEPLOY_COST + 10n * lib.UNIQUE;
+    let balance = await getBalance(escrow.address);
+    let minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE + DEPLOY_COST;
     if (balance < minBalance) {
       logging.log(['Balance on account', escrow.address, 'too low to create eth account. Need at least', minBalance.toString()])
       return await disconnect();
@@ -64,10 +74,14 @@ export const main = async(moduleRef) => {
   summary.push(`CONTRACT_ETH_OWNER_SEED: '${ownerSeed}'`);
   if(config.blockchain.unique.contractAddress !== null) {
     logging.log('Contract already deployed. Check your CONTRACT_ADDRESS env or "blockchain.unique.contractAddress" config section', logging.level.WARNING);
+
+    summary.push(`CONTRACT_ADDRESS: '${config.blockchain.unique.contractAddress}'`);
+    await addSubstrateMirror(config.blockchain.unique.contractAddress);
+
     return await disconnect();
   }
-  let balance = BigInt((await api.query.system.account(escrow.address)).data.free.toJSON());
-  let minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE + 5n * lib.UNIQUE;
+  let balance = await getBalance(escrow.address);
+  let minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE;
   if (balance < minBalance) {
     logging.log(['Balance on account', escrow.address, 'too low to deploy contract. Need at least', minBalance.toString()], logging.level.WARNING)
     return await disconnect();
@@ -79,7 +93,7 @@ export const main = async(moduleRef) => {
   const contractAbi = new web3.eth.Contract(JSON.parse(util.blockchainStaticFile('MarketPlace.abi')), undefined, {
     from: account.address, ...lib.GAS_ARGS,
   });
-  const contract = await contractAbi.deploy({data: util.blockchainStaticFile('MarketPlace.bin')}).send({from: account.address, gas: 10000000});
+  const contract = await contractAbi.deploy({data: util.blockchainStaticFile('MarketPlace.bin')}).send({from: account.address, gas: 5_000_000});
   logging.log('Set escrow...');
   await contract.methods.setEscrow(account.address, true).send({from: account.address});
   const helpers = lib.contractHelpers(web3, account.address);
@@ -97,7 +111,7 @@ export const main = async(moduleRef) => {
   logging.log(['Your new contract address:', contract.options.address]);
   logging.log('Set it to CONTRACT_ADDRESS env or override config "blockchain.unique.contractAddress"');
   summary.push(`CONTRACT_ADDRESS: '${contract.options.address}'`);
+  await addSubstrateMirror(contract.options.address);
 
   return await disconnect();
-
 }

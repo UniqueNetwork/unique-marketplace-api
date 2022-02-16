@@ -233,9 +233,26 @@ export class UniqueEscrow extends Escrow {
     }
   }
 
-  async processWithdrawAllKSM(blockNum: number, events, singer) {
+  async processWithdrawAllKSM(blockNum: number, extrinsic, events, singer) {
+    const isToContract = this.address2string(extrinsic.args.target).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
+    if(!isToContract) return; // Not our contract
     let eventLogEVM = events.find((e) => e.event.method === 'Log' && e.event.section === 'evm'); // TODO: check this
-    let withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', eventLogEVM.event.data[0].data);
+    if(!eventLogEVM) {
+      let isFailed = events.find((e) => e.event.method == 'ExecutedFailed' && e.event.section === 'evm');
+      if(isFailed) {
+        logging.log(`Failed WithdrawAllKSM for ${singer} in block #${blockNum}`, logging.level.WARNING);
+      }
+      return;
+    }
+    let withDrawData;
+    try{
+      withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', eventLogEVM.event.data[0].data);
+    }
+    catch (e) {
+      logging.log(`Failed to decode WithdrawnKSM event for ${singer} in block #${blockNum}`, logging.level.ERROR);
+      logging.log(e, logging.level.ERROR);
+      return;
+    }
     let sender = withDrawData._sender;
     let balance = withDrawData.balance.toBigInt();
     let substrateAddress = await this.service.getSubstrateAddress(sender);
@@ -257,7 +274,7 @@ export class UniqueEscrow extends Escrow {
       return await this.processCancelAsk(blockNum, extrinsic, inputData);
     }
     if (inputData.method === 'withdrawAllKSM') {
-      return await this.processWithdrawAllKSM(blockNum, events, rawExtrinsic.signer);
+      return await this.processWithdrawAllKSM(blockNum, extrinsic, events, rawExtrinsic.signer);
     }
   }
 

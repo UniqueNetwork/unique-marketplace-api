@@ -73,7 +73,7 @@ const checkCollection = async (collectionId, api, indent='  ') => {
 
 const balanceString = balance => `${balance / lib.UNIQUE} tokens (${balance})`;
 
-export const main = async (moduleRef) => {
+export const main = async (moduleRef, args: string[]) => {
   const config = moduleRef.get('CONFIG', {strict: false});
   let api, web3, web3conn;
   try {
