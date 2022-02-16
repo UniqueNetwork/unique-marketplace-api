@@ -139,7 +139,7 @@ type AnyAccountFormat = string
   | { substrate: string }
   | Object;
 
-type NormalizedAccountFormat = { Ethereum: string } | { Substrate: string };
+type NormalizedAccountFormat = { Ethereum: string } | { Substrate: string } | any;
 
 const normalizeAccountId = (input: AnyAccountFormat): NormalizedAccountFormat => {
   if (typeof input === 'string') {
