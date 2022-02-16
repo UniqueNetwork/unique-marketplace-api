@@ -1,11 +1,14 @@
+import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
+import { Interface } from 'ethers/lib/utils';
+
 import { Escrow } from './base';
 import * as logging from '../utils/logging';
 import * as lib from '../utils/blockchain/web3';
 import * as unique from '../utils/blockchain/unique';
 import * as util from '../utils/blockchain/util';
 import { MONEY_TRANSFER_STATUS } from './constants';
-import { Interface } from 'ethers/lib/utils';
 import { MoneyTransfer } from '../entity';
+
 
 export class UniqueEscrow extends Escrow {
   inputDecoder;
@@ -19,6 +22,10 @@ export class UniqueEscrow extends Escrow {
   SECTION_ETHEREUM = 'ethereum';
 
   BLOCKED_SCHEMA_KEYS = ['ipfsJson'];
+
+  normalizeSubstrate(address: string): string {
+    return encodeAddress(decodeAddress(address));
+  }
 
   address2string(address): string {
     if (typeof address === 'string') return address;
@@ -140,8 +147,9 @@ export class UniqueEscrow extends Escrow {
 
   async processTransfer(blockNum, rawExtrinsic) {
     const extrinsic = rawExtrinsic.toHuman().method;
-    const addressFrom = util.normalizeAccountId(rawExtrinsic.signer.toString());
-    const addressTo = util.normalizeAccountId(extrinsic.args.recipient);
+    const addressFrom = util.normalizeAccountId(this.normalizeSubstrate(rawExtrinsic.signer.toString()));
+    let addressTo = util.normalizeAccountId(extrinsic.args.recipient);
+    addressTo = (addressTo.Substrate) ? this.normalizeSubstrate(addressTo.Substrate) : addressTo.Ethereum;
     const collectionId = parseInt(extrinsic.args.collection_id);
     const tokenId = parseInt(extrinsic.args.item_id);
     if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
@@ -160,7 +168,7 @@ export class UniqueEscrow extends Escrow {
 
   async processAddAsk(blockNum, extrinsic, inputData, signer) {
     const addressTo = util.normalizeAccountId(extrinsic.args.target);
-    const addressFrom = signer.toString(); // signer is substrate address of args.source
+    const addressFrom = this.normalizeSubstrate(signer.toString()); // signer is substrate address of args.source
     const addressFromEth = util.normalizeAccountId(extrinsic.args.source);
     const price = inputData.inputs[0].toString();
     const currency = inputData.inputs[1];
@@ -204,6 +212,9 @@ export class UniqueEscrow extends Escrow {
     const origPrice = this.getPriceWithoutCommission(realPrice);
     const buyerEth = this.address2string(buyer);
     const buyerSub = await this.service.getSubstrateAddress(buyerEth);
+    if(!buyerSub) {
+      logging.log(`No substrate address pair for ${buyerEth} eth address`, logging.level.WARNING);
+    }
     const buyerAddress = buyerSub ? buyerSub : buyerEth;
 
     await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
@@ -256,6 +267,9 @@ export class UniqueEscrow extends Escrow {
     let sender = withDrawData._sender;
     let balance = withDrawData.balance.toBigInt();
     let substrateAddress = await this.service.getSubstrateAddress(sender);
+    if(!substrateAddress) {
+      logging.log(`No substrate address pair for ${sender} eth address`, logging.level.WARNING);
+    }
     substrateAddress = substrateAddress ? substrateAddress : singer.toString();
     await this.service.registerKusamaWithdraw(balance, substrateAddress, blockNum, this.config('kusama.network'));
     logging.log(`Got WithdrawAllKSM (Sender: ${sender}, amount: ${balance}) in block #${blockNum}`);
