@@ -1,12 +1,9 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
-import { Bid, BidStatus } from "../types";
-import { AuctionEntity } from "./auction-entity";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Bid, BidStatus } from '../types';
+import { AuctionEntity } from './auction-entity';
 
-@Unique(
-  'UNIQUE_user_auction',
-  ['auctionId', 'bidderAddress'],
-)
-@Entity("bids" , { schema: "public" } )
+@Unique('UNIQUE_user_auction', ['auctionId', 'bidderAddress'])
+@Entity('bids', { schema: 'public' })
 export class BidEntity implements Bid {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -19,6 +16,14 @@ export class BidEntity implements Bid {
   amount: string;
 
   @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'pending_amount',
+    default: '0',
+  })
+  pendingAmount: string;
+
+  @Column({
     type: 'uuid',
     nullable: false,
     name: 'auction_id',
@@ -28,41 +33,37 @@ export class BidEntity implements Bid {
   @Column({
     type: 'varchar',
     nullable: false,
-    name: 'bidder_address'
+    name: 'bidder_address',
   })
   bidderAddress: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: BidStatus,
-    default: BidStatus.created
+    default: BidStatus.created,
   })
   status: BidStatus;
 
-  @ManyToOne(
-    () => AuctionEntity,
-    (auction) => auction.bids,
-    { onDelete: "CASCADE" },
-  )
-  @JoinColumn([{ name: "auction_id", referencedColumnName: "id" }])
+  @ManyToOne(() => AuctionEntity, (auction) => auction.bids)
+  @JoinColumn([{ name: 'auction_id', referencedColumnName: 'id' }])
   auction: AuctionEntity;
 
   @Column({
-    type: "boolean",
+    type: 'boolean',
     default: false,
-    name: 'is_withdrawn'
+    name: 'is_withdrawn',
   })
   isWithdrawn: boolean;
 
   @Column({
-    type: "timestamp without time zone",
-    name: 'created_at'
+    type: 'timestamp without time zone',
+    name: 'created_at',
   })
   createdAt: Date;
 
   @Column({
-    type: "timestamp without time zone",
-    name: 'updated_at'
+    type: 'timestamp without time zone',
+    name: 'updated_at',
   })
   updatedAt: Date;
 }
