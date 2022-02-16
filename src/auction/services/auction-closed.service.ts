@@ -1,3 +1,4 @@
+import { ApiPromise } from '@polkadot/api';
 import { BroadcastService } from './../../broadcast/services/broadcast.service';
 import { Inject, Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
@@ -19,6 +20,7 @@ export class AuctionClosedService {
 
   constructor(
     @Inject('DATABASE_CONNECTION') connection: Connection,
+    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     private broadcastService: BroadcastService,
   ) {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity)

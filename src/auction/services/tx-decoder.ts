@@ -1,27 +1,14 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleInit,
-  ValidationPipe,
-} from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, Logger, OnModuleInit, ValidationPipe } from '@nestjs/common';
 
-import { ApiPromise } from "@polkadot/api";
-import {
-  BalanceTransferTxInfo,
-  BalanceTransferTxInfoDto,
-  TokenTransferTxInfo,
-  TokenTransferTxInfoDto,
-} from "../requests";
-import { TxArgs, TxInfo } from "../types";
-import { normalizeAccountId, seedToAddress } from "../../utils/blockchain/util";
+import { ApiPromise } from '@polkadot/api';
+import { BalanceTransferTxInfo, BalanceTransferTxInfoDto, TokenTransferTxInfo, TokenTransferTxInfoDto } from '../requests';
+import { TxArgs, TxInfo } from '../types';
+import { normalizeAccountId, seedToAddress } from '../../utils/blockchain/util';
 import { plainToInstance, ClassConstructor } from 'class-transformer';
 import { validate } from 'class-validator';
-import {decodeAddress, encodeAddress} from "@polkadot/util-crypto";
-import {ValidationError} from "@nestjs/common/interfaces/external/validation-error.interface";
-import { MarketConfig } from "../../config/market-config";
-
+import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
+import { ValidationError } from '@nestjs/common/interfaces/external/validation-error.interface';
+import { MarketConfig } from '../../config/market-config';
 
 @Injectable()
 export class TxDecoder implements OnModuleInit {
@@ -52,13 +39,17 @@ export class TxDecoder implements OnModuleInit {
     return validTx;
   }
 
+  private convertAddress(address: string): string {
+    return encodeAddress(decodeAddress(address), this.uniqueApi.registry.chainSS58);
+  }
+
   async decodeBalanceTransfer(tx: string): Promise<BalanceTransferTxInfo> {
     const txInfo = this.decodeTx(this.kusamaApi, tx);
 
-    txInfo.signerAddress = encodeAddress(decodeAddress(txInfo.signerAddress));
+    txInfo.signerAddress = this.convertAddress(txInfo.signerAddress);
 
     if (typeof txInfo.args.dest === 'object') {
-      txInfo.args.dest = encodeAddress(decodeAddress(txInfo.args.dest.id));
+      txInfo.args.dest = this.convertAddress(txInfo.args.dest.id);
     }
 
     const validTx = await this.transformAndValidate(BalanceTransferTxInfoDto, txInfo);
@@ -70,9 +61,7 @@ export class TxDecoder implements OnModuleInit {
 
   private checkRecipient(recipient: string): void {
     if (recipient !== this.marketAuctionAddress) {
-      throw new BadRequestException(
-        `Recipient of transfer should be market account (${this.marketAuctionAddress})`
-      );
+      throw new BadRequestException(`Recipient of transfer should be market account (${this.marketAuctionAddress})`);
     }
   }
 
@@ -99,7 +88,7 @@ export class TxDecoder implements OnModuleInit {
         const asJson = call.args[index].toJSON();
         const value = typeof asJson === 'object' ? asJson : call.args[index].toString();
 
-        return {...acc, [key]: value };
+        return { ...acc, [key]: value };
       }, {} as TxArgs);
 
       return {
@@ -108,7 +97,7 @@ export class TxDecoder implements OnModuleInit {
         method: call.method,
         section: call.section,
         args,
-      }
+      };
     } catch (error) {
       this.logger.error(error);
 
@@ -122,4 +111,3 @@ export class TxDecoder implements OnModuleInit {
     }
   }
 }
-
