@@ -1,6 +1,8 @@
+import { OfferContractAskDto } from './../../offers/dto/offer-dto';
+import { BidsService } from './bids.service';
 import { ApiPromise } from '@polkadot/api';
 import { BroadcastService } from './../../broadcast/services/broadcast.service';
-import { Inject, Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { AuctionEntity, BidEntity } from '../entities';
 import { Connection, Repository } from 'typeorm';
@@ -22,6 +24,7 @@ export class AuctionClosedService {
     @Inject('DATABASE_CONNECTION') connection: Connection,
     @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     private broadcastService: BroadcastService,
+    private bidsService: BidsService,
   ) {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity)
     this.bidRepository = connection.manager.getRepository(BidEntity);
@@ -35,11 +38,7 @@ export class AuctionClosedService {
     const auctions: Array<Partial<Auction>> = await this.listStops();
 
     for(const auction of auctions) {
-      //const bids = await this.bids(auction.id);
-      const contractAsk = await this.contractAsk(auction);
-
-      this.logger.log(JSON.stringify(contractAsk));
-      //await this.auctionClose(auction);
+      await this.auctionClose(auction);
     }
   }
 
@@ -61,35 +60,32 @@ export class AuctionClosedService {
     }, {
       status: AuctionStatus.ended
     });
+    const offer = await this.contractAsk(auction);
+
+    await this.broadcastService.sendAuctionClose(offer);
+
     this.logger.log(JSON.stringify(results));
+
+    this.logger.log(JSON.stringify(offer));
   }
 
-  private async contractAsk(auction: Partial<Auction>): Promise<ContractAsk> {
-    console.log(auction.contractAskId);
-    const offerWithAuction = await this.contractAskRepository.findOne({
-      where: {
-        id: auction.contractAskId
-      },
-      relations: ['auction']
-    });
-
-    if (offerWithAuction?.auction) {
-      return offerWithAuction;
-    }
-
-    throw new BadRequestException(`No active auction found for ${JSON.stringify({offerWithAuction})}`)
-  }
-
-
-  private async bids(auctionId: string): Promise<Array<Partial<Bid>>> {
-
-    const bids  = await this.bidRepository
-      .createQueryBuilder('bid')
-      .select(['bid.bidderAddress', 'bid.amount', 'bid.status', 'bid.isWithdrawn'])
-      .where('bid.auction_id = :auctionId', { auctionId })
-      .andWhere('bid.is_withdrawn = :isWithdrawn', { isWithdrawn: false })
-      .getMany();
-
-    return bids;
+  private async contractAsk(auction: Partial<Auction>): Promise<OfferContractAskDto> {
+    const offerWithAuction = await this.contractAskRepository
+    .createQueryBuilder('contractAsk')
+    .where('contractAsk.id = :id', { id: auction.contractAskId })
+    .leftJoinAndMapOne(
+      'contractAsk.auction',
+      AuctionEntity,
+      'auction',
+      'auction.contract_ask_id = contractAsk.id'
+    )
+    .leftJoinAndMapMany(
+      'auction.bids',
+      BidEntity,
+      'bid',
+      'bid.auction_id = auction.id and bid.is_withdrawn = false',
+    )
+    .getOne();
+    return OfferContractAskDto.fromContractAsk(offerWithAuction);
   }
 }
