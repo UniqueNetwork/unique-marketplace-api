@@ -16,8 +16,6 @@ export class AuctionClosedService {
 
   private readonly auctionRepository: Repository<AuctionEntity>;
 
-  private readonly bidRepository: Repository<BidEntity>;
-
   private readonly contractAskRepository: Repository<ContractAsk>;
 
   constructor(
@@ -26,8 +24,7 @@ export class AuctionClosedService {
     private broadcastService: BroadcastService,
     private bidsService: BidsService,
   ) {
-    this.auctionRepository = connection.manager.getRepository(AuctionEntity)
-    this.bidRepository = connection.manager.getRepository(BidEntity);
+    this.auctionRepository = connection.manager.getRepository(AuctionEntity);
     this.contractAskRepository = connection.manager.getRepository(ContractAsk);
   }
 
@@ -37,6 +34,29 @@ export class AuctionClosedService {
 
     const auctions: Array<Partial<Auction>> = await this.listStops();
 
+    await this.closeBids(auctions);
+
+    await this.closeAuctions(auctions);
+  }
+
+  private async closeBids(auctions: Array<Partial<Auction>>): Promise<void> {
+    for(const auction of auctions) {
+      const bidsAuction = await this.bidsService.bids(auction.id);
+
+      await this.winnerByAuction(bidsAuction.winer());
+      await this.sendMoneyBidLose(bidsAuction.lose());
+    }
+  }
+
+  private async sendMoneyBidLose(listAddress: Array<Partial<Bid>>): Promise<void> {
+    this.logger.log(listAddress);
+  }
+
+  private async winnerByAuction(winner: Partial<Bid>): Promise<void> {
+    this.logger.log(winner);
+  }
+
+  private async closeAuctions(auctions: Array<Partial<Auction>>): Promise<void> {
     for(const auction of auctions) {
       await this.auctionClose(auction);
     }
@@ -54,7 +74,7 @@ export class AuctionClosedService {
   }
 
   private async auctionClose(auction: Partial<Auction>): Promise<void> {
-    const results = await this.auctionRepository.update({
+    await this.auctionRepository.update({
        id: auction.id,
        status: auction.status
     }, {
@@ -63,8 +83,6 @@ export class AuctionClosedService {
     const offer = await this.contractAsk(auction);
 
     await this.broadcastService.sendAuctionClose(offer);
-
-    this.logger.log(JSON.stringify(results));
 
     this.logger.log(JSON.stringify(offer));
   }
