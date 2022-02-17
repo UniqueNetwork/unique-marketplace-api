@@ -3,10 +3,9 @@ import { BadRequestException, Inject, Injectable, Logger, OnModuleInit, Validati
 import { ApiPromise } from '@polkadot/api';
 import { BalanceTransferTxInfo, BalanceTransferTxInfoDto, TokenTransferTxInfo, TokenTransferTxInfoDto } from '../requests';
 import { TxArgs, TxInfo } from '../types';
-import { normalizeAccountId, seedToAddress } from '../../utils/blockchain/util';
+import { convertAddress, normalizeAccountId, seedToAddress } from '../../utils/blockchain/util';
 import { plainToInstance, ClassConstructor } from 'class-transformer';
 import { validate } from 'class-validator';
-import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { ValidationError } from '@nestjs/common/interfaces/external/validation-error.interface';
 import { MarketConfig } from '../../config/market-config';
 
@@ -14,7 +13,9 @@ import { MarketConfig } from '../../config/market-config';
 export class TxDecoder implements OnModuleInit {
   private readonly logger = new Logger(TxDecoder.name);
   private readonly exceptionFactory: (validationErrors?: ValidationError[]) => unknown;
-  private marketAuctionAddress: string;
+
+  private marketAuctionUniqueAddress: string;
+  private marketAuctionKusamaAddress: string;
 
   constructor(
     @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
@@ -34,34 +35,30 @@ export class TxDecoder implements OnModuleInit {
 
     const validTx = await this.transformAndValidate(TokenTransferTxInfoDto, txInfo);
 
-    this.checkRecipient(validTx.args.recipient);
+    this.checkRecipient(this.marketAuctionUniqueAddress, validTx.args.recipient);
 
     return validTx;
-  }
-
-  private convertAddress(address: string): string {
-    return encodeAddress(decodeAddress(address), this.uniqueApi.registry.chainSS58);
   }
 
   async decodeBalanceTransfer(tx: string): Promise<BalanceTransferTxInfo> {
     const txInfo = this.decodeTx(this.kusamaApi, tx);
 
-    txInfo.signerAddress = this.convertAddress(txInfo.signerAddress);
+    txInfo.signerAddress = await convertAddress(txInfo.signerAddress, this.kusamaApi.registry.chainSS58);
 
     if (typeof txInfo.args.dest === 'object') {
-      txInfo.args.dest = this.convertAddress(txInfo.args.dest.id);
+      txInfo.args.dest = await convertAddress(txInfo.args.dest.id, this.kusamaApi.registry.chainSS58);
     }
 
     const validTx = await this.transformAndValidate(BalanceTransferTxInfoDto, txInfo);
 
-    this.checkRecipient(validTx.args.dest);
+    this.checkRecipient(this.marketAuctionKusamaAddress, validTx.args.dest);
 
     return validTx;
   }
 
-  private checkRecipient(recipient: string): void {
-    if (recipient !== this.marketAuctionAddress) {
-      throw new BadRequestException(`Recipient of transfer should be market account (${this.marketAuctionAddress})`);
+  private checkRecipient(market: string, recipient: string): void {
+    if (recipient !== market) {
+      throw new BadRequestException(`Recipient of transfer should be market account (${market})`);
     }
   }
 
@@ -107,7 +104,10 @@ export class TxDecoder implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     if (this.config.auction.seed) {
-      this.marketAuctionAddress = await seedToAddress(this.config.auction.seed);
+      const address = await seedToAddress(this.config.auction.seed);
+
+      this.marketAuctionUniqueAddress = await convertAddress(address, this.uniqueApi.registry.chainSS58);
+      this.marketAuctionKusamaAddress = await convertAddress(address, this.kusamaApi.registry.chainSS58);
     }
   }
 }

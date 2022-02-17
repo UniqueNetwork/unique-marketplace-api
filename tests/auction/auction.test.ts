@@ -9,6 +9,7 @@ import {
   getAuctionTestEntities,
   placeBid,
 } from "./base";
+import { convertAddress } from "../../src/utils/blockchain/util";
 
 
 const getEventHook = (): [Promise<void>, CallableFunction] => {
@@ -57,16 +58,16 @@ describe('Auction creation method', () => {
 
     const createAuctionResponse = await createAuction(testEntities, collectionId, tokenId);
 
-    await untilClientSubscribed;
-
     expect(createAuctionResponse.status).toEqual(201);
+
+    await untilClientSubscribed;
 
     const auctionOffer = createAuctionResponse.body as OfferContractAskDto;
 
     expect(auctionOffer).toMatchObject({
       collectionId,
       tokenId,
-      seller: testEntities.actors.seller.address,
+      seller: convertAddress(testEntities.actors.seller.address, testEntities.uniqueApi.registry.chainSS58),
     });
 
     const placedBidResponse = await placeBid(testEntities, collectionId, tokenId);
@@ -75,7 +76,7 @@ describe('Auction creation method', () => {
     const offerWithBids = placedBidResponse.body as OfferContractAskDto;
 
     expect(offerWithBids.auction.bids).toEqual([{
-      bidderAddress: testEntities.actors.buyer.address,
+      bidderAddress: await convertAddress(testEntities.actors.buyer.address, testEntities.kusamaApi.registry.chainSS58),
       amount: '100',
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
@@ -91,7 +92,7 @@ describe('Auction creation method', () => {
       ['auctionStarted', auctionOffer],
       ['bidPlaced', offerWithBids],
     ]);
-  }, 30_000);
+  });
 
   it('bad request - unsigned tx', async () => {
     const { app, uniqueApi, actors: { market } } = testEntities;
@@ -136,6 +137,8 @@ describe('Auction creation method', () => {
       .expect(400);
 
     expect(response.text).toContain('should be market');
-    expect(response.text).toContain(market.address);
+    expect(response.text).toContain(
+      await convertAddress(market.address, uniqueApi.registry.chainSS58),
+    );
   });
 })

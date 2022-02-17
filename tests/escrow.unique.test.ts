@@ -278,6 +278,52 @@ describe('Escrow test', () => {
     // TODO: check search_index table
   });
 
+  it('Register transfer', async () => {
+    const { config, explorer, collectionId, service, workEscrow, blocks, escrow, alice } = await init();
+    const seller = util.privateKey(`//Seller/${Date.now()}`);
+    const buyer = util.privateKey(`//Buyer/${Date.now()}`);
+
+    // TODO check sponsoring
+    // await lib.transferBalanceToEth(api, alice, lib.subToEth(buyer.address));
+    await unique.signTransaction(alice, api.tx.balances.transfer(buyer.address, 10n * lib.UNIQUE));
+
+    const tokenId = (await explorer.createToken({ collectionId, owner: seller.address })).tokenId;
+    await unique.signTransaction(
+      seller,
+      api.tx.unique.transfer(util.normalizeAccountId({ Substrate: buyer.address }), collectionId, tokenId, 1),
+      'api.tx.unique.transfer'
+    );
+    await expect(
+      escrow.normalizeSubstrate(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, tokenId)).Substrate)
+    ).toEqual(
+      util.normalizeAccountId(buyer.address).Substrate
+    );
+
+    let beforeTransfers = await service.getTokenTransfers(collectionId, tokenId, config.blockchain.testing.unique.network);
+
+    await expect(beforeTransfers.length).toBe(0);
+
+    // Escrow should register substrate transfer
+    await blocks.updateLatest();
+    await workEscrow(blocks.start, blocks.latest);
+    let afterTransfers = await service.getTokenTransfers(collectionId, tokenId, config.blockchain.testing.unique.network);
+
+    await expect(afterTransfers.length).toBe(1);
+    await expect(afterTransfers[0].address_from).toEqual(seller.address);
+    await expect(afterTransfers[0].address_to).toEqual(buyer.address);
+    let notInterested = afterTransfers[0].id;
+
+    // Escrow should register ethereum transfer
+    await transferTokenToEVM(buyer, tokenId, {collectionId, explorer});
+    await blocks.updateLatest();
+    await workEscrow(blocks.start, blocks.latest);
+    afterTransfers = await service.getTokenTransfers(collectionId, tokenId, config.blockchain.testing.unique.network);
+    await expect(afterTransfers.length).toBe(2);
+    let transfer = afterTransfers.find(x => x.id != notInterested);
+    await expect(transfer.address_from).toEqual(buyer.address);
+    await expect(transfer.address_to).toEqual(lib.subToEthLowercase(buyer.address));
+  });
+
   it('Cancel ask', async () => {
     const PRICE = 2_000_000_000_000n; // 2 KSM
     const state = await init();
@@ -400,8 +446,10 @@ describe('Escrow test', () => {
     );
 
     // Token is transferred to substrate account of buyer, seller received funds
-    await expect(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, sellTokenId))).toEqual(
-      util.normalizeAccountId({ Substrate: buyer.address }),
+    await expect(
+      escrow.normalizeSubstrate(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, sellTokenId)).Substrate)
+    ).toEqual(
+      util.normalizeAccountId(buyer.address).Substrate
     );
 
     await escrow.destroy();

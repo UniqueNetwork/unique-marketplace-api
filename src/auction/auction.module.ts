@@ -26,6 +26,7 @@ import { BidsService } from './services/bids.service';
     BidsService,
     TransferService
   ],
-  controllers: [AuctionController]
+  controllers: [AuctionController],
+  exports: ['KUSAMA_API', 'UNIQUE_API'],
 })
 export class AuctionModule {}
