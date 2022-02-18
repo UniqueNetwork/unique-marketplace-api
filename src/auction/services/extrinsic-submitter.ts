@@ -53,6 +53,7 @@ export class ExtrinsicSubmitter {
           }
         });
       } catch (error) {
+        unsubscribe();
         this.logger.error(error);
 
         reject(error);

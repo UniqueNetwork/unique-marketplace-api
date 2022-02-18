@@ -1,9 +1,9 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn, OneToOne, JoinColumn } from "typeorm";
-import { Auction, AuctionStatus } from "../types";
-import { BidEntity } from "./bid-entity";
-import { ContractAsk } from "../../entity";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
+import { Auction, AuctionStatus } from '../types';
+import { BidEntity } from './bid-entity';
+import { ContractAsk } from '../../entity';
 
-@Entity("auctions" , { schema: "public" } )
+@Entity('auctions', { schema: 'public' })
 export class AuctionEntity implements Auction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -24,21 +24,21 @@ export class AuctionEntity implements Auction {
   updatedAt: Date;
 
   @Column({
-    type: 'bigint',
+    type: 'varchar',
     nullable: false,
     name: 'price_step',
   })
   priceStep: string;
 
   @Column({
-    type: 'bigint',
+    type: 'varchar',
     nullable: false,
     name: 'start_price',
   })
   startPrice: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: AuctionStatus,
     default: AuctionStatus.created,
     name: 'status',
@@ -52,10 +52,7 @@ export class AuctionEntity implements Auction {
   })
   stopAt: Date;
 
-  @OneToMany(
-    () => BidEntity,
-    (bid) => bid.auction,
-  )
+  @OneToMany(() => BidEntity, (bid) => bid.auction, { cascade: ['insert'] })
   bids: BidEntity[];
 
   @Column({
@@ -64,11 +61,7 @@ export class AuctionEntity implements Auction {
   })
   contractAskId: string;
 
-  @OneToOne(
-    () => ContractAsk,
-    (contractAsk) => contractAsk.auction,
-    { cascade: ['insert'] },
-  )
-  @JoinColumn([{ name: "contract_ask_id", referencedColumnName: "id" }])
+  @OneToOne(() => ContractAsk, (contractAsk) => contractAsk.auction, { cascade: ['insert'] })
+  @JoinColumn([{ name: 'contract_ask_id', referencedColumnName: 'id' }])
   contractAsk: ContractAsk;
 }

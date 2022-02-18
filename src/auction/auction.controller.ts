@@ -1,11 +1,11 @@
-import { Body, Controller, Delete, Post } from "@nestjs/common";
-import { ApiTags } from "@nestjs/swagger";
-import { AuctionCreationService } from "./services/auction-creation.service";
-import { BidPlacingService } from "./services/bid-placing.service";
-import { CreateAuctionRequestDto, PlaceBidRequestDto } from "./requests";
-import { OfferContractAskDto } from "../offers/dto/offer-dto";
-import { WithdrawBidRequestDto } from "./requests/withdraw-bid";
-import { TxDecoder } from "./services/tx-decoder";
+import { Body, Controller, Delete, Post } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import { AuctionCreationService } from './services/auction-creation.service';
+import { BidPlacingService } from './services/bid-placing.service';
+import { CreateAuctionRequestDto, PlaceBidRequestDto } from './requests';
+import { OfferContractAskDto } from '../offers/dto/offer-dto';
+import { WithdrawBidRequestDto } from './requests/withdraw-bid';
+import { TxDecoder } from './services/tx-decoder';
 
 @ApiTags('Auction')
 @Controller('auction')
@@ -17,11 +17,7 @@ export class AuctionController {
   ) {}
 
   @Post('create_auction')
-  async createAuction(
-    @Body() createAuctionRequest: CreateAuctionRequestDto,
-  ): Promise<OfferContractAskDto> {
-    // todo - check that txInfo.args.recipient is market (auction) address
-
+  async createAuction(@Body() createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
     const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
 
     return await this.auctionCreationService.create({
@@ -33,10 +29,7 @@ export class AuctionController {
   }
 
   @Post('place_bid')
-  async placeBid(
-    @Body() placeBidRequest: PlaceBidRequestDto,
-  ): Promise<OfferContractAskDto> {
-    // todo - check that txInfo.args.dest is market (auction) address
+  async placeBid(@Body() placeBidRequest: PlaceBidRequestDto): Promise<OfferContractAskDto> {
     const txInfo = await this.txDecoder.decodeBalanceTransfer(placeBidRequest.tx);
 
     return await this.bidPlacingService.placeBid({

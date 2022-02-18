@@ -15,6 +15,8 @@ export interface Bid {
 
   amount: string;
 
+  pendingAmount: string;
+
   bidderAddress: string;
 
   isWithdrawn: boolean;
