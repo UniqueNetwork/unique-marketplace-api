@@ -1,9 +1,9 @@
-import { signTransaction } from './../../utils/blockchain/polka';
-import * as util from './../../utils/blockchain/util';
-import { MarketConfig } from './../../config/market-config';
+import { signTransaction } from '../../utils/blockchain/polka';
+import * as util from '../../utils/blockchain/util';
+import { convertAddress, seedToAddress } from '../../utils/blockchain/util';
 import { ApiPromise } from '@polkadot/api';
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
-import { convertAddress, seedToAddress } from 'src/utils/blockchain/util';
+import { MarketConfig } from '../../config/market-config';
 
 @Injectable()
 export class TransferService implements OnModuleInit {
@@ -32,7 +32,7 @@ export class TransferService implements OnModuleInit {
   }
 
   async sendMoney(recipient: string, amountBN: bigint) {
-    
+
   }
 
   async onModuleInit(): Promise<void> {

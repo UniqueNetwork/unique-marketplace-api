@@ -10,8 +10,6 @@ import {
   placeBid,
 } from "./base";
 import { convertAddress } from "../../src/utils/blockchain/util";
-import {BN} from "@polkadot/util";
-
 
 const getEventHook = (): [Promise<void>, CallableFunction] => {
   let onResolve: CallableFunction = null;
@@ -112,83 +110,79 @@ describe('Auction creation method', () => {
       ['bidPlaced', offerWithBids],
     ]);
   });
-  //
-  // it('bad request - unsigned tx', async () => {
-  //   const { app, uniqueApi, actors: { market } } = testEntities;
-  //
-  //   const marketAddress = util.normalizeAccountId({ Substrate: market.address });
-  //
-  //   const unsignedExtrinsic = await uniqueApi.tx
-  //     .unique
-  //     .transfer(marketAddress, collectionId, tokenId, 1)
-  //
-  //   const response = await request(app.getHttpServer())
-  //     .post('/auction/create_auction')
-  //     .send({
-  //       startPrice: '100',
-  //       priceStep: '10',
-  //       days: 7,
-  //       tx: unsignedExtrinsic.toJSON(),
-  //     } as CreateAuctionRequest)
-  //     .expect(400);
-  //
-  //   expect(response.text).toContain('tx must be signed');
-  // });
 
-  // it('bad request - wrong tx recipient', async () => {
-  //   const { app, uniqueApi, actors: { buyer, seller, market } } = testEntities;
-  //
-  //   const marketAddress = util.normalizeAccountId({ Substrate: buyer.address });
-  //
-  //   const invalidRecipientExtrinsic = await uniqueApi.tx
-  //     .unique
-  //     .transfer(marketAddress, collectionId, tokenId, 1)
-  //     .signAsync(seller);
-  //
-  //   const response = await request(app.getHttpServer())
-  //     .post('/auction/create_auction')
-  //     .send({
-  //       startPrice: '100',
-  //       priceStep: '10',
-  //       days: 7,
-  //       tx: invalidRecipientExtrinsic.toJSON(),
-  //     } as CreateAuctionRequest)
-  //     .expect(400);
-  //
-  //   expect(response.text).toContain('should be market');
-  //   expect(response.text).toContain(
-  //     await convertAddress(market.address, uniqueApi.registry.chainSS58),
-  //   );
-  // });
-  //
-  // it('avoid auction duplication', async () => {
-  //     const duplicatedCollectionId = 11;
-  //     const duplicatedTokenId = 33;
-  //
-  //     console.log('!!!!!!!! start');
-  //
-  //     const responses = await Promise.all([
-  //       createAuction(testEntities, duplicatedCollectionId, duplicatedTokenId),
-  //       // createAuction(testEntities, duplicatedCollectionId, duplicatedTokenId),
-  //       // createAuction(testEntities, duplicatedCollectionId, duplicatedTokenId),
-  //       // createAuction(testEntities, duplicatedCollectionId, duplicatedTokenId),
-  //     ]);
-  //
-  //     expect(responses[0].body).toEqual({});
-  //
-  //     const statuses = responses.reduce((acc, { statusCode }) => {
-  //       if ((200 <= statusCode && statusCode < 300)) {
-  //         acc.successCount = acc.successCount + 1;
-  //       } else {
-  //         acc.failedCount = acc.failedCount + 1;
-  //       }
-  //
-  //       return acc;
-  //     }, { successCount: 0, failedCount: 0 });
-  //
-  //     expect(statuses).toEqual({
-  //       successCount: 1,
-  //       failedCount: responses.length - 1,
-  //     });
-  // })
+  it('bad request - unsigned tx', async () => {
+    const { app, uniqueApi, actors: { market } } = testEntities;
+
+    const marketAddress = util.normalizeAccountId({ Substrate: market.address });
+
+    const unsignedExtrinsic = await uniqueApi.tx
+      .unique
+      .transfer(marketAddress, collectionId, tokenId, 1)
+
+    const response = await request(app.getHttpServer())
+      .post('/auction/create_auction')
+      .send({
+        startPrice: '100',
+        priceStep: '10',
+        days: 7,
+        tx: unsignedExtrinsic.toJSON(),
+      } as CreateAuctionRequest)
+      .expect(400);
+
+    expect(response.text).toContain('tx must be signed');
+  });
+
+  it('bad request - wrong tx recipient', async () => {
+    const { app, uniqueApi, actors: { buyer, seller, market } } = testEntities;
+
+    const marketAddress = util.normalizeAccountId({ Substrate: buyer.address });
+
+    const invalidRecipientExtrinsic = await uniqueApi.tx
+      .unique
+      .transfer(marketAddress, collectionId, tokenId, 1)
+      .signAsync(seller);
+
+    const response = await request(app.getHttpServer())
+      .post('/auction/create_auction')
+      .send({
+        startPrice: '100',
+        priceStep: '10',
+        days: 7,
+        tx: invalidRecipientExtrinsic.toJSON(),
+      } as CreateAuctionRequest)
+      .expect(400);
+
+    expect(response.text).toContain('should be market');
+    expect(response.text).toContain(
+      await convertAddress(market.address, uniqueApi.registry.chainSS58),
+    );
+  });
+
+  it('avoid auction duplication', async () => {
+      const duplicatedCollectionId = 11;
+      const duplicatedTokenId = 33;
+
+      const responses = await Promise.all([
+        createAuction(testEntities, duplicatedCollectionId, duplicatedTokenId),
+        createAuction(testEntities, duplicatedCollectionId, duplicatedTokenId),
+        createAuction(testEntities, duplicatedCollectionId, duplicatedTokenId),
+        createAuction(testEntities, duplicatedCollectionId, duplicatedTokenId),
+      ]);
+
+      const statuses = responses.reduce((acc, { statusCode }) => {
+        if ((200 <= statusCode && statusCode < 300)) {
+          acc.successCount = acc.successCount + 1;
+        } else {
+          acc.failedCount = acc.failedCount + 1;
+        }
+
+        return acc;
+      }, { successCount: 0, failedCount: 0 });
+
+      expect(statuses).toEqual({
+        successCount: 1,
+        failedCount: responses.length - 1,
+      });
+  })
 })
