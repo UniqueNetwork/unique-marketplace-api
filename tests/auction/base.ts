@@ -7,7 +7,7 @@ import { INestApplication } from '@nestjs/common';
 
 import { ExtrinsicSubmitter } from '../../src/auction/services/extrinsic-submitter';
 import * as util from '../../src/utils/blockchain/util';
-import { initApp, prepareSearchData, runMigrations } from '../data';
+import { initApp, runMigrations } from '../data';
 import { CreateAuctionRequest, PlaceBidRequest } from '../../src/auction/requests';
 import { MarketConfig } from '../../src/config/market-config';
 import { connect as connectSocket, Socket } from 'socket.io-client';
@@ -62,7 +62,7 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
   const uniqueApi = app.get<ApiPromise>('UNIQUE_API');
   const kusamaApi = app.get<ApiPromise>('KUSAMA_API');
 
-  // await runMigrations(app.get('CONFIG'));
+  await runMigrations(app.get('CONFIG'));
   await app.init();
 
   const { address, port } = app.getHttpServer().listen().address();
