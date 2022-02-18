@@ -12,6 +12,13 @@ import { CreateAuctionRequest, PlaceBidRequest } from '../../src/auction/request
 import { MarketConfig } from '../../src/config/market-config';
 import { connect as connectSocket, Socket } from 'socket.io-client';
 import { ServerToClientEvents, ClientToServerEvents } from '../../src/broadcast/types';
+import {convertAddress} from "../../src/utils/blockchain/util";
+
+type Actor = {
+  keyring: KeyringPair;
+  kusamaAddress: string;
+  uniqueAddress: string;
+}
 
 export type AuctionTestEntities = {
   app: INestApplication;
@@ -20,9 +27,10 @@ export type AuctionTestEntities = {
   extrinsicSubmitter: ExtrinsicSubmitter;
   clientSocket: Socket<ServerToClientEvents, ClientToServerEvents>;
   actors: {
-    seller: KeyringPair;
-    buyer: KeyringPair;
-    market: KeyringPair;
+    seller: Actor;
+    buyer: Actor;
+    anotherBuyer: Actor;
+    market: Actor;
   };
 };
 
@@ -33,6 +41,7 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
   const market = util.privateKey(marketSeed);
   const seller = util.privateKey(`//Seller/${Date.now()}`);
   const buyer = util.privateKey(`//Buyer/${Date.now()}`);
+  const anotherBuyer = util.privateKey(`//AnotherBuyer/${Date.now()}`);
 
   let extrinsicSubmitterCounter = 0;
 
@@ -79,9 +88,26 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
     extrinsicSubmitter,
     clientSocket,
     actors: {
-      market,
-      seller,
-      buyer,
+      market: {
+        keyring: market,
+        kusamaAddress: await convertAddress(market.address, kusamaApi.registry.chainSS58),
+        uniqueAddress: await convertAddress(market.address, uniqueApi.registry.chainSS58),
+      },
+      seller: {
+        keyring: seller,
+        kusamaAddress: await convertAddress(seller.address, kusamaApi.registry.chainSS58),
+        uniqueAddress: await convertAddress(seller.address, uniqueApi.registry.chainSS58),
+      },
+      buyer: {
+        keyring: buyer,
+        kusamaAddress: await convertAddress(buyer.address, kusamaApi.registry.chainSS58),
+        uniqueAddress: await convertAddress(buyer.address, uniqueApi.registry.chainSS58),
+      },
+      anotherBuyer: {
+        keyring: anotherBuyer,
+        kusamaAddress: await convertAddress(anotherBuyer.address, kusamaApi.registry.chainSS58),
+        uniqueAddress: await convertAddress(anotherBuyer.address, uniqueApi.registry.chainSS58),
+      },
     },
   };
 };
@@ -98,9 +124,9 @@ export const createAuction = async (
     actors: { market, seller },
   } = testEntities;
 
-  const marketAddress = util.normalizeAccountId({ Substrate: market.address });
+  const marketAddress = util.normalizeAccountId({ Substrate: market.uniqueAddress });
 
-  const signedExtrinsic = await uniqueApi.tx.unique.transfer(marketAddress, collectionId, tokenId, 1).signAsync(seller);
+  const signedExtrinsic = await uniqueApi.tx.unique.transfer(marketAddress, collectionId, tokenId, 1).signAsync(seller.keyring);
 
   return request(app.getHttpServer())
     .post('/auction/create_auction')
@@ -113,14 +139,18 @@ export const createAuction = async (
     } as CreateAuctionRequest);
 };
 
-export const placeBid = async (testEntities: AuctionTestEntities, collectionId, tokenId, amount = '100'): Promise<request.Test> => {
+export const placeBid = async (
+  testEntities: AuctionTestEntities,
+  collectionId, tokenId, amount = '100',
+  signer?: KeyringPair,
+  ): Promise<request.Test> => {
   const {
     app,
     kusamaApi,
     actors: { market, buyer },
   } = testEntities;
 
-  const signedExtrinsic = await kusamaApi.tx.balances.transfer(market.address, amount).signAsync(buyer);
+  const signedExtrinsic = await kusamaApi.tx.balances.transfer(market.kusamaAddress, amount).signAsync(signer || buyer.keyring);
 
   return request(app.getHttpServer())
     .post('/auction/place_bid')

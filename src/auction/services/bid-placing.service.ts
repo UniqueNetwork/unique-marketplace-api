@@ -155,7 +155,7 @@ export class BidPlacingService {
   }
 
   private async tryPlacePendingBid(placeBidArgs: PlaceBidArgs): Promise<ContractAsk> {
-    const { collectionId, tokenId, amount, bidderAddress, tx } = placeBidArgs;
+    const { collectionId, tokenId, amount, bidderAddress } = placeBidArgs;
 
     return this.connection.transaction<ContractAsk>(async (transactionEntityManager) => {
       const contractAsk = await transactionEntityManager.findOne(ContractAsk, {
@@ -173,20 +173,25 @@ export class BidPlacingService {
       let bids = await transactionEntityManager.find(BidEntity, {
         where: { auctionId: contractAsk.auction.id },
       });
-
+      console.log('!!! bids before sort ', JSON.stringify(bids, null, 2));
       bids = BidPlacingService.sortBids(bids);
-
+      console.log('!!! bids after sort ', JSON.stringify(bids, null, 2));
       const [currentMaxBid, ...restBids] = bids;
 
       let userBid: BidEntity | undefined = bids.find((bid) => bid.bidderAddress === bidderAddress);
 
+      console.log('bidderAddress ', bidderAddress);
+
       const userTotalAmountBn = userBid ? amountBn.add(new BN(userBid.pendingAmount)) : amountBn;
 
-      const minTotalPriceBn = currentMaxBid ? new BN(currentMaxBid.pendingAmount).add(priceStepBn) : new BN(contractAsk.auction.startPrice);
-      if (userTotalAmountBn.lt(minTotalPriceBn)) {
-        const minAmountBn = BN.max(minTotalPriceBn.sub(userTotalAmountBn), priceStepBn);
+      console.log('userBid ', JSON.stringify(userBid));
+      console.log('userTotalAmountBn ',JSON.stringify(userTotalAmountBn.toString()));
 
-        throw new Error(`Current price is ${minTotalPriceBn.toString()}; minimum amount for you is ${minAmountBn}`);
+      const minTotalPriceBn = currentMaxBid ? new BN(currentMaxBid.pendingAmount).add(priceStepBn) : new BN(contractAsk.price);
+      if (userTotalAmountBn.lt(minTotalPriceBn)) {
+        const minAmountBn = BN.max(minTotalPriceBn.sub(userTotalAmountBn).add(amountBn), priceStepBn);
+
+        throw new Error(`Current price is ${minTotalPriceBn.toString()}; minimum amount for you is ${minAmountBn}, you offered ${userTotalAmountBn.toString()}`);
       }
 
       if (userBid) {
@@ -229,8 +234,7 @@ export class BidPlacingService {
       const aAmount = new BN(a.pendingAmount);
       const bAmount = new BN(b.pendingAmount);
 
-      if (aAmount.eq(bAmount)) return 0;
-      return aAmount.gt(bAmount) ? 1 : -1;
+      return bAmount.cmp(aAmount);
     });
   }
 
@@ -270,17 +274,5 @@ export class BidPlacingService {
     }
 
     throw new BadRequestException(`No active auction found for ${JSON.stringify({ collectionId, tokenId })}`);
-  }
-
-  private async getOffer(collectionId: number, tokenId: number): Promise<OfferContractAskDto> {
-    const contractAsk = await this.contractAskRepository
-      .createQueryBuilder('contractAsk')
-      .where('contractAsk.collection_id = :collectionId', { collectionId })
-      .andWhere('contractAsk.token_id = :tokenId', { tokenId })
-      .leftJoinAndMapOne('contractAsk.auction', AuctionEntity, 'auction', 'auction.contract_ask_id = contractAsk.id')
-      .leftJoinAndMapMany('auction.bids', BidEntity, 'bid', 'bid.auction_id = auction.id and bid.is_withdrawn = false')
-      .getOne();
-
-    return OfferContractAskDto.fromContractAsk(contractAsk);
   }
 }
