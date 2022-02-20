@@ -27,7 +27,7 @@ export class BidsService {
     .andWhere('bid.is_withdrawn = :isWithdrawn', { isWithdrawn: false })
     .orderBy('bid.amount')
     .getMany();
-
+ 
     function winer(): Partial<Bid> | null {
       if (bids.length === 1) {
         return bids[0];

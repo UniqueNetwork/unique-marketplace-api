@@ -31,15 +31,29 @@ export class TransferService implements OnModuleInit {
     );
   }
 
-  async sendMoney(recipient: string, amountBN: bigint) {
+  async sendMoney(recipient: string, amountBN: string, fee = '0') {
 
+    const kusamaRecipinet = await convertAddress(recipient, this.kusamaApi.registry.chainSS58);
+
+    //const commission = BigInt(100 + parseInt(fee));
+
+    //const amountWith = (amountBN * 100n) / commission;
+
+    await signTransaction(
+      this.marketAuctionKusamaAddress,
+      this.kusamaApi.tx.balances.transfer(
+        kusamaRecipinet,
+        amountBN.toString()
+      ),
+      'api.tx.balances.transfer'
+    )
   }
 
   async onModuleInit(): Promise<void> {
     if (this.config.auction.seed) {
       const address = await seedToAddress(this.config.auction.seed);
 
-      this.marketAuctionKusamaAddress = await convertAddress(address, this.uniqueApi.registry.chainSS58);
+      this.marketAuctionKusamaAddress = await convertAddress(address, this.kusamaApi.registry.chainSS58);
       this.marketAuctionUniqueAddress = await convertAddress(address, this.uniqueApi.registry.chainSS58);
     }
   }

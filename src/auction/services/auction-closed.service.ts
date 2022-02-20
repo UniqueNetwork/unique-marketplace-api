@@ -1,8 +1,9 @@
+import { TransferService } from './transfer.service';
 import { OfferContractAskDto } from './../../offers/dto/offer-dto';
 import { BidsService } from './bids.service';
 import { ApiPromise } from '@polkadot/api';
 import { BroadcastService } from './../../broadcast/services/broadcast.service';
-import { Inject, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { AuctionEntity, BidEntity } from '../entities';
 import { Connection, Repository } from 'typeorm';
@@ -23,6 +24,7 @@ export class AuctionClosedService {
     @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     private broadcastService: BroadcastService,
     private bidsService: BidsService,
+    private trasferService: TransferService,
   ) {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
     this.contractAskRepository = connection.manager.getRepository(ContractAsk);
@@ -41,19 +43,41 @@ export class AuctionClosedService {
 
   private async closeBids(auctions: Array<Partial<Auction>>): Promise<void> {
     for(const auction of auctions) {
+
       const bidsAuction = await this.bidsService.bids(auction.id);
 
-      await this.winnerByAuction(bidsAuction.winer());
+      const offer = await this.offerContract(auction);
+
+      await this.winnerByAuction(bidsAuction.winer(), offer);
+
       await this.sendMoneyBidLose(bidsAuction.lose());
     }
   }
 
   private async sendMoneyBidLose(listAddress: Array<Partial<Bid>>): Promise<void> {
+
     this.logger.log(listAddress);
+
+    for (const address of listAddress) {
+
+      await this.trasferService.sendMoney(
+        address.bidderAddress,
+        address.amount
+      );
+
+    }
+
   }
 
-  private async winnerByAuction(winner: Partial<Bid>): Promise<void> {
+  private async winnerByAuction(winner: Partial<Bid>, offer: ContractAsk): Promise<void> {
     this.logger.log(winner);
+
+    await this.trasferService
+      .trasferToken(
+        parseInt(offer.collection_id),
+        parseInt(offer.token_id),
+        winner.bidderAddress
+      );
   }
 
   private async closeAuctions(auctions: Array<Partial<Auction>>): Promise<void> {
@@ -80,14 +104,19 @@ export class AuctionClosedService {
     }, {
       status: AuctionStatus.ended
     });
-    const offer = await this.contractAsk(auction);
 
-    await this.broadcastService.sendAuctionClose(offer);
+    const offer = await this.offerContract(auction);
+
+    this.logger.log(`${offer.collection_id} ${offer.token_id}`);
+
+    await this.broadcastService.sendAuctionClose(
+      OfferContractAskDto.fromContractAsk(offer)
+    );
 
     this.logger.log(JSON.stringify(offer));
   }
 
-  private async contractAsk(auction: Partial<Auction>): Promise<OfferContractAskDto> {
+  private async offerContract(auction: Partial<Auction>): Promise<ContractAsk> {
     const offerWithAuction = await this.contractAskRepository
     .createQueryBuilder('contractAsk')
     .where('contractAsk.id = :id', { id: auction.contractAskId })
@@ -104,6 +133,6 @@ export class AuctionClosedService {
       'bid.auction_id = auction.id and bid.is_withdrawn = false',
     )
     .getOne();
-    return OfferContractAskDto.fromContractAsk(offerWithAuction);
+    return offerWithAuction;
   }
 }
