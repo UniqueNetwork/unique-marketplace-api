@@ -1,6 +1,6 @@
 import { IKeyringPair } from '@polkadot/types/types';
 import { signTransaction, transactionStatus } from '../../utils/blockchain/polka';
-import { privateKey } from '../../utils/blockchain/util';
+import { convertAddress, privateKey, normalizeAccountId } from '../../utils/blockchain/util';
 import { seedToAddress } from '../../utils/blockchain/util';
 import { ApiPromise } from '@polkadot/api';
 import { Inject, Injectable, Logger, OnModuleInit } from "@nestjs/common";
@@ -11,7 +11,7 @@ export class TransferService implements OnModuleInit {
 
   private readonly logger = new Logger(TransferService.name);
 
-  private senderKusama: IKeyringPair;
+  private sender: IKeyringPair;
 
   constructor(
     @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
@@ -20,18 +20,24 @@ export class TransferService implements OnModuleInit {
   ) { }
 
   async trasferToken(collectionId: number, tokenId: number, recipient: string): Promise<void> {
+    const  addressRecipient = await convertAddress(recipient, this.uniqueApi.registry.chainSS58);
 
-    /*await signTransaction(
-      this.marketAuctionUniqueAddress,
-      this.uniqueApi.tx.unique.transfer(
-        util.normalizeAccountId({
-          Substrate: recipient
-        }),
-        collectionId,
-        tokenId, 1
-      ),
+    const transferToken = this.uniqueApi.tx.unique.transfer(
+      normalizeAccountId({
+        Substrate: addressRecipient
+      }),
+      collectionId,
+      tokenId, 1
+    );
+
+    const result = (await signTransaction(
+      this.sender,
+      transferToken,
       'api.tx.unique.transfer'
-    );*/
+    )) as any;
+
+    if (result.status !== transactionStatus.SUCCESS) throw Error('Transfer failed');
+
   }
 
   async getBalance(address: string) {
@@ -51,7 +57,7 @@ export class TransferService implements OnModuleInit {
     const balanceTransaction = this.kusamaApi.tx.balances.transferKeepAlive(recipient, amountBN);
 
     const result = (await signTransaction(
-      this.senderKusama,
+      this.sender,
       balanceTransaction,
       'api.tx.balances.transferKeepAlive'
     )) as any;
@@ -60,7 +66,7 @@ export class TransferService implements OnModuleInit {
 
     this.logger.log([
       'Transfer successful. Sender balance:',
-      (await this.getBalance(this.senderKusama.address)).toString(),
+      (await this.getBalance(this.sender.address)).toString(),
       ' Recipient balance:',
       (await this.getBalance(recipient)).toString(),
     ]);
@@ -69,7 +75,7 @@ export class TransferService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     if (this.config.auction.seed) {
       const address = await seedToAddress(this.config.auction.seed);
-      this.senderKusama = privateKey(this.config.auction.seed);
+      this.sender = privateKey(this.config.auction.seed);
     }
   }
 }

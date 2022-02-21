@@ -9,6 +9,7 @@ import { AuctionEntity, BidEntity } from '../entities';
 import { Connection, Repository } from 'typeorm';
 import { Auction, AuctionStatus, Bid } from '../types';
 import { ContractAsk } from '../../entity';
+import { BidInterface } from '../interface/bid.interface';
 
 
 @Injectable()
@@ -34,23 +35,26 @@ export class AuctionClosedService {
   async handleInterval() {
     const auctions: Array<Partial<Auction>> = await this.listStops();
 
-    await this.closeBids(auctions);
-
-    await this.closeAuctions(auctions);
-  }
-
-  private async closeBids(auctions: Array<Partial<Auction>>): Promise<void> {
     for(const auction of auctions) {
 
       const bidsAuction = await this.bidsService.bids(auction.id);
 
       const offer = await this.offerContract(auction);
 
-      await this.sendMoneyBidLose(bidsAuction.lose());
+      if (!bidsAuction.minting()) {
 
-      await this.winnerByAuction(bidsAuction.winer(), offer);
+         await this.closeBid(bidsAuction, offer);
 
+         await this.closeAuction(auction);
+      }
     }
+  }
+
+  private async closeBid(bid: BidInterface, offer:ContractAsk): Promise<void> {
+
+      await this.sendMoneyBidLose(bid.lose());
+
+      await this.winnerByAuction(bid.winer(), offer);
   }
 
   private async sendMoneyBidLose(bids: Array<Partial<Bid>>): Promise<void> {
@@ -64,7 +68,6 @@ export class AuctionClosedService {
   }
 
   private async winnerByAuction(winner: Partial<Bid>, offer: ContractAsk): Promise<void> {
-    this.logger.log(winner);
 
     await this.trasferService
       .trasferToken(
@@ -74,10 +77,8 @@ export class AuctionClosedService {
       );
   }
 
-  private async closeAuctions(auctions: Array<Partial<Auction>>): Promise<void> {
-    for(const auction of auctions) {
-      await this.auctionClose(auction);
-    }
+  private async closeAuction(auction: Partial<Auction>): Promise<void> {
+    await this.auctionClose(auction);
   }
 
   private async listStops(): Promise<Array<Partial<Auction>>> {

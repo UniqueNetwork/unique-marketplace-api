@@ -32,8 +32,8 @@ export class BidsService {
       return bids.find(bid => bid.status === BidStatus.winning);
     }
 
-    function lose(): Array<Partial<Bid>> | [] {
-      return bids.filter(bid => bid.status === BidStatus.outbid);
+    function lose(): Array<Partial<Bid>>  {
+      return bids.filter(bid => bid.status === BidStatus.outbid) || [];
     }
 
     function minting(): Partial<Bid> | null {
