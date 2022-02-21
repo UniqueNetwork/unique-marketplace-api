@@ -45,14 +45,17 @@ export class TransferService implements OnModuleInit {
   }
 
 
-  async sendMoney(recipient: string, amountBN: string, fee = '0') {
+  async sendMoneyWinner(recipient: string, amountBN: string): Promise<void> {
+
+    const addressRecipient = await convertAddress(recipient, this.kusamaApi.registry.chainSS58);
+
+    const commission = BigInt(100 + this.config.auction.commission);
+    const priceWithoutCommission = (BigInt(amountBN) * 100n)/ commission;
+    await this.sendMoney(addressRecipient, priceWithoutCommission.toString());
+  }
 
 
-    //const commission = BigInt(100 + parseInt(fee));
-
-    //const amountWith = (amountBN * 100n) / commission;
-
-    //await seedToAddress(this.config.auction.seed);
+  async sendMoney(recipient: string, amountBN: string): Promise<void> {
 
     const balanceTransaction = this.kusamaApi.tx.balances.transferKeepAlive(recipient, amountBN);
 

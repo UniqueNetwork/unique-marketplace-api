@@ -75,6 +75,11 @@ export class AuctionClosedService {
         parseInt(offer.token_id),
         winner.bidderAddress
       );
+
+    await this.trasferService.sendMoneyWinner(
+        offer.address_from,
+        winner.amount
+    );
   }
 
   private async closeAuction(auction: Partial<Auction>): Promise<void> {
@@ -101,8 +106,6 @@ export class AuctionClosedService {
     });
 
     const offer = await this.offerContract(auction);
-
-    this.logger.log(`${offer.collection_id} ${offer.token_id}`);
 
     await this.broadcastService.sendAuctionClose(
       OfferContractAskDto.fromContractAsk(offer)
