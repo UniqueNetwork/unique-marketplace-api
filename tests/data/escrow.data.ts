@@ -1,8 +1,4 @@
-export const ConstDataForToken = {
-  traits: [3, 17],
-  ipfsJson: '{"ipfs": "QmS8YXgfGKgTUnjAPtEf3uf5k4YrFLP2uDcYuNyGLnEiNb","type": "image" }',
-  gender: 0,
-};
+export const ConstDataPlayload = {"traits":[3,17],"ipfsJson":"{\"ipfs\":\"QmS8YXgfGKgTUnjAPtEf3uf5k4YrFLP2uDcYuNyGLnEiNb\",\"type\":\"image\"}","gender":0};
 
 export const TraitsSchema = {
   nested: {

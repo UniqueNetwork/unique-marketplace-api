@@ -96,12 +96,12 @@ export class UniqueEscrow extends Escrow {
     this.admin = util.privateKey(this.config('escrowSeed'));
   }
 
-  *convertEnumToString(value, key, protoSchema) {
+  *convertEnumToString(value, key, protoSchema, isTrait) {
     try {
       let valueJsonComment = protoSchema.fields[key].resolvedType.options[value];
       let translationObject = JSON.parse(valueJsonComment);
       if (translationObject) {
-        yield* Object.keys(translationObject).map((k) => ({ locale: k, text: translationObject[k] }));
+        yield* Object.keys(translationObject).map((k) => ({ locale: k, text: translationObject[k] , is_trait: isTrait }));
       }
     } catch (e) {
       logging.log('Error parsing schema when trying to convert enum to string', logging.level.ERROR);
@@ -113,17 +113,17 @@ export class UniqueEscrow extends Escrow {
     for (let key of Object.keys(dataObj)) {
       if (this.BLOCKED_SCHEMA_KEYS.indexOf(key) > -1) continue;
       let isTrait = key === 'traits';
-      yield { locale: null, text: key };
+      yield { locale: null, text: key , is_trait: false};
       if (protoSchema.fields[key].resolvedType && protoSchema.fields[key].resolvedType.constructor.name.toString() === 'Enum') {
         if (Array.isArray(dataObj[key])) {
           for (let i = 0; i < dataObj[key].length; i++) {
-            yield* this.convertEnumToString(dataObj[key][i], key, protoSchema);
+            yield* this.convertEnumToString(dataObj[key][i], key, protoSchema, isTrait);
           }
         } else {
-          yield* this.convertEnumToString(dataObj[key], key, protoSchema);
+          yield* this.convertEnumToString(dataObj[key], key, protoSchema, isTrait);
         }
       } else {
-        yield { locale: null, text: dataObj[key] };
+        yield { locale: null, text: dataObj[key] , is_trait: false };
       }
     }
   }
@@ -131,7 +131,6 @@ export class UniqueEscrow extends Escrow {
   async getSearchIndexes(collectionId, tokenId) {
     let keywords = [];
     let data = await this.explorer.getTokenData(tokenId, collectionId);
-    console.log(data.data);
     try {
 
       keywords.push({ locale: null, text: data.collection.toHuman().tokenPrefix });
