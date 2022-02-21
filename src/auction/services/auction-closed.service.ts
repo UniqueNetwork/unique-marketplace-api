@@ -36,7 +36,7 @@ export class AuctionClosedService {
 
     await this.closeBids(auctions);
 
-    /*await this.closeAuctions(auctions);*/
+    await this.closeAuctions(auctions);
   }
 
   private async closeBids(auctions: Array<Partial<Auction>>): Promise<void> {
