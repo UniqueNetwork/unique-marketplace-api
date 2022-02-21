@@ -1,7 +1,7 @@
 import { Repository, Connection } from 'typeorm';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { BidEntity } from '../entities';
-import { Bid } from '../types';
+import { Bid, BidStatus } from '../types';
 import { BidInterface } from '../interface/bid.interface';
 
 @Injectable()
@@ -27,23 +27,24 @@ export class BidsService {
     .andWhere('bid.is_withdrawn = :isWithdrawn', { isWithdrawn: false })
     .orderBy('bid.amount')
     .getMany();
- 
+
     function winer(): Partial<Bid> | null {
-      if (bids.length === 1) {
-        return bids[0];
-      } else {
-        return null
-      }
+      return bids.find(bid => bid.status === BidStatus.winning);
     }
 
     function lose(): Array<Partial<Bid>> | [] {
-      return bids.slice(1);
+      return bids.filter(bid => bid.status === BidStatus.outbid);
+    }
+
+    function minting(): Partial<Bid> | null {
+      return bids.find(bid => bid.status ===BidStatus.minting);
     }
 
     return {
       bids,
       winer,
       lose,
+      minting,
     } as BidInterface
   }
 

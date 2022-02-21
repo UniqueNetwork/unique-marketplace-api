@@ -32,13 +32,11 @@ export class AuctionClosedService {
 
   @Interval(8000)
   async handleInterval() {
-    this.logger.debug('closed auction');
-
     const auctions: Array<Partial<Auction>> = await this.listStops();
 
     await this.closeBids(auctions);
 
-    await this.closeAuctions(auctions);
+    /*await this.closeAuctions(auctions);*/
   }
 
   private async closeBids(auctions: Array<Partial<Auction>>): Promise<void> {
@@ -48,23 +46,19 @@ export class AuctionClosedService {
 
       const offer = await this.offerContract(auction);
 
+      await this.sendMoneyBidLose(bidsAuction.lose());
+
       await this.winnerByAuction(bidsAuction.winer(), offer);
 
-      await this.sendMoneyBidLose(bidsAuction.lose());
     }
   }
 
-  private async sendMoneyBidLose(listAddress: Array<Partial<Bid>>): Promise<void> {
-
-    this.logger.log(listAddress);
-
-    for (const address of listAddress) {
-
+  private async sendMoneyBidLose(bids: Array<Partial<Bid>>): Promise<void> {
+    for (const bid of bids) {
       await this.trasferService.sendMoney(
-        address.bidderAddress,
-        address.amount
+        bid.bidderAddress,
+        bid.amount
       );
-
     }
 
   }
