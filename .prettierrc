@@ -4,6 +4,6 @@
     "semi": true,
     "arrowParens": "always",
     "singleQuote": true,
-    "printWidth": 140,
+    "printWidth": 160,
     "trailingComma": "all"
 }

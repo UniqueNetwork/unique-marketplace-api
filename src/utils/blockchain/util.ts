@@ -105,6 +105,7 @@ class UniqueExplorer {
       'api.tx.unique.createItem'
     ) as any;
     if(creationResult.status !== transactionStatus.SUCCESS) {
+      console.error('error create token',creationResult)
       throw Error(`Unable to create token for ${label}`);
     }
     let success = false, createdCollectionId = null, tokenId = null, recipient = null;

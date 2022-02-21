@@ -22,7 +22,6 @@ export const decodeSchema = schema => {
 
 export const decodeData = (data, schema) => {
   if (schema.NFTMeta === null) return {data: data, human: null}
-
   let tokenDataBuffer;
   try {
     tokenDataBuffer = hexToU8a(data);
@@ -32,7 +31,6 @@ export const decodeData = (data, schema) => {
   }
 
   let message = schema.NFTMeta.decode(tokenDataBuffer), humanObj = message.toJSON();
-
   // Maybe convert the message back to a plain object
   let obj = schema.NFTMeta.toObject(message, {
     longs: String,  // longs as strings (requires long.js)
