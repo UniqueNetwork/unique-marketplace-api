@@ -113,14 +113,6 @@ describe('Escrow test', () => {
     return { collectionId, evmCollection };
   };
 
-  const toHex = (str) => {
-    let result = '';
-    for (let i=0; i<str.length; i++) {
-      result += str.charCodeAt(i).toString(16);
-    }
-    return result;
-  }
-
   const getEscrow = async (config) => {
     const service = app.get(EscrowService, { strict: false });
     let escrow = new UniqueEscrow(config, service, UniqueEscrow.MODE_TESTING);
@@ -265,7 +257,7 @@ describe('Escrow test', () => {
     const PRICE = 2_000_000_000_000n; // 2 KSM
     const state = await init();
 
-    const { explorer, collectionId, blocks, workEscrow, escrow, service } = state;
+    const { explorer, collectionId, blocks, workEscrow, escrow, service, config} = state;
 
     const seller = util.privateKey(`//Seller/${Date.now()}`);
 
@@ -284,7 +276,7 @@ describe('Escrow test', () => {
     await escrow.destroy();
 
     // TODO: check search_index table
-    const searchTraits = await service.getSearchIndexeTraits(collectionId, tokenId, 'private_opal')
+    const searchTraits = await service.getSearchIndexTraits(collectionId, tokenId, config.blockchain.testing.unique.network)
     await expect(searchTraits.length).toBe(2);
 
   });
