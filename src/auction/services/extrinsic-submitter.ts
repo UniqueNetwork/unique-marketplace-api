@@ -1,16 +1,19 @@
 import {Injectable, Logger} from "@nestjs/common";
 import { ApiPromise } from "@polkadot/api";
 import { SignedBlock } from "@polkadot/types/interfaces";
+import { SubmittableExtrinsic } from "@polkadot/api/types";
 
 
 @Injectable()
 export class ExtrinsicSubmitter {
   private readonly logger = new Logger(ExtrinsicSubmitter.name);
 
-  async submit(api: ApiPromise, tx: string): Promise<SignedBlock | undefined> {
+  async submit(api: ApiPromise, tx: string | SubmittableExtrinsic<any>): Promise<SignedBlock | undefined> {
     this.logger.debug('before submitTransferExtrinsic');
 
-    const extrinsic = api.createType('Extrinsic', tx);
+    const extrinsic = typeof tx === 'string'
+      ? api.createType('Extrinsic', tx)
+      : tx;
 
     return new Promise(async (resolve, reject) => {
       let unsubscribe = () => {

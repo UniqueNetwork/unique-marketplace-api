@@ -11,3 +11,5 @@ export {
   BalanceTransferTxInfo,
   BalanceTransferTxInfoDto,
 } from './place-bid';
+
+export { CancelAuctionQuery, CancelAuctionQueryDto } from './cancel-auction'
