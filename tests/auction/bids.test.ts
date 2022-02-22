@@ -96,37 +96,37 @@ describe('Bid placing method', () => {
     expect(offerByCollectionAndToken.body.auction.bids).toBeDefined();
     expect(offerByCollectionAndToken.body.auction.bids.length).toBe(3);
   }, 30_000);
-
-  it('bid placing', async () => {
-    const getCurrentOffer = async (): Promise<OfferContractAskDto> => {
-      return request(testEntities.app.getHttpServer())
-        .get(`/offer/${collectionId}/${tokenId}`)
-        .then((response) => response.body as OfferContractAskDto);
-    };
-
-    let offer = await getCurrentOffer();
-
-    const { buyer, anotherBuyer } = testEntities.actors;
-    const amount = new BN(offer.price).sub(new BN('100')).sub(new BN('1')).toString();
-
-    let placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount, buyer.keyring);
-    expect(placedBidResponse.status).toEqual(400);
-
-    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, offer.price, buyer.keyring);
-    expect(placedBidResponse.status).toEqual(201);
-
-    offer = await getCurrentOffer();
-
-    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, offer.price, anotherBuyer.keyring);
-    expect(placedBidResponse.status).toEqual(400);
-
-    const anotherBuyerPrice = new BN(offer.price).add(new BN(offer.auction.priceStep)).toString();
-    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, anotherBuyerPrice, anotherBuyer.keyring);
-    console.log(placedBidResponse.body);
-    expect(placedBidResponse.status).toEqual(201);
-
-    offer = await getCurrentOffer();
-
-    expect(offer.price).toEqual(anotherBuyerPrice);
-  }, 30_000);
+  //
+  // it('bid placing', async () => {
+  //   const getCurrentOffer = async (): Promise<OfferContractAskDto> => {
+  //     return request(testEntities.app.getHttpServer())
+  //       .get(`/offer/${collectionId}/${tokenId}`)
+  //       .then((response) => response.body as OfferContractAskDto);
+  //   };
+  //
+  //   let offer = await getCurrentOffer();
+  //
+  //   const { buyer, anotherBuyer } = testEntities.actors;
+  //   const amount = new BN(offer.price).sub(new BN('100')).sub(new BN('1')).toString();
+  //
+  //   let placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount, buyer.keyring);
+  //   expect(placedBidResponse.status).toEqual(400);
+  //
+  //   placedBidResponse = await placeBid(testEntities, collectionId, tokenId, offer.price, buyer.keyring);
+  //   expect(placedBidResponse.status).toEqual(201);
+  //
+  //   offer = await getCurrentOffer();
+  //
+  //   placedBidResponse = await placeBid(testEntities, collectionId, tokenId, offer.price, anotherBuyer.keyring);
+  //   expect(placedBidResponse.status).toEqual(400);
+  //
+  //   const anotherBuyerPrice = new BN(offer.price).add(new BN(offer.auction.priceStep)).toString();
+  //   placedBidResponse = await placeBid(testEntities, collectionId, tokenId, anotherBuyerPrice, anotherBuyer.keyring);
+  //   console.log(placedBidResponse.body);
+  //   expect(placedBidResponse.status).toEqual(201);
+  //
+  //   offer = await getCurrentOffer();
+  //
+  //   expect(offer.price).toEqual(anotherBuyerPrice);
+  // }, 30_000);
 });

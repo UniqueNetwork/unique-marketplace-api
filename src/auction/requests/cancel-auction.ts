@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
-
 import { IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 

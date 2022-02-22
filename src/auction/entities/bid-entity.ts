@@ -1,8 +1,7 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Bid, BidStatus } from '../types';
 import { AuctionEntity } from './auction-entity';
 
-@Unique('UNIQUE_user_auction', ['auctionId', 'bidderAddress'])
 @Entity('bids', { schema: 'public' })
 export class BidEntity implements Bid {
   @PrimaryGeneratedColumn('uuid')
@@ -16,12 +15,11 @@ export class BidEntity implements Bid {
   amount: string;
 
   @Column({
-    type: 'varchar',
-    nullable: false,
-    name: 'pending_amount',
-    default: '0',
+    type: 'bigint',
+    nullable: true,
+    name: 'block_number',
   })
-  pendingAmount: string;
+  blockNumber: string;
 
   @Column({
     type: 'uuid',
@@ -40,20 +38,14 @@ export class BidEntity implements Bid {
   @Column({
     type: 'enum',
     enum: BidStatus,
-    default: BidStatus.created,
+    nullable: false,
+    default: BidStatus.minting,
   })
   status: BidStatus;
 
   @ManyToOne(() => AuctionEntity, (auction) => auction.bids)
   @JoinColumn([{ name: 'auction_id', referencedColumnName: 'id' }])
   auction: AuctionEntity;
-
-  @Column({
-    type: 'boolean',
-    default: false,
-    name: 'is_withdrawn',
-  })
-  isWithdrawn: boolean;
 
   @Column({
     type: 'timestamp without time zone',

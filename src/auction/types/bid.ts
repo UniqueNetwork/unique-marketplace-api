@@ -1,8 +1,8 @@
 export enum BidStatus {
   created = 'created',
+  rejected = 'rejected',
   minting = 'minting',
-  winning = 'winning',
-  outbid = 'outbid',
+  finished = 'finished',
   error = 'error',
 }
 
@@ -15,11 +15,7 @@ export interface Bid {
 
   amount: string;
 
-  pendingAmount: string;
-
   bidderAddress: string;
-
-  isWithdrawn: boolean;
 
   createdAt: Date;
 
