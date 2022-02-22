@@ -1,5 +1,5 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
-import { Connection, SelectQueryBuilder } from 'typeorm';
+import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
@@ -20,12 +20,16 @@ export class OffersService {
   private offerSortingColumns = ['Price', 'TokenId', 'token_id', 'CollectionId', 'collection_id'];
   private sortingColumns = [...this.offerSortingColumns, 'CreationDate'];
   private logger: Logger;
+  private readonly contractAskRepository: Repository<ContractAsk>;
+  private readonly searchIndexRepository: Repository<SearchIndex>;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     @InjectSentry() private readonly sentryService: SentryService,
   ) {
     this.logger = new Logger(OffersService.name);
+    this.contractAskRepository = connection.manager.getRepository(ContractAsk);
+    this.searchIndexRepository = connection.manager.getRepository(SearchIndex);
   }
   /**
    * Get Offers
@@ -39,25 +43,38 @@ export class OffersService {
     offersFilter: OffersFilter,
     sort: OfferSortingRequest,
   ): Promise<PaginationResult<OfferContractAskDto>> {
-    let offers: SelectQueryBuilder<ContractAsk>;
+    let offers: any//SelectQueryBuilder<ContractAsk>;
     let paginationResult;
 
+
+
     try {
-      offers = this.connection.manager
-        .createQueryBuilder(ContractAsk, 'offer')
-        .innerJoinAndSelect(BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask')
+      // offers = this.connection.manager
+      //   .createQueryBuilder(ContractAsk, 'offer')
+      //   .loadRelationCountAndMap('offer.trCount', 'offer.traits')
+      //   .innerJoinAndSelect(BlockchainBlock, 'blocks', 'blocks.network = offer.network and blocks.block_number = offer.block_number_ask')
+      //   .select('offer')
+      //   .addSelect('blocks.created_at', 'created_at')
+      //   .innerJoinAndMapOne(
+      //     'offer.block',
+      //     BlockchainBlock,
+      //     'block',
+      //     'offer.network = block.network and block.block_number = offer.block_number_ask',
+      //   )
+
+      offers = await this.contractAskRepository.createQueryBuilder('offer')
         .select('offer')
-        .addSelect('block.created_at', 'created_at')
         .innerJoinAndMapOne(
-          'offer.block',
-          BlockchainBlock,
-          'blocks',
-          'offer.network = blocks.network and blocks.block_number = offer.block_number_ask',
-        );
+             'offer.block',
+             BlockchainBlock,
+             'block',
+             'offer.network = block.network and block.block_number = offer.block_number_ask',
+           )
 
       offers = this.filter(offers, offersFilter);
       offers = this.applySort(offers, sort);
       paginationResult = await paginate(offers, pagination);
+      console.dir(paginationResult,{depth: 4});
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -129,6 +146,7 @@ export class OffersService {
       quoteId: +offer.currency,
       seller: offer.address_from,
       creationDate: offer.block.created_at,
+     // traits: offer.traits.length
     };
   }
 
@@ -186,32 +204,41 @@ export class OffersService {
    * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
    * @param {String} text - Search field from SearchIndex in which traits are specified
    * @param {String} locale -
+   * @param traitsCount
    * @private
    * @see OffersService.get
    * @return SelectQueryBuilder<ContractAsk>
    */
-  private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string): SelectQueryBuilder<ContractAsk> {
-    if (nullOrWhitespace(text)) {
-      return query;
-    }
+  private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
 
-    let matchedText = this.connection
-      .createQueryBuilder(SearchIndex, 'searchIndex')
-      .andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text });
-    if (!nullOrWhitespace(locale)) {
-      matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', {
-        locale: locale,
-      });
-    }
+    let matchedText = this.searchIndexRepository
+      .createQueryBuilder('searchIndex').andWhere(`searchIndex.is_trait = true`);
+
+    console.log(text);
+    !nullOrWhitespace(text) ?  matchedText.andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) : matchedText
+
+    !nullOrWhitespace(locale) ? matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale, }) : matchedText;
+
 
     const groupedMatches = matchedText
       .select('searchIndex.collection_id, searchIndex.token_id')
+      .addSelect('COUNT(searchIndex.id)', 'traitsCount')
       .groupBy('searchIndex.collection_id, searchIndex.token_id');
+
     //innerJoin doesn't add parentesises around joined value, which is required in case of complex subquery.
     const getQueryOld = groupedMatches.getQuery.bind(groupedMatches);
     groupedMatches.getQuery = () => `(${getQueryOld()})`;
     groupedMatches.getQuery.prototype = getQueryOld;
-    return query.innerJoin(() => groupedMatches, 'gr', 'gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"');
+
+    if ((traitsCount ?? []).length !== 0) {
+      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"  AND gr."traitsCount" IN (:...traitsCount)`, {
+        traitsCount: traitsCount,
+      })
+
+    } else {
+      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"`);
+    }
+    return query
   }
 
   /**
@@ -231,23 +258,6 @@ export class OffersService {
     return query.andWhere('offer.address_from = :seller', { seller });
   }
 
-  /**
-   * Filter by Traits Count
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {Array<number>} traitsCount - Array numbers traits
-   * @private
-   * @see OffersService.get
-   * @return SelectQueryBuilder<ContractAsk>
-   */
-  private filterByTraitsCount(query: SelectQueryBuilder<ContractAsk>, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
-    if ((traitsCount ?? []).length <= 0) {
-      return query;
-    }
-
-    return query.andWhere(`offer.indexData.is_trait ? 'traits') in (:...traitsCount)`, {
-      traitsCount: traitsCount,
-    });
-  }
 
   /**
    * Filter all create OffersFilter Dto
@@ -262,8 +272,8 @@ export class OffersService {
     query = this.filterByMaxPrice(query, offersFilter.maxPrice);
     query = this.filterByMinPrice(query, offersFilter.minPrice);
     query = this.filterBySeller(query, offersFilter.seller);
-    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale);
-    // query = this.filterByTraitsCount(query, offersFilter.traitsCount);
+    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
+
     const qr = query.andWhere(`offer.status = :status`, { status: 'active' });
     return qr;
   }
