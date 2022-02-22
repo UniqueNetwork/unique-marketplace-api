@@ -9,6 +9,7 @@ import { AuctionEntity, BidEntity } from '../entities';
 import { Connection, Repository } from 'typeorm';
 import { Auction, AuctionStatus, Bid } from '../types';
 import { ContractAsk } from '../../entity';
+import { BidInterface } from '../interface/bid.interface';
 
 
 @Injectable()
@@ -32,45 +33,41 @@ export class AuctionClosedService {
 
   @Interval(8000)
   async handleInterval() {
-    this.logger.debug('closed auction');
-
     const auctions: Array<Partial<Auction>> = await this.listStops();
 
-    await this.closeBids(auctions);
-
-    await this.closeAuctions(auctions);
-  }
-
-  private async closeBids(auctions: Array<Partial<Auction>>): Promise<void> {
     for(const auction of auctions) {
 
       const bidsAuction = await this.bidsService.bids(auction.id);
 
       const offer = await this.offerContract(auction);
 
-      await this.winnerByAuction(bidsAuction.winer(), offer);
+      if (!bidsAuction.minting()) {
 
-      await this.sendMoneyBidLose(bidsAuction.lose());
+         await this.closeBid(bidsAuction, offer);
+
+         await this.closeAuction(auction);
+      }
     }
   }
 
-  private async sendMoneyBidLose(listAddress: Array<Partial<Bid>>): Promise<void> {
+  private async closeBid(bid: BidInterface, offer:ContractAsk): Promise<void> {
 
-    this.logger.log(listAddress);
+      await this.sendMoneyBidLose(bid.lose());
 
-    for (const address of listAddress) {
+      await this.winnerByAuction(bid.winer(), offer);
+  }
 
+  private async sendMoneyBidLose(bids: Array<Partial<Bid>>): Promise<void> {
+    for (const bid of bids) {
       await this.trasferService.sendMoney(
-        address.bidderAddress,
-        address.amount
+        bid.bidderAddress,
+        bid.amount
       );
-
     }
 
   }
 
   private async winnerByAuction(winner: Partial<Bid>, offer: ContractAsk): Promise<void> {
-    this.logger.log(winner);
 
     await this.trasferService
       .trasferToken(
@@ -78,12 +75,15 @@ export class AuctionClosedService {
         parseInt(offer.token_id),
         winner.bidderAddress
       );
+
+    await this.trasferService.sendMoneyWinner(
+        offer.address_from,
+        winner.amount
+    );
   }
 
-  private async closeAuctions(auctions: Array<Partial<Auction>>): Promise<void> {
-    for(const auction of auctions) {
-      await this.auctionClose(auction);
-    }
+  private async closeAuction(auction: Partial<Auction>): Promise<void> {
+    await this.auctionClose(auction);
   }
 
   private async listStops(): Promise<Array<Partial<Auction>>> {
@@ -106,8 +106,6 @@ export class AuctionClosedService {
     });
 
     const offer = await this.offerContract(auction);
-
-    this.logger.log(`${offer.collection_id} ${offer.token_id}`);
 
     await this.broadcastService.sendAuctionClose(
       OfferContractAskDto.fromContractAsk(offer)
