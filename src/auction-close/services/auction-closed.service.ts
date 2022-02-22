@@ -126,7 +126,7 @@ export class AuctionClosedService {
       'auction.bids',
       BidEntity,
       'bid',
-      'bid.auction_id = auction.id and bid.is_withdrawn = false',
+      'bid.auction_id = auction.id and bid.amount > 0',
     )
     .getOne();
     return offerWithAuction;

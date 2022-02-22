@@ -13,3 +13,4 @@ export {
 } from './place-bid';
 
 export { CancelAuctionQuery, CancelAuctionQueryDto } from './cancel-auction'
+export { WithdrawBidQuery, WithdrawBidQueryDto } from './withdraw-bid'

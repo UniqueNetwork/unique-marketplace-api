@@ -1,6 +1,5 @@
 export enum BidStatus {
   created = 'created',
-  rejected = 'rejected',
   minting = 'minting',
   finished = 'finished',
   error = 'error',

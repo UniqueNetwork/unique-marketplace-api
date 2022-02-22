@@ -1,6 +1,6 @@
-import {BadRequestException, Inject, Logger} from '@nestjs/common';
-import { Connection, Repository } from 'typeorm';
-import { AuctionEntity, BidEntity } from '../entities';
+import { BadRequestException, Inject, Logger } from '@nestjs/common';
+import { Connection, Repository, Not } from 'typeorm';
+import { BidEntity } from '../entities';
 import { BlockchainBlock, ContractAsk } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
@@ -8,7 +8,9 @@ import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './extrinsic-submitter';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { ASK_STATUS } from '../../escrow/constants';
-import { privateKey } from "../../utils/blockchain/util";
+import { privateKey } from '../../utils/blockchain/util';
+import { DatabaseHelper } from './database-helper';
+import { BidStatus } from '../types';
 
 type AuctionCancelArgs = {
   collectionId: number;
@@ -51,26 +53,23 @@ export class AuctionCancellingService {
     const { collectionId, tokenId, ownerAddress } = args;
 
     return this.connection.transaction<ContractAsk>(async (transactionEntityManager) => {
-      const contractAsk = await transactionEntityManager.findOne(ContractAsk, {
-        where: { collection_id: collectionId, token_id: tokenId, status: ASK_STATUS.ACTIVE },
-        relations: ['auction'],
-      });
-
-      if (!contractAsk) throw new Error(`No offer for ${collectionId}/${tokenId}`);
-      if (!contractAsk.auction) throw new Error(`No auction for ${collectionId}/${tokenId}`);
+      const databaseHelper = new DatabaseHelper(transactionEntityManager);
+      const contractAsk = await databaseHelper.getContractWithAuction({ collectionId, tokenId });
 
       if (contractAsk.address_from !== ownerAddress) {
-        throw new Error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress} `);
+        throw new Error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`);
       }
 
-      const bidsCount = await transactionEntityManager.count(BidEntity, { where: { auctionId: contractAsk.auction.id } });
+      const bidsCount = await transactionEntityManager.count(BidEntity, {
+        where: { auctionId: contractAsk.auction.id, status: Not(BidStatus.error) },
+      });
 
       if (bidsCount !== 0) {
         throw new Error(`Unable to cancel auction, ${bidsCount} bids is placed already`);
       }
 
       contractAsk.status = ASK_STATUS.CANCELLED;
-      await transactionEntityManager.save(ContractAsk, contractAsk);
+      await transactionEntityManager.update(ContractAsk, contractAsk.id, { status: ASK_STATUS.CANCELLED });
 
       return contractAsk;
     });

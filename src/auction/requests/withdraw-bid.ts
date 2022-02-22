@@ -1,22 +1,34 @@
 import { Bid } from "../types";
-import { IsString } from "class-validator";
+import {IsInt, IsString, Min} from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
+import {Type} from "class-transformer";
 
-type OfferFields = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'>;
+export type WithdrawBidQuery =
+  Pick<OfferContractAskDto, 'collectionId' | 'tokenId'>
+  & Pick<Bid, 'amount'>
+  & { timestamp: number };
 
-type BidFields = Pick<Bid, 'bidderAddress'>;
-
-export type WithdrawBidRequest = OfferFields & BidFields;
-
-export class WithdrawBidRequestDto implements WithdrawBidRequest {
-  @ApiProperty()
+export class WithdrawBidQueryDto implements WithdrawBidQuery {
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   collectionId: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   tokenId: number;
 
-  @ApiProperty({ default: 'dummy_address', description: 'get from tx?' })
+  @ApiProperty({ default: 'dummy_address' })
   @IsString()
-  bidderAddress: string;
+  amount: string;
+
+  @ApiProperty({ example: 1645449222954 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  timestamp: number;
 }

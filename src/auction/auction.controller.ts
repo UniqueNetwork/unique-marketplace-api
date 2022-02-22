@@ -3,22 +3,28 @@ import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { BidPlacingService } from './services/bid-placing.service';
-import { CancelAuctionQueryDto, CreateAuctionRequestDto, PlaceBidRequestDto } from './requests';
+import {
+  CreateAuctionRequestDto,
+  CancelAuctionQueryDto,
+  PlaceBidRequestDto,
+  WithdrawBidQueryDto,
+} from './requests';
 import { OfferContractAskDto } from '../offers/dto/offer-dto';
-import { WithdrawBidRequestDto } from './requests/withdraw-bid';
 import { TxDecoder } from './services/tx-decoder';
 import { SignatureVerifier } from './services/signature-verifier';
 import { AuctionCancellingService } from './services/auction-cancelling.service';
+import { BidWithdrawService } from "./services/bid-withdraw.service";
 
 @ApiTags('Auction')
 @Controller('auction')
 export class AuctionController {
   constructor(
     private readonly auctionCreationService: AuctionCreationService,
+    private readonly auctionCancellingService: AuctionCancellingService,
     private readonly bidPlacingService: BidPlacingService,
+    private readonly bidWithdrawService: BidWithdrawService,
     private readonly txDecoder: TxDecoder,
     private readonly signatureVerifier: SignatureVerifier,
-    private readonly auctionCancellingService: AuctionCancellingService,
   ) {}
 
   @Post('create_auction')
@@ -44,18 +50,13 @@ export class AuctionController {
     });
   }
 
-  @Delete('withdraw_bid')
-  async withdrawBid(@Body() withdrawBidRequest: WithdrawBidRequestDto): Promise<void> {
-    return await this.bidPlacingService.withdrawBid(withdrawBidRequest);
-  }
-
   @Delete('cancel_auction')
   async cancelAuction(
     @Query() query: CancelAuctionQueryDto,
     @Headers('x-polkadot-signature') signature: string,
     @Headers('x-polkadot-signer') signerAddress: string,
     @Req() req: Request,
-  ): Promise<any> {
+  ): Promise<OfferContractAskDto> {
     AuctionController.checkRequestTimestamp(query.timestamp);
 
     const queryString = req.originalUrl.split('?')[1];
@@ -70,6 +71,31 @@ export class AuctionController {
       collectionId: query.collectionId,
       tokenId: query.tokenId,
       ownerAddress: signerAddress,
+    });
+  }
+
+  @Delete('withdraw_bid')
+  async withdrawBid(
+    @Query() query: WithdrawBidQueryDto,
+    @Headers('x-polkadot-signature') signature: string,
+    @Headers('x-polkadot-signer') signerAddress: string,
+    @Req() req: Request,
+  ): Promise<void> {
+    AuctionController.checkRequestTimestamp(query.timestamp);
+
+    const queryString = req.originalUrl.split('?')[1];
+
+    await this.signatureVerifier.verify({
+      payload: queryString,
+      signature,
+      signerAddress,
+    });
+
+    await this.bidWithdrawService.tryWithdrawBid({
+      amount: query.amount,
+      collectionId: query.collectionId,
+      tokenId: query.tokenId,
+      bidderAddress: signerAddress,
     });
   }
 

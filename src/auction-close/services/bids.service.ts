@@ -24,7 +24,7 @@ export class BidsService {
     .createQueryBuilder('bid')
     .select(['bid.bidderAddress', 'bid.amount', 'bid.status', 'bid.isWithdrawn'])
     .where('bid.auction_id = :auctionId', { auctionId })
-    .andWhere('bid.is_withdrawn = :isWithdrawn', { isWithdrawn: false })
+    .andWhere('bid.amount > 0')
     .orderBy('bid.amount')
     .getMany();
 

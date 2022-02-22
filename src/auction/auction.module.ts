@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { AuctionCancellingService } from './services/auction-cancelling.service';
 import { BidPlacingService } from './services/bid-placing.service';
+import { BidWithdrawService } from "./services/bid-withdraw.service";
 import { AuctionController } from './auction.controller';
 import { polkadotApiProviders } from './providers/polkadot-api-providers';
 import { ConfigModule } from "../config/module";
@@ -18,6 +19,7 @@ import { SignatureVerifier } from './services/signature-verifier';
     AuctionCreationService,
     AuctionCancellingService,
     BidPlacingService,
+    BidWithdrawService,
     TxDecoder,
     SignatureVerifier,
     ...polkadotApiProviders
