@@ -49,18 +49,6 @@ export class OffersService {
 
 
     try {
-      // offers = this.connection.manager
-      //   .createQueryBuilder(ContractAsk, 'offer')
-      //   .loadRelationCountAndMap('offer.trCount', 'offer.traits')
-      //   .innerJoinAndSelect(BlockchainBlock, 'blocks', 'blocks.network = offer.network and blocks.block_number = offer.block_number_ask')
-      //   .select('offer')
-      //   .addSelect('blocks.created_at', 'created_at')
-      //   .innerJoinAndMapOne(
-      //     'offer.block',
-      //     BlockchainBlock,
-      //     'block',
-      //     'offer.network = block.network and block.block_number = offer.block_number_ask',
-      //   )
 
       offers = await this.contractAskRepository.createQueryBuilder('offer')
         .select('offer')
@@ -70,11 +58,9 @@ export class OffersService {
              'block',
              'offer.network = block.network and block.block_number = offer.block_number_ask',
            )
-
       offers = this.filter(offers, offersFilter);
       offers = this.applySort(offers, sort);
       paginationResult = await paginate(offers, pagination);
-      console.dir(paginationResult,{depth: 4});
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -214,7 +200,6 @@ export class OffersService {
     let matchedText = this.searchIndexRepository
       .createQueryBuilder('searchIndex').andWhere(`searchIndex.is_trait = true`);
 
-    console.log(text);
     !nullOrWhitespace(text) ?  matchedText.andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) : matchedText
 
     !nullOrWhitespace(locale) ? matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale, }) : matchedText;
