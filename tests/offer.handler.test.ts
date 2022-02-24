@@ -98,12 +98,12 @@ describe('Offers service', () => {
         });
 
         // Only one token has that trait
-        it('/offers (GET, Only one token has that trait)', async () => {
+        it('/offers (GET, Only one token has that trait search: "Asian Eyes")', async () => {
             //
             let response = await searchByFilterOffers(
                 app,
                 {},
-                { searchText: 'Asian Eyes', collectionId: [], traitsCount: [] },
+                { searchText: 'Asian Eyes', collectionId: [], traitsCount: [1] },
                 { sort: [{ order: 1, column: '' }] },
             );
             await expect(response.statusCode).toBe(200);
@@ -173,7 +173,7 @@ describe('Offers service', () => {
             );
             await expect(response.statusCode).toBe(200);
             // console.dir(response.body, { depth: 4 });
-            await expect(response.body.items.length).toBe(3);
+            await expect(response.body.items.length).toBe(1);
         });
 
         // Find two items on one page

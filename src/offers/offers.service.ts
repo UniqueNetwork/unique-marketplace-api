@@ -197,8 +197,11 @@ export class OffersService {
    */
   private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
 
-    let matchedText = this.searchIndexRepository
-      .createQueryBuilder('searchIndex').andWhere(`searchIndex.is_trait = true`);
+    let matchedText = this.searchIndexRepository.createQueryBuilder('searchIndex')
+
+    if ((traitsCount ?? []).length !== 0) {
+          matchedText.andWhere(`searchIndex.is_trait = true`);
+    }
 
     if(!nullOrWhitespace(text)) { matchedText.andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) }
 
