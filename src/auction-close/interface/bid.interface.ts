@@ -1,4 +1,4 @@
-import { Bid } from "../types";
+import { Bid } from "../../auction/types";
 
 export interface BidInterface {
   bids: Array<Partial<Bid>>,

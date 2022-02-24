@@ -1,13 +1,12 @@
 import { TransferService } from './transfer.service';
-import { OfferContractAskDto } from './../../offers/dto/offer-dto';
+import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { BidsService } from './bids.service';
-import { ApiPromise } from '@polkadot/api';
-import { BroadcastService } from './../../broadcast/services/broadcast.service';
+import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import { AuctionEntity, BidEntity } from '../entities';
+import { AuctionEntity, BidEntity } from '../../auction/entities';
 import { Connection, Repository } from 'typeorm';
-import { Auction, AuctionStatus, Bid } from '../types';
+import { Auction, AuctionStatus, Bid } from '../../auction/types';
 import { ContractAsk } from '../../entity';
 import { BidInterface } from '../interface/bid.interface';
 
@@ -22,7 +21,6 @@ export class AuctionClosedService {
 
   constructor(
     @Inject('DATABASE_CONNECTION') connection: Connection,
-    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     private broadcastService: BroadcastService,
     private bidsService: BidsService,
     private trasferService: TransferService,

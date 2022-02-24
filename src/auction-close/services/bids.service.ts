@@ -1,7 +1,7 @@
 import { Repository, Connection } from 'typeorm';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { BidEntity } from '../entities';
-import { Bid, BidStatus } from '../types';
+import { BidEntity } from '../../auction/entities';
+import { Bid, BidStatus } from '../../auction/types';
 import { BidInterface } from '../interface/bid.interface';
 
 @Injectable()
