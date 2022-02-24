@@ -128,7 +128,7 @@ export class BidPlacingService {
     return this.connection.transaction<[ContractAsk, BidEntity]>(async (transactionEntityManager) => {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
 
-      const contractAsk = await databaseHelper.getContractWithAuction({ collectionId, tokenId });
+      const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
       const priceStep = BigInt(contractAsk.auction.priceStep);
       const currentPendingPrice = BigInt(contractAsk.price);
       const amount = BigInt(placeBidArgs.amount);

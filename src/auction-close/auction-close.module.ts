@@ -4,7 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from './../config/module';
 import { Module } from '@nestjs/common';
 import { TransferService } from './services/transfer.service';
-import { AuctionModule } from 'src/auction/auction.module';
+import { AuctionModule } from '../auction/auction.module';
 
 @Module({
   imports:[

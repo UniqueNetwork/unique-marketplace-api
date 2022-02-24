@@ -91,7 +91,7 @@ export class AuctionController {
       signerAddress,
     });
 
-    await this.bidWithdrawService.tryWithdrawBid({
+    await this.bidWithdrawService.withdrawBidByBidder({
       amount: query.amount,
       collectionId: query.collectionId,
       tokenId: query.tokenId,

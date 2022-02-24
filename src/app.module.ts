@@ -33,9 +33,10 @@ import { AuctionCloseModule } from './auction-close/auction-close.module';
     CommandModule,
     EscrowModule,
     TerminusModule,
-    AuctionModule,
+    AuctionModule.forApiNode(),
     BroadcastModule,
-    AuctionCloseModule,
+    // todo ???
+    // AuctionCloseModule
   ],
   controllers: [OffersController, TradesController, SettingsController, HealthController, MetricsController],
   providers: [OffersService, TradesService, PlaygroundCommand, SettingsService, HealthService, MetricsService, PrometheusService],

@@ -61,6 +61,7 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
     auction: {
       seed: marketSeed,
       commission: 10,
+      isMainNode: false,
     },
   };
 

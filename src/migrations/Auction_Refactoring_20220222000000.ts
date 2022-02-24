@@ -1,5 +1,5 @@
 import { MigrationInterface, QueryRunner, TableUnique, TableIndex } from 'typeorm';
-import { BidStatus} from "../auction/types";
+import {AuctionStatus, BidStatus} from "../auction/types";
 
 export class Auction_Refactoring_20220222000000 implements MigrationInterface {
   name = 'Auction_Refactoring_20220222000000';
@@ -21,6 +21,9 @@ export class Auction_Refactoring_20220222000000 implements MigrationInterface {
     );
 
     await queryRunner.query(`ALTER TYPE bid_status_enum ADD VALUE IF NOT EXISTS '${BidStatus.finished}'`);
+
+    await queryRunner.query(`ALTER TYPE auction_status_enum ADD VALUE IF NOT EXISTS '${AuctionStatus.stopped}'`);
+    await queryRunner.query(`ALTER TYPE auction_status_enum ADD VALUE IF NOT EXISTS '${AuctionStatus.withdrawing}'`);
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {

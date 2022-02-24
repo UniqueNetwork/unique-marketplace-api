@@ -42,7 +42,7 @@ export class ExtrinsicSubmitter {
               try {
                 const block = await api.rpc.chain.getBlock(status.asFinalized);
 
-                resolve(block as any);
+                resolve(block);
               } catch (error) {
                 console.error(error);
               }

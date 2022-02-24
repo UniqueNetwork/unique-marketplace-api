@@ -38,7 +38,7 @@ export class BidWithdrawService {
     this.contractAskRepository = connection.getRepository(ContractAsk);
   }
 
-  async tryWithdrawBid(args: BidWithdrawArgs): Promise<void> {
+  async withdrawBidByBidder(args: BidWithdrawArgs): Promise<void> {
     let withdrawingBid: BidEntity;
 
     try {
@@ -49,15 +49,31 @@ export class BidWithdrawService {
       throw new BadRequestException(error.message);
     } finally {
       if (withdrawingBid) {
-        await this.transferBalance(args, withdrawingBid);
+        await this.makeWithdrawalTransfer(withdrawingBid);
       }
     }
   }
 
-  private async transferBalance(args: BidWithdrawArgs, withdrawingBid: BidEntity): Promise<void> {
+  async withdrawByMarket(auction: AuctionEntity, bidderAddress: string, amount: bigint): Promise<void> {
+    const withdrawingBid = this.connection.manager.create(BidEntity, {
+      id: uuid(),
+      status: BidStatus.minting,
+      bidderAddress,
+      amount: (-1n * amount).toString(),
+      auctionId: auction.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await this.connection.manager.save(withdrawingBid);
+
+    await this.makeWithdrawalTransfer(withdrawingBid);
+  }
+
+  async makeWithdrawalTransfer(withdrawingBid: BidEntity): Promise<void> {
     const auctionKeyring = privateKey(this.config.auction.seed);
 
-    const tx = await this.kusamaApi.tx.balances.transfer(args.bidderAddress, args.amount).signAsync(auctionKeyring);
+    const tx = await this.kusamaApi.tx.balances.transfer(withdrawingBid.bidderAddress, withdrawingBid.amount).signAsync(auctionKeyring);
 
     await this.extrinsicSubmitter
       .submit(this.kusamaApi, tx)
@@ -69,9 +85,8 @@ export class BidWithdrawService {
       })
       .catch(async (error) => {
         const fullError = {
-          method: 'transferBalance',
+          method: 'makeWithdrawalTransfer',
           message: error.message,
-          args,
           withdrawingBid,
         };
 
@@ -87,7 +102,7 @@ export class BidWithdrawService {
     return this.connection.transaction<BidEntity>(async (transactionEntityManager) => {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
 
-      const contractAsk = await databaseHelper.getContractWithAuction({ collectionId, tokenId });
+      const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
       const auctionId = contractAsk.auction.id;
       const amount = BigInt(args.amount);
 

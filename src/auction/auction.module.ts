@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import {DynamicModule, Module, ModuleMetadata, Provider} from '@nestjs/common';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { AuctionCancellingService } from './services/auction-cancelling.service';
 import { BidPlacingService } from './services/bid-placing.service';
@@ -9,8 +9,10 @@ import { ConfigModule } from "../config/module";
 import { ExtrinsicSubmitter } from "./services/extrinsic-submitter";
 import { TxDecoder } from "./services/tx-decoder";
 import { SignatureVerifier } from './services/signature-verifier';
+import {AuctionClosingScheduler} from "./services/auction-closing.scheduler";
 
-@Module({
+
+const defaultMetadata: ModuleMetadata = {
   imports: [
     ConfigModule,
   ],
@@ -24,7 +26,23 @@ import { SignatureVerifier } from './services/signature-verifier';
     SignatureVerifier,
     ...polkadotApiProviders
   ],
-  controllers: [AuctionController],
   exports: ['KUSAMA_API', 'UNIQUE_API'],
-})
-export class AuctionModule {}
+};
+
+export class AuctionModule {
+  static forApiNode(): DynamicModule {
+    return {
+      module: AuctionModule,
+      ...defaultMetadata,
+      controllers: [AuctionController],
+    }
+  }
+
+  static forExcrowNode(): DynamicModule {
+    return {
+      module: AuctionModule,
+      ...defaultMetadata,
+      providers: [...defaultMetadata.providers, AuctionClosingScheduler],
+    }
+  }
+}

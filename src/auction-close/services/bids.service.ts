@@ -29,11 +29,13 @@ export class BidsService {
     .getMany();
 
     function winer(): Partial<Bid> | null {
-      return bids.find(bid => bid.status === BidStatus.winning);
+      return null;
+      // return bids.find(bid => bid.status === BidStatus.winning);
     }
 
     function lose(): Array<Partial<Bid>>  {
-      return bids.filter(bid => bid.status === BidStatus.outbid) || [];
+      return [];
+      // return bids.filter(bid => bid.status === BidStatus.outbid) || [];
     }
 
     function minting(): Partial<Bid> | null {

@@ -9,6 +9,8 @@ import { ASK_STATUS } from '../../src/escrow/constants';
 import { v4 as uuid } from 'uuid';
 import { AuctionStatus, BidStatus } from '../../src/auction/types';
 import { DateHelper } from '../../src/utils/date-helper';
+import { OfferContractAskDto} from "../../src/offers/dto/offer-dto";
+import {DatabaseHelper} from "../../src/auction/services/database-helper";
 
 describe('Bid placing method', () => {
   const collectionId = '222';
@@ -57,7 +59,7 @@ describe('Bid placing method', () => {
       contractAskId: offerId,
       startPrice: '100',
       priceStep: '10',
-      status: AuctionStatus.active,
+      status: AuctionStatus.stopped,
       stopAt: DateHelper.addDays(20),
     });
 
@@ -66,7 +68,7 @@ describe('Bid placing method', () => {
         auctionId,
         amount: '20',
         bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        status: BidStatus.finished,
+        status: BidStatus.minting,
       },
       {
         auctionId,
@@ -100,45 +102,72 @@ describe('Bid placing method', () => {
   });
 
   it('fetching multiple bids', async () => {
-    const offerByCollectionAndToken = await request(testEntities.app.getHttpServer()).get(`/offer/${collectionId}/${tokenId}`);
+    const connection = testEntities.app.get<Connection>('DATABASE_CONNECTION');
 
-    expect(offerByCollectionAndToken.body).toBeDefined();
-    expect(offerByCollectionAndToken.body).toEqual({});
-    expect(offerByCollectionAndToken.body.auction).toBeDefined();
-    expect(offerByCollectionAndToken.body.auction.bids).toBeDefined();
-    expect(offerByCollectionAndToken.body.auction.bids.length).toBe(3);
+  //   select id from auctions where status = 'stopped' and id not in (
+  //     select distinct auction_id from bids where status = 'minting'
+  // );
+
+    const mintingBids = connection.manager
+      .createQueryBuilder(BidEntity, 'bid')
+      .select('auction_id')
+      .distinct()
+      .where('bid.status = :bidStatus');
+
+    const closingAuctionsWithoutMintingBids = await connection.manager
+      .createQueryBuilder(AuctionEntity, 'auction')
+      .where('auction.status = :auctionStatus')
+      .andWhere(`auction.id NOT IN (${mintingBids.getSql()})`)
+      .setParameters({ auctionStatus: AuctionStatus.stopped, bidStatus: BidStatus.minting })
+      .getMany();
+
+    // const withdrawingIds = await connection.manager
+    //   .createQueryBuilder(AuctionEntity, 'auction')
+    //   .update({ status: AuctionStatus.withdrawing })
+    //   .where(`id in (${closingAuctionsWithoutMintingBids})`)
+    //   .returning('id')
+    //   .execute();
+
+    expect(closingAuctionsWithoutMintingBids).toEqual('');
+    // const offerByCollectionAndToken = await request(testEntities.app.getHttpServer()).get(`/offer/${collectionId}/${tokenId}`);
+    //
+    // expect(offerByCollectionAndToken.body).toBeDefined();
+    // expect(offerByCollectionAndToken.body).toEqual({});
+    // expect(offerByCollectionAndToken.body.auction).toBeDefined();
+    // expect(offerByCollectionAndToken.body.auction.bids).toBeDefined();
+    // expect(offerByCollectionAndToken.body.auction.bids.length).toBe(3);
   }, 30_000);
-
-  it('bid placing', async () => {
-    const getCurrentOffer = async (): Promise<OfferContractAskDto> => {
-      return request(testEntities.app.getHttpServer())
-        .get(`/offer/${collectionId}/${tokenId}`)
-        .then((response) => response.body as OfferContractAskDto);
-    };
-
-    let offer = await getCurrentOffer();
-
-    const { buyer, anotherBuyer } = testEntities.actors;
-    const amount = new BN(offer.price).sub(new BN('100')).sub(new BN('1')).toString();
-
-    let placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount, buyer.keyring);
-    expect(placedBidResponse.status).toEqual(400);
-
-    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, offer.price, buyer.keyring);
-    expect(placedBidResponse.status).toEqual(201);
-
-    offer = await getCurrentOffer();
-
-    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, offer.price, anotherBuyer.keyring);
-    expect(placedBidResponse.status).toEqual(400);
-
-    const anotherBuyerPrice = new BN(offer.price).add(new BN(offer.auction.priceStep)).toString();
-    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, anotherBuyerPrice, anotherBuyer.keyring);
-    console.log(placedBidResponse.body);
-    expect(placedBidResponse.status).toEqual(201);
-
-    offer = await getCurrentOffer();
-
-    expect(offer.price).toEqual(anotherBuyerPrice);
-  }, 30_000);
+  //
+  // it('bid placing', async () => {
+  //   const getCurrentOffer = async (): Promise<OfferContractAskDto> => {
+  //     return request(testEntities.app.getHttpServer())
+  //       .get(`/offer/${collectionId}/${tokenId}`)
+  //       .then((response) => response.body as OfferContractAskDto);
+  //   };
+  //
+  //   let offer = await getCurrentOffer();
+  //
+  //   const { buyer, anotherBuyer } = testEntities.actors;
+  //   const amount = (BigInt(offer.price) - 100n - 1n).toString();
+  //
+  //   let placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount, buyer.keyring);
+  //   expect(placedBidResponse.status).toEqual(400);
+  //
+  //   placedBidResponse = await placeBid(testEntities, collectionId, tokenId, offer.price, buyer.keyring);
+  //   expect(placedBidResponse.status).toEqual(201);
+  //
+  //   offer = await getCurrentOffer();
+  //
+  //   placedBidResponse = await placeBid(testEntities, collectionId, tokenId, offer.price, anotherBuyer.keyring);
+  //   expect(placedBidResponse.status).toEqual(400);
+  //
+  //   const anotherBuyerPrice = (BigInt(offer.price) + BigInt(offer.auction.priceStep)).toString();
+  //   placedBidResponse = await placeBid(testEntities, collectionId, tokenId, anotherBuyerPrice, anotherBuyer.keyring);
+  //   console.log(placedBidResponse.body);
+  //   expect(placedBidResponse.status).toEqual(201);
+  //
+  //   offer = await getCurrentOffer();
+  //
+  //   expect(offer.price).toEqual(anotherBuyerPrice);
+  // }, 30_000);
 });
