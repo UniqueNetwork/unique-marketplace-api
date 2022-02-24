@@ -200,9 +200,9 @@ export class OffersService {
     let matchedText = this.searchIndexRepository
       .createQueryBuilder('searchIndex').andWhere(`searchIndex.is_trait = true`);
 
-    matchedText = !nullOrWhitespace(text) ?  matchedText.andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) : matchedText
+    if(!nullOrWhitespace(text)) { matchedText.andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) }
 
-    matchedText = !nullOrWhitespace(locale) ? matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale, }) : matchedText;
+    if(!nullOrWhitespace(locale) ){ matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale, }) }
 
 
     const groupedMatches = matchedText
