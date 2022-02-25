@@ -111,7 +111,7 @@ export class OffersService {
       let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'offer' : 'block';
       query = query.addOrderBy(`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
     }
-
+    query = query.addOrderBy('offer.block_number_ask', 'DESC')
     return query;
   }
   /**
@@ -260,7 +260,7 @@ export class OffersService {
     query = this.filterBySeller(query, offersFilter.seller);
     query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
 
-    return query.andWhere(`offer.status = :status`, { status: 'active' }).orderBy('offer.block_number_ask',"DESC");
+    return query.andWhere(`offer.status = :status`, { status: 'active' });
   }
 
   public get isConnected(): boolean {
