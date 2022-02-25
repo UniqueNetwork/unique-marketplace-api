@@ -1,7 +1,7 @@
 import {EntityManager, MoreThan, MoreThanOrEqual, SelectQueryBuilder} from 'typeorm';
-import { AuctionEntity, BidEntity, ContractAsk } from '../../entity';
-import { ASK_STATUS } from '../../escrow/constants';
-import { AuctionStatus, BidStatus } from '../types';
+import { AuctionEntity, BidEntity, ContractAsk } from '../../../entity';
+import { ASK_STATUS } from '../../../escrow/constants';
+import { AuctionStatus, BidStatus } from '../../types';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
 
 type AggregatedBid = { bidderAddress: string; totalAmount: bigint };

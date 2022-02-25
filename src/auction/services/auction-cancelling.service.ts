@@ -5,12 +5,12 @@ import { BlockchainBlock, ContractAsk } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
-import { ExtrinsicSubmitter } from './extrinsic-submitter';
+import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { ASK_STATUS } from '../../escrow/constants';
 import { privateKey } from '../../utils/blockchain/util';
-import { DatabaseHelper } from './database-helper';
-import { AuctionStatus, BidStatus } from '../types';
+import { DatabaseHelper } from './helpers/database-helper';
+import { BidStatus } from '../types';
 
 type AuctionCancelArgs = {
   collectionId: number;
@@ -82,11 +82,11 @@ export class AuctionCancellingService {
 
       const tx = await this.uniqueApi.tx.unique.transfer(address_from, collection_id, token_id, 1).signAsync(auctionKeyring);
 
-      const signedBlock = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
+      const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 
       const block = this.blockchainBlockRepository.create({
         network: this.config.blockchain.unique.network,
-        block_number: signedBlock?.block.header.number.toString() || 'no_number',
+        block_number: blockNumber.toString(),
         created_at: new Date(),
       });
 

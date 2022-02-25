@@ -1,13 +1,13 @@
 import { BadRequestException, Inject, Injectable, Logger, OnModuleInit, ValidationPipe } from '@nestjs/common';
 
 import { ApiPromise } from '@polkadot/api';
-import { BalanceTransferTxInfo, BalanceTransferTxInfoDto, TokenTransferTxInfo, TokenTransferTxInfoDto } from '../requests';
-import { TxArgs, TxInfo } from '../types';
-import { convertAddress, normalizeAccountId, seedToAddress } from '../../utils/blockchain/util';
+import { BalanceTransferTxInfo, BalanceTransferTxInfoDto, TokenTransferTxInfo, TokenTransferTxInfoDto } from '../../requests';
+import { TxArgs, TxInfo } from '../../types';
+import { convertAddress, normalizeAccountId, seedToAddress } from '../../../utils/blockchain/util';
 import { plainToInstance, ClassConstructor } from 'class-transformer';
 import { validate } from 'class-validator';
 import { ValidationError } from '@nestjs/common/interfaces/external/validation-error.interface';
-import { MarketConfig } from '../../config/market-config';
+import { MarketConfig } from '../../../config/market-config';
 
 @Injectable()
 export class TxDecoder implements OnModuleInit {
@@ -62,7 +62,7 @@ export class TxDecoder implements OnModuleInit {
     }
   }
 
-  private async transformAndValidate<T extends object>(classConstructor: ClassConstructor<T>, txInfo: TxInfo): Promise<T> {
+  private async transformAndValidate<T extends Record<string, any>>(classConstructor: ClassConstructor<T>, txInfo: TxInfo): Promise<T> {
     const txInfoDto = plainToInstance(classConstructor, txInfo);
 
     const errors = await validate(txInfoDto);

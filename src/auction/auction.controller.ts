@@ -10,8 +10,8 @@ import {
   WithdrawBidQueryDto,
 } from './requests';
 import { OfferContractAskDto } from '../offers/dto/offer-dto';
-import { TxDecoder } from './services/tx-decoder';
-import { SignatureVerifier } from './services/signature-verifier';
+import { TxDecoder } from './services/helpers/tx-decoder';
+import { SignatureVerifier } from './services/helpers/signature-verifier';
 import { AuctionCancellingService } from './services/auction-cancelling.service';
 import { BidWithdrawService } from "./services/bid-withdraw.service";
 

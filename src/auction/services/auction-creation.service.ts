@@ -9,7 +9,7 @@ import { ASK_STATUS } from "../../escrow/constants";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 import { ApiPromise } from "@polkadot/api";
 import { DateHelper } from "../../utils/date-helper";
-import { ExtrinsicSubmitter } from "./extrinsic-submitter";
+import { ExtrinsicSubmitter } from "./helpers/extrinsic-submitter";
 import { MarketConfig } from "../../config/market-config";
 
 type CreateAuctionArgs = {
@@ -88,11 +88,11 @@ export class AuctionCreationService {
 
   private async sendTransferExtrinsic(tx: string): Promise<BlockchainBlock> {
     try {
-      const signedBlock = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
+      const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 
       return this.blockchainBlockRepository.create({
         network: this.config.blockchain.unique.network,
-        block_number: signedBlock?.block.header.number.toString() || 'no_number',
+        block_number: blockNumber.toString(),
         created_at: new Date(),
       });
     } catch (error) {

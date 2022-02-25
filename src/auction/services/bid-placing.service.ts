@@ -1,6 +1,5 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
-import { SignedBlock } from '@polkadot/types/interfaces';
 import { ApiPromise } from '@polkadot/api';
 import { v4 as uuid } from 'uuid';
 
@@ -9,9 +8,9 @@ import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { BlockchainBlock, ContractAsk } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
-import { ExtrinsicSubmitter } from './extrinsic-submitter';
+import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { BidStatus } from '../types';
-import { DatabaseHelper } from './database-helper';
+import { DatabaseHelper } from './helpers/database-helper';
 
 type PlaceBidArgs = {
   collectionId: number;
@@ -65,7 +64,7 @@ export class BidPlacingService {
       if (contractAsk && nextUserBid) {
         await this.extrinsicSubmitter
           .submit(this.kusamaApi, tx)
-          .then((signedBlock) => this.handleBidTxSuccess(placeBidArgs, contractAsk, nextUserBid, signedBlock))
+          .then(({ blockNumber }) => this.handleBidTxSuccess(placeBidArgs, contractAsk, nextUserBid, blockNumber))
           .catch(() => this.handleBidTxFail(placeBidArgs, contractAsk, nextUserBid));
       }
     }
@@ -75,12 +74,12 @@ export class BidPlacingService {
     placeBidArgs: PlaceBidArgs,
     oldContractAsk: ContractAsk,
     userBid: BidEntity,
-    signedBlock?: SignedBlock,
+    blockNumber: bigint,
   ): Promise<void> {
     try {
       await this.bidRepository.update(userBid.id, {
         status: BidStatus.finished,
-        blockNumber: signedBlock?.block.header.number.toString() || '',
+        blockNumber: blockNumber.toString(),
       });
     } catch (error) {
       const fullError = {

@@ -5,10 +5,10 @@ import { ContractAsk } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
-import { ExtrinsicSubmitter } from './extrinsic-submitter';
+import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { BidStatus } from '../types';
 import { privateKey } from '../../utils/blockchain/util';
-import { DatabaseHelper } from './database-helper';
+import { DatabaseHelper } from './helpers/database-helper';
 import { v4 as uuid } from 'uuid';
 
 type BidWithdrawArgs = {
@@ -73,14 +73,14 @@ export class BidWithdrawService {
   async makeWithdrawalTransfer(withdrawingBid: BidEntity): Promise<void> {
     const auctionKeyring = privateKey(this.config.auction.seed);
 
-    const tx = await this.kusamaApi.tx.balances.transfer(withdrawingBid.bidderAddress, withdrawingBid.amount).signAsync(auctionKeyring);
+    const tx = await this.kusamaApi.tx.balances.transferKeepAlive(withdrawingBid.bidderAddress, withdrawingBid.amount).signAsync(auctionKeyring);
 
     await this.extrinsicSubmitter
       .submit(this.kusamaApi, tx)
-      .then(async (signedBlock) => {
+      .then(async ({ blockNumber }) => {
         await this.bidRepository.update(withdrawingBid.id, {
           status: BidStatus.finished,
-          blockNumber: signedBlock.block.header.number.toString() || '',
+          blockNumber: blockNumber.toString(),
         });
       })
       .catch(async (error) => {

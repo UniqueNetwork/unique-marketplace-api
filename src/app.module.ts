@@ -19,7 +19,6 @@ import { HealthController, HealthService } from './utils/health';
 import { MetricsController, MetricsService } from './utils/metrics';
 import { AuctionModule } from "./auction/auction.module";
 import { BroadcastModule } from "./broadcast/broadcast.module";
-import { AuctionCloseModule } from './auction-close/auction-close.module';
 
 @Module({
   imports: [
@@ -33,10 +32,8 @@ import { AuctionCloseModule } from './auction-close/auction-close.module';
     CommandModule,
     EscrowModule,
     TerminusModule,
-    AuctionModule.forApiNode(),
+    AuctionModule,
     BroadcastModule,
-    // todo ???
-    // AuctionCloseModule
   ],
   controllers: [OffersController, TradesController, SettingsController, HealthController, MetricsController],
   providers: [OffersService, TradesService, PlaygroundCommand, SettingsService, HealthService, MetricsService, PrometheusService],
