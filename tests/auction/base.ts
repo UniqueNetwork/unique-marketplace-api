@@ -5,7 +5,7 @@ import { waitReady } from '@polkadot/wasm-crypto';
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 
-import { ExtrinsicSubmitter } from '../../src/auction/services/extrinsic-submitter';
+import { ExtrinsicSubmitter } from '../../src/auction/services/helpers/extrinsic-submitter';
 import * as util from '../../src/utils/blockchain/util';
 import { initApp, runMigrations } from '../data';
 import { CreateAuctionRequest, PlaceBidRequest } from '../../src/auction/requests';

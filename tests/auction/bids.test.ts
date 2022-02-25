@@ -10,7 +10,7 @@ import { v4 as uuid } from 'uuid';
 import { AuctionStatus, BidStatus } from '../../src/auction/types';
 import { DateHelper } from '../../src/utils/date-helper';
 import { OfferContractAskDto} from "../../src/offers/dto/offer-dto";
-import {DatabaseHelper} from "../../src/auction/services/database-helper";
+import {DatabaseHelper} from "../../src/auction/services/helpers/database-helper";
 
 describe('Bid placing method', () => {
   const collectionId = '222';

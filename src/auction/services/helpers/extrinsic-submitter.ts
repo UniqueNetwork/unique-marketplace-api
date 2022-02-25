@@ -1,4 +1,4 @@
-import {Injectable, Logger} from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ApiPromise } from "@polkadot/api";
 import { Hash } from "@polkadot/types/interfaces";
 import { SubmittableExtrinsic } from "@polkadot/api/types";
@@ -14,8 +14,6 @@ export class ExtrinsicSubmitter {
   private readonly logger = new Logger(ExtrinsicSubmitter.name);
 
   async submit(api: ApiPromise, tx: string | SubmittableExtrinsic<any>): Promise<SubmitResult> {
-    this.logger.debug('before submitTransferExtrinsic');
-
     const extrinsic = typeof tx === 'string' ? api.createType('Extrinsic', tx) : tx;
 
     return new Promise(async (resolve, reject) => {
@@ -35,7 +33,7 @@ export class ExtrinsicSubmitter {
               this.logger.error(status.toJSON());
               unsubscribe();
 
-              reject(status.toJSON());
+              reject(new Error(`Failed with status ${status.type}`));
               break;
             }
             case 'Finalized': {
@@ -43,18 +41,17 @@ export class ExtrinsicSubmitter {
               unsubscribe();
 
               try {
-                const submitResult = await ExtrinsicSubmitter.getIsSucceed(api, extrinsic.hash, status.asFinalized);
+                const txResult = await ExtrinsicSubmitter.checkIsSucceed(api, extrinsic.hash, status.asFinalized);
 
-                if (submitResult.isSucceed) {
-                  resolve(submitResult);
+                if (txResult.isSucceed) {
+                  resolve(txResult);
                 } else {
-                  reject(`Failed at block # ${submitResult.blockNumber}, hash ${status.asFinalized.toHex()}`);
+                  reject(new Error(`Failed at block # ${txResult.blockNumber} (${status.asFinalized.toHex()})`));
                 }
               } catch (error) {
-                console.error(error);
+                reject(new Error(`unexpected error: ${error.toString()}`));
               }
 
-              resolve(undefined);
               break;
             }
             default: {
@@ -71,7 +68,7 @@ export class ExtrinsicSubmitter {
     });
   }
 
-  private static async getIsSucceed(api: ApiPromise, extrinsicHash: Hash, blockHash: Hash): Promise<SubmitResult> {
+  private static async checkIsSucceed(api: ApiPromise, extrinsicHash: Hash, blockHash: Hash): Promise<SubmitResult> {
     const [signedBlock, eventsAtBlock] = await Promise.all([
       api.rpc.chain.getBlock(blockHash),
       api.query.system.events.at(blockHash),
