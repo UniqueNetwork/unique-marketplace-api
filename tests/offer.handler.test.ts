@@ -172,9 +172,29 @@ describe('Offers service', () => {
                 },
             );
             await expect(response.statusCode).toBe(200);
-            // console.dir(response.body, { depth: 4 });
             await expect(response.body.items.length).toBe(1);
         });
+
+        // Find collection 23
+        it('/offers (GET, sort Price DESC)', async () => {
+          let response = await searchByFilterOffers(
+            app,
+            {},
+            { collectionId: [], traitsCount: [] },
+            {
+              sort: [
+                {
+                  order: 1,
+                  column: 'Price',
+                },
+              ],
+            },
+          );
+          await expect(response.statusCode).toBe(200);
+          await expect(response.body.items.length).toBe(2);
+          await expect(response.body.items[0].price).toBe('660000000000');
+        });
+
 
         // Find two items on one page
         it('/offers?page=1&pageSize=2 (GET, Find two items on one page)', async () => {

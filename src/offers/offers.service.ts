@@ -107,11 +107,9 @@ export class OffersService {
       params.push({ ...param, column });
     }
 
-    let first = true;
     for (let param of params) {
       let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'offer' : 'block';
-      query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
-      first = false;
+      query = query.addOrderBy(`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
     }
 
     return query;
@@ -262,8 +260,7 @@ export class OffersService {
     query = this.filterBySeller(query, offersFilter.seller);
     query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
 
-    const qr = query.andWhere(`offer.status = :status`, { status: 'active' });
-    return qr;
+    return query.andWhere(`offer.status = :status`, { status: 'active' }).orderBy('offer,block_number_ask',"DESC");
   }
 
   public get isConnected(): boolean {
