@@ -260,7 +260,7 @@ export class OffersService {
     query = this.filterBySeller(query, offersFilter.seller);
     query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
 
-    return query.andWhere(`offer.status = :status`, { status: 'active' }).orderBy('offer,block_number_ask',"DESC");
+    return query.andWhere(`offer.status = :status`, { status: 'active' }).orderBy('offer.block_number_ask',"DESC");
   }
 
   public get isConnected(): boolean {
