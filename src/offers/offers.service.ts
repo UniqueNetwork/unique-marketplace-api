@@ -201,7 +201,7 @@ export class OffersService {
       matchedText = matchedText.andWhere(`searchIndex.is_trait = true`);
     }
 
-    if(!nullOrWhitespace(text)) { matchedText = matchedText.andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) }
+    if(!nullOrWhitespace(text)) { matchedText = matchedText.andWhere(`searchIndex.value ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) }
 
     if(!nullOrWhitespace(locale) ){matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale, }) }
 
