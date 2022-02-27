@@ -74,8 +74,7 @@ describe('Auction creation method', () => {
     expect(offerWithBids.auction.bids).toEqual([
       {
         bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        amount: '0',
-        pendingAmount: '1100',
+        amount: '1100',
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       },
@@ -94,6 +93,7 @@ describe('Auction creation method', () => {
           },
         ],
       },
+      price: '1100',
     });
 
     await untilClientReceivedBid;

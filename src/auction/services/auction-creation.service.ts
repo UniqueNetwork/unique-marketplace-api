@@ -71,7 +71,7 @@ export class AuctionCreationService {
       currency: '',
       auction: {
         stopAt: DateHelper.addDays(days),
-        status: AuctionStatus.created,
+        status: AuctionStatus.active,
         startPrice,
         priceStep,
       },

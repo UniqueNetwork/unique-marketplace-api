@@ -1,4 +1,4 @@
-import {EntityManager, MoreThan, MoreThanOrEqual, SelectQueryBuilder} from 'typeorm';
+import { EntityManager, MoreThan, MoreThanOrEqual, SelectQueryBuilder, Any } from 'typeorm';
 import { AuctionEntity, BidEntity, ContractAsk } from '../../../entity';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { AuctionStatus, BidStatus } from '../../types';
@@ -100,15 +100,15 @@ export class DatabaseHelper {
     const query = this.entityManager
       .createQueryBuilder<AggregatedBidDb>(BidEntity, 'auction_bid')
       .select('SUM(auction_bid.amount)', 'totalAmount')
-      .select('auction_bid.bidder_address)', 'bidderAddress')
+      .addSelect('auction_bid.bidder_address', 'bidderAddress')
       .where('auction_bid.auction_id = :auctionId', { auctionId });
 
-    if (bidStatuses) query.andWhere('auction_bid.status in :bidStatuses', { bidStatuses });
+    if (bidStatuses) query.andWhere('auction_bid.status = ANY (:bidStatuses)', { bidStatuses });
     if (bidderAddress) query.andWhere('auction_bid.bidder_address = :bidderAddress', { bidderAddress });
 
     query
       .groupBy('bidder_address')
-      .orderBy('totalAmount', 'DESC');
+      .orderBy('1', 'DESC');
 
     return query;
   }
@@ -140,7 +140,7 @@ export class DatabaseHelper {
     const findOptions: FindManyOptions<BidEntity> = {
       where: {
         auctionId,
-        status: bidStatuses,
+        status: Any(bidStatuses),
         ...(includeWithdrawals ? { amount: MoreThan(0) } : {}),
       },
     };

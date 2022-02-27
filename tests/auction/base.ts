@@ -43,12 +43,13 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
   const buyer = util.privateKey(`//Buyer/${Date.now()}`);
   const anotherBuyer = util.privateKey(`//AnotherBuyer/${Date.now()}`);
 
-  let extrinsicSubmitterCounter = 0;
+  let extrinsicSubmitterCounter = 0n;
 
   const extrinsicSubmitter = {
     submit() {
       const result = {
-        block: { header: { number: extrinsicSubmitterCounter++ } },
+        isSucceed: true,
+        blockNumber: extrinsicSubmitterCounter++,
       };
 
       return new Promise((resolve) => {
@@ -61,7 +62,6 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
     auction: {
       seed: marketSeed,
       commission: 10,
-      isMainNode: false,
     },
   };
 
@@ -151,7 +151,7 @@ export const placeBid = async (
     actors: { market, buyer },
   } = testEntities;
 
-  const signedExtrinsic = await kusamaApi.tx.balances.transfer(market.kusamaAddress, amount).signAsync(signer || buyer.keyring);
+  const signedExtrinsic = await kusamaApi.tx.balances.transferKeepAlive(market.kusamaAddress, amount).signAsync(signer || buyer.keyring);
 
   return request(app.getHttpServer())
     .post('/auction/place_bid')

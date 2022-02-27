@@ -129,7 +129,11 @@ export class BidPlacingService {
 
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
       const priceStep = BigInt(contractAsk.auction.priceStep);
-      const currentPendingPrice = BigInt(contractAsk.price);
+      const isFirstBid = contractAsk.price === contractAsk.auction.startPrice;
+      const currentPendingPrice = isFirstBid
+        ? BigInt(contractAsk.price)
+        : BigInt(contractAsk.price) + BigInt(contractAsk.auction.priceStep);
+
       const amount = BigInt(placeBidArgs.amount);
 
       if (priceStep > amount) throw new Error(`Minimum price step is ${priceStep}`);
@@ -142,7 +146,10 @@ export class BidPlacingService {
       const userNextPendingAmount = userCurrentPendingAmount + amount;
 
       if (userNextPendingAmount < currentPendingPrice) {
-        throw new Error(`You offered ${userNextPendingAmount} total, but current price is ${currentPendingPrice}`);
+        let message = `You offered ${userNextPendingAmount} total, but current price is ${currentPendingPrice}`;
+        if (!isFirstBid) message += ` (price + price step)`;
+
+        throw new Error(message);
       }
 
       const nextUserBid = transactionEntityManager.create(BidEntity, {
