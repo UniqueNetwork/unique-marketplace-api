@@ -24,14 +24,14 @@ export class AuctionEntity implements Auction {
   updatedAt: Date;
 
   @Column({
-    type: 'varchar',
+    type: 'numeric',
     nullable: false,
     name: 'price_step',
   })
   priceStep: string;
 
   @Column({
-    type: 'varchar',
+    type: 'numeric',
     nullable: false,
     name: 'start_price',
   })

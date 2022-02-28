@@ -157,6 +157,7 @@ export class BidPlacingService {
         status: BidStatus.minting,
         bidderAddress,
         amount: amount.toString(),
+        balance: userNextPendingAmount.toString(),
         auctionId: contractAsk.auction.id,
         createdAt: new Date(),
         updatedAt: new Date(),

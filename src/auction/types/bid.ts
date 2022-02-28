@@ -14,6 +14,8 @@ export interface Bid {
 
   amount: string;
 
+  balance: string;
+
   bidderAddress: string;
 
   createdAt: Date;

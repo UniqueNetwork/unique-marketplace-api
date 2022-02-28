@@ -15,7 +15,6 @@ type BidWithdrawArgs = {
   collectionId: number;
   tokenId: number;
   bidderAddress: string;
-  amount: string;
 };
 
 @Injectable()
@@ -61,6 +60,7 @@ export class BidWithdrawService {
       status: BidStatus.minting,
       bidderAddress,
       amount: (-1n * amount).toString(),
+      balance: '0',
       auctionId: auction.id,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -73,9 +73,11 @@ export class BidWithdrawService {
 
   async makeWithdrawalTransfer(withdrawingBid: BidEntity): Promise<void> {
     const auctionKeyring = this.auctionCredentials.keyring;
+    const amount = BigInt(withdrawingBid.amount) * -1n
+
 
     const tx = await this.kusamaApi.tx.balances
-      .transferKeepAlive(withdrawingBid.bidderAddress, withdrawingBid.amount)
+      .transferKeepAlive(withdrawingBid.bidderAddress, amount)
       .signAsync(auctionKeyring);
 
     await this.extrinsicSubmitter
@@ -99,6 +101,7 @@ export class BidWithdrawService {
       });
   }
 
+  // todo - unite into single method with withdrawByMarket?
   private async tryCreateWithdrawingBid(args: BidWithdrawArgs): Promise<BidEntity> {
     const { collectionId, tokenId, bidderAddress } = args;
 
@@ -107,12 +110,12 @@ export class BidWithdrawService {
 
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
       const auctionId = contractAsk.auction.id;
-      const amount = BigInt(args.amount);
 
-      const currentBidderActualSum = await databaseHelper.getUserActualSum({ auctionId, bidderAddress });
+      const bidderActualSum = await databaseHelper.getUserActualSum({ auctionId, bidderAddress });
+      const bidderPendingSum = await databaseHelper.getUserPendingSum({ auctionId, bidderAddress });
 
-      if (currentBidderActualSum < amount) {
-        throw new Error(`You requested ${amount}, but all minted bids sum is ${currentBidderActualSum}`);
+      if (0 > bidderActualSum) {
+        throw new Error(`Failed to create withdrawal, all minted bids sum is ${bidderActualSum} for ${bidderAddress}`);
       }
 
       const pendingWinner = await databaseHelper.getAuctionPendingWinner({ auctionId });
@@ -131,7 +134,8 @@ export class BidWithdrawService {
         id: uuid(),
         status: BidStatus.minting,
         bidderAddress,
-        amount: (-1n * amount).toString(),
+        amount: (-1n * bidderActualSum).toString(),
+        balance: (bidderPendingSum - bidderActualSum).toString(),
         auctionId: contractAsk.auction.id,
         createdAt: new Date(),
         updatedAt: new Date(),
