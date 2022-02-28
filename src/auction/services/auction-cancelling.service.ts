@@ -8,9 +8,9 @@ import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { ASK_STATUS } from '../../escrow/constants';
-import { privateKey } from '../../utils/blockchain/util';
 import { DatabaseHelper } from './helpers/database-helper';
 import { BidStatus } from '../types';
+import { AuctionCredentials } from '../providers';
 
 type AuctionCancelArgs = {
   collectionId: number;
@@ -29,6 +29,7 @@ export class AuctionCancellingService {
     private broadcastService: BroadcastService,
     @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
+    @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
   ) {
     this.contractAskRepository = connection.getRepository(ContractAsk);
@@ -78,7 +79,7 @@ export class AuctionCancellingService {
   async sendTokenBackToOwner(contractAsk: ContractAsk): Promise<void> {
     try {
       const { address_from, collection_id, token_id } = contractAsk;
-      const auctionKeyring = privateKey(this.config.auction.seed);
+      const auctionKeyring = this.auctionCredentials.keyring;
 
       const tx = await this.uniqueApi.tx.unique.transfer(address_from, collection_id, token_id, 1).signAsync(auctionKeyring);
 

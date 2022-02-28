@@ -9,11 +9,11 @@ import { AuctionStatus, BidStatus } from '../../types';
 import { BidWithdrawService } from '../bid-withdraw.service';
 import { AuctionCancellingService } from '../auction-cancelling.service';
 import { ASK_STATUS } from '../../../escrow/constants';
-import { privateKey } from '../../../utils/blockchain/util';
 import { ExtrinsicSubmitter } from '../helpers/extrinsic-submitter';
 import { MarketConfig } from '../../../config/market-config';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { OfferContractAskDto } from '../../../offers/dto/offer-dto';
+import { AuctionCredentials } from "../../providers";
 
 @Injectable()
 export class AuctionClosingService {
@@ -33,12 +33,12 @@ export class AuctionClosingService {
     private auctionCancellingService: AuctionCancellingService,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @Inject('CONFIG') private config: MarketConfig,
+    @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
   ) {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
     this.contractAskRepository = connection.manager.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
-
-    this.auctionKeyring = privateKey(this.config.auction.seed);
+    this.auctionKeyring = auctionCredentials.keyring;
   }
 
   async auctionsStoppingIntervalHandler(): Promise<void> {

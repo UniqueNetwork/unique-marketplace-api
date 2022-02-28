@@ -7,9 +7,9 @@ import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { BidStatus } from '../types';
-import { privateKey } from '../../utils/blockchain/util';
 import { DatabaseHelper } from './helpers/database-helper';
 import { v4 as uuid } from 'uuid';
+import { AuctionCredentials } from '../providers';
 
 type BidWithdrawArgs = {
   collectionId: number;
@@ -31,6 +31,7 @@ export class BidWithdrawService {
     private broadcastService: BroadcastService,
     @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
+    @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
   ) {
     this.bidRepository = connection.manager.getRepository(BidEntity);
@@ -71,9 +72,11 @@ export class BidWithdrawService {
   }
 
   async makeWithdrawalTransfer(withdrawingBid: BidEntity): Promise<void> {
-    const auctionKeyring = privateKey(this.config.auction.seed);
+    const auctionKeyring = this.auctionCredentials.keyring;
 
-    const tx = await this.kusamaApi.tx.balances.transferKeepAlive(withdrawingBid.bidderAddress, withdrawingBid.amount).signAsync(auctionKeyring);
+    const tx = await this.kusamaApi.tx.balances
+      .transferKeepAlive(withdrawingBid.bidderAddress, withdrawingBid.amount)
+      .signAsync(auctionKeyring);
 
     await this.extrinsicSubmitter
       .submit(this.kusamaApi, tx)
