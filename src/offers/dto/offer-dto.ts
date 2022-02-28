@@ -27,7 +27,6 @@ class BidDto implements Bid {
   @Expose() createdAt: Date;
   @Expose() updatedAt: Date;
   @Expose() amount: string;
-  @Expose() pendingAmount: string;
   @Expose() bidderAddress: string;
 }
 
