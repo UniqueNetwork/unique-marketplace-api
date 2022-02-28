@@ -14,7 +14,7 @@ export class AuctionClosingScheduler {
   ) {}
 
   startIntervals(): void {
-    this.logger.log(`startIntervals called`);
+    this.logger.debug(`starting auction intervals`);
 
     const stoppingIntervalCallback = this.auctionClosingService.auctionsStoppingIntervalHandler.bind(this.auctionClosingService);
     const stoppingInterval = setInterval(stoppingIntervalCallback, 5000);
