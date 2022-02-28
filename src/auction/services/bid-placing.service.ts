@@ -100,7 +100,7 @@ export class BidPlacingService {
     } = oldContractAsk;
 
     try {
-      await this.connection.transaction<void>(async (transactionEntityManager) => {
+      await this.connection.transaction<void>('REPEATABLE READ', async (transactionEntityManager) => {
         const databaseHelper = new DatabaseHelper(transactionEntityManager);
         await transactionEntityManager.update(BidEntity, userBid.id, { status: BidStatus.error });
 
@@ -124,7 +124,7 @@ export class BidPlacingService {
   private async tryPlacePendingBid(placeBidArgs: PlaceBidArgs): Promise<[ContractAsk, BidEntity]> {
     const { collectionId, tokenId, bidderAddress } = placeBidArgs;
 
-    return this.connection.transaction<[ContractAsk, BidEntity]>(async (transactionEntityManager) => {
+    return this.connection.transaction<[ContractAsk, BidEntity]>('REPEATABLE READ', async (transactionEntityManager) => {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
 
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
@@ -146,10 +146,15 @@ export class BidPlacingService {
       const userNextPendingAmount = userCurrentPendingAmount + amount;
 
       if (userNextPendingAmount < currentPendingPrice) {
-        let message = `You offered ${userNextPendingAmount} total, but current price is ${currentPendingPrice}`;
-        if (!isFirstBid) message += ` (price + price step)`;
+        let bidderTotal = userNextPendingAmount.toString();
+        if (userNextPendingAmount !== amount) bidderTotal += ` (your current balance + this transfer)`;
 
-        throw new Error(message);
+        let currentPrice = currentPendingPrice.toString();
+        if (!isFirstBid) currentPrice += ` (price + price min step)`;
+
+        const minAmount = currentPendingPrice - userCurrentPendingAmount;
+
+        throw new Error(`You offered ${bidderTotal}, but current price is ${currentPrice}. Minimum amount for you is ${minAmount}`);
       }
 
       const nextUserBid = transactionEntityManager.create(BidEntity, {

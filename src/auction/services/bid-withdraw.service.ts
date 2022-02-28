@@ -105,7 +105,7 @@ export class BidWithdrawService {
   private async tryCreateWithdrawingBid(args: BidWithdrawArgs): Promise<BidEntity> {
     const { collectionId, tokenId, bidderAddress } = args;
 
-    return this.connection.transaction<BidEntity>(async (transactionEntityManager) => {
+    return this.connection.transaction<BidEntity>('REPEATABLE READ', async (transactionEntityManager) => {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
 
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
@@ -114,7 +114,7 @@ export class BidWithdrawService {
       const bidderActualSum = await databaseHelper.getUserActualSum({ auctionId, bidderAddress });
       const bidderPendingSum = await databaseHelper.getUserPendingSum({ auctionId, bidderAddress });
 
-      if (0 > bidderActualSum) {
+      if (bidderActualSum <= 0) {
         throw new Error(`Failed to create withdrawal, all minted bids sum is ${bidderActualSum} for ${bidderAddress}`);
       }
 

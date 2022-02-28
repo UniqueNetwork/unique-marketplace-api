@@ -1,6 +1,6 @@
 import * as request from 'supertest';
 
-import { AuctionTestEntities, getAuctionTestEntities, placeBid } from './base';
+import { AuctionTestEntities, getAuctionTestEntities, placeBid, withdrawBid } from './base';
 
 import { Connection } from 'typeorm';
 import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk } from '../../src/entity';
@@ -10,20 +10,6 @@ import { v4 as uuid } from 'uuid';
 import { AuctionStatus, Bid, BidStatus } from '../../src/auction/types';
 import { DateHelper } from '../../src/utils/date-helper';
 import { OfferContractAskDto } from '../../src/offers/dto/offer-dto';
-
-type BidsInfo = Record<string, { amount: bigint; calculatedPrice: bigint; }>
-
-const getBidsInfo = (offer: OfferContractAskDto): BidsInfo => {
-  return offer.auction.bids.reduce((acc, bid) => {
-    const current = acc[bid.bidderAddress] || { amount: 0n, calculatedPrice: BigInt(offer.price) };
-    current.amount += BigInt(bid.amount);
-    current.calculatedPrice = BigInt(offer.price) - current.amount + BigInt(offer.auction.priceStep);
-
-    acc[bid.bidderAddress] = current;
-
-    return acc;
-  }, {} as BidsInfo)
-}
 
 describe('Bid placing method', () => {
   const collectionId = '222';
@@ -60,7 +46,7 @@ describe('Bid placing method', () => {
       token_id: tokenId,
       network: blockNetwork,
       block_number_ask: blockNumber,
-      price: '140',
+      price: '110',
       currency: '2',
       address_from: testEntities.actors.seller.uniqueAddress,
       address_to: testEntities.actors.market.uniqueAddress,
@@ -78,27 +64,6 @@ describe('Bid placing method', () => {
     });
 
     await bidsRepository.save([
-      {
-        auctionId,
-        amount: '20',
-        balance: '140',
-        bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        status: BidStatus.minting,
-      },
-      {
-        auctionId,
-        amount: '130',
-        balance: '130',
-        bidderAddress: testEntities.actors.market.kusamaAddress,
-        status: BidStatus.finished,
-      },
-      {
-        auctionId,
-        amount: '20',
-        balance: '120',
-        bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        status: BidStatus.finished,
-      },
       {
         auctionId,
         amount: '110',
@@ -132,16 +97,20 @@ describe('Bid placing method', () => {
     expect(offer).toBeDefined();
     expect(offer.auction).toBeDefined();
     expect(offer.auction.bids).toBeDefined();
-    expect(offer.auction.bids.length).toBe(5);
+    expect(offer.auction.bids.length).toBe(2);
   }, 30_000);
 
   it('bid placing', async () => {
     let offer = await fetchOffer();
 
     const { buyer, anotherBuyer } = testEntities.actors;
-
-    let bidsInfo: BidsInfo;
     let amount = BigInt(offer.price);
+
+    let withdrawBidResponse = await withdrawBid(testEntities, collectionId, tokenId, buyer.keyring, buyer.kusamaAddress);
+    expect(withdrawBidResponse.status).toEqual(200);
+
+    withdrawBidResponse = await withdrawBid(testEntities, collectionId, tokenId, buyer.keyring, buyer.kusamaAddress);
+    expect(withdrawBidResponse.status).toEqual(400);
 
     let placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount.toString(), anotherBuyer.keyring);
     expect(placedBidResponse.body.message).toMatch(/but current price is/);
@@ -151,22 +120,30 @@ describe('Bid placing method', () => {
     placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount.toString(), anotherBuyer.keyring);
     expect(placedBidResponse.status).toEqual(201);
 
-    offer = await fetchOffer();
-    bidsInfo = getBidsInfo(offer);
-    amount = bidsInfo[buyer.kusamaAddress].calculatedPrice;
-
-    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount.toString(), buyer.keyring);
-    expect(placedBidResponse.status).toEqual(201);
-
-
-    offer = await fetchOffer();
-    bidsInfo = getBidsInfo(offer);
-    amount = bidsInfo[anotherBuyer.kusamaAddress].amount;
-
+    amount = BigInt(offer.auction.priceStep);
     placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount.toString(), anotherBuyer.keyring);
     expect(placedBidResponse.status).toEqual(201);
 
+    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '30', buyer.keyring);
+    expect(placedBidResponse.status).toEqual(400);
+
+    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '200', buyer.keyring);
+    expect(placedBidResponse.status).toEqual(201);
+
+    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '10', anotherBuyer.keyring);
+    expect(placedBidResponse.status).toEqual(400);
+
+    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '80', anotherBuyer.keyring);
+    expect(placedBidResponse.status).toEqual(201);
+
+    // offer = await fetchOffer();
+    // bidsInfo = getBidsInfo(offer);
+    // amount = bidsInfo[anotherBuyer.kusamaAddress].amount;
+    //
+    // placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount.toString(), anotherBuyer.keyring);
+    // expect(placedBidResponse.status).toEqual(201);
+
     offer = await fetchOffer();
-    expect(offer.price).toEqual((amount * 2n).toString());
+    expect(offer.price).toEqual('210'.toString());
   }, 30_000);
 });

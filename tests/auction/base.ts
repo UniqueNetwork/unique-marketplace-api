@@ -13,6 +13,7 @@ import { MarketConfig } from '../../src/config/market-config';
 import { connect as connectSocket, Socket } from 'socket.io-client';
 import { ServerToClientEvents, ClientToServerEvents } from '../../src/broadcast/types';
 import {convertAddress} from "../../src/utils/blockchain/util";
+import { u8aToHex } from "@polkadot/util";
 
 type Actor = {
   keyring: KeyringPair;
@@ -161,3 +162,22 @@ export const placeBid = async (
       tx: signedExtrinsic.toJSON(),
     } as PlaceBidRequest);
 };
+
+export const withdrawBid = async (
+  testEntities: AuctionTestEntities,
+  collectionId: string,
+  tokenId: string,
+  signer: KeyringPair,
+  address?: string,
+): Promise<request.Test> => {
+  const query = `collectionId=${collectionId}&tokenId=${tokenId}&timestamp=${Date.now()}`;
+  const signature = signer.sign(query);
+
+  return request(testEntities.app.getHttpServer())
+    .delete(`/auction/withdraw_bid?${query}`)
+    .set({
+      'x-polkadot-signature': u8aToHex(signature),
+      'x-polkadot-signer': address || signer.address,
+    })
+    .send();
+}

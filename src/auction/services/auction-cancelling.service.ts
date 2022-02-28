@@ -53,7 +53,7 @@ export class AuctionCancellingService {
   private cancelInDatabase(args: AuctionCancelArgs): Promise<ContractAsk> {
     const { collectionId, tokenId, ownerAddress } = args;
 
-    return this.connection.transaction<ContractAsk>(async (transactionEntityManager) => {
+    return this.connection.transaction<ContractAsk>('REPEATABLE READ', async (transactionEntityManager) => {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
