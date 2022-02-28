@@ -107,13 +107,11 @@ export class OffersService {
       params.push({ ...param, column });
     }
 
-    let first = true;
     for (let param of params) {
       let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'offer' : 'block';
-      query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
-      first = false;
+      query = query.addOrderBy(`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
     }
-
+    query = query.addOrderBy('offer.block_number_ask', 'DESC')
     return query;
   }
   /**
@@ -203,7 +201,7 @@ export class OffersService {
       matchedText = matchedText.andWhere(`searchIndex.is_trait = true`);
     }
 
-    if(!nullOrWhitespace(text)) { matchedText = matchedText.andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) }
+    if(!nullOrWhitespace(text)) { matchedText = matchedText.andWhere(`searchIndex.value ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) }
 
     if(!nullOrWhitespace(locale) ){matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale, }) }
 
@@ -262,8 +260,7 @@ export class OffersService {
     query = this.filterBySeller(query, offersFilter.seller);
     query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
 
-    const qr = query.andWhere(`offer.status = :status`, { status: 'active' });
-    return qr;
+    return query.andWhere(`offer.status = :status`, { status: 'active' });
   }
 
   public get isConnected(): boolean {
