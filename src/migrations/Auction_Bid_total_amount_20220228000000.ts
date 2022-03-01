@@ -10,6 +10,7 @@ export class Auction_Bid_total_amount_20220228000000 implements MigrationInterfa
         name: 'balance',
         isNullable: false,
         type: 'numeric(39)',
+        default: '0',
       }),
     );
   }
