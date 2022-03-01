@@ -127,10 +127,14 @@ export class KusamaEscrow extends Escrow {
     await this.processWithdraw();
   }
 
+  prepareLatestBlock(blockNum): any {
+    return blockNum - this.config('kusama.waitBlocks');
+  }
+
   async work() {
     if (!this.initialized) throw Error('Unable to start uninitialized escrow. Call "await escrow.init()" before work');
     this.store.currentBlock = await this.getStartBlock();
-    this.store.latestBlock = await this.getLatestBlockNumber();
+    this.store.latestBlock = await this.getLatestBlockNumber() - this.config('kusama.waitBlocks');
     logging.log(
       `Kusama escrow starting from block #${this.store.currentBlock} (mode: ${this.config('kusama.startFromBlock')}, maxBlock: ${
         this.store.latestBlock

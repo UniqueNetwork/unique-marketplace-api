@@ -64,9 +64,13 @@ export class Escrow {
     return (await this.api.rpc.chain.getHeader()).number.toNumber();
   }
 
+  prepareLatestBlock(blockNum) {
+    return blockNum;
+  }
+
   async subscribe() {
     await this.api.rpc.chain.subscribeNewHeads((lastHeader) => {
-      this.store.latestBlock = lastHeader.number.toNumber();
+      this.store.latestBlock = this.prepareLatestBlock(lastHeader.number.toNumber());
       if (lastHeader.number % 100 === 0) logging.log(`New block #${lastHeader.number}`);
     });
   }
