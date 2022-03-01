@@ -1,19 +1,18 @@
-import { IsInt, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
+import { IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export type WithdrawBidQuery = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & { timestamp: number };
+export type CancelAuctionQuery = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'>;
 
-// todo - unite with CancelAuctionRequest entity?
-export class WithdrawBidQueryDto implements WithdrawBidQuery {
+export class CancelAuctionQueryDto implements CancelAuctionQuery {
   @ApiProperty({ example: 1 })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   collectionId: number;
 
-  @ApiProperty({ example: 1 })
+  @ApiProperty({ example: 2 })
   @Type(() => Number)
   @IsInt()
   @Min(1)

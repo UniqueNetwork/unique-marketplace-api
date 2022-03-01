@@ -1,16 +1,16 @@
-import { BadRequestException, Inject, Injectable, Logger, OnModuleInit, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, ValidationPipe } from '@nestjs/common';
 
 import { ApiPromise } from '@polkadot/api';
-import { BalanceTransferTxInfo, BalanceTransferTxInfoDto, TokenTransferTxInfo, TokenTransferTxInfoDto } from '../requests';
-import { TxArgs, TxInfo } from '../types';
-import { convertAddress, normalizeAccountId, seedToAddress } from '../../utils/blockchain/util';
+import { BalanceTransferTxInfo, BalanceTransferTxInfoDto, TokenTransferTxInfo, TokenTransferTxInfoDto } from '../../requests';
+import { TxArgs, TxInfo } from '../../types';
+import { convertAddress, normalizeAccountId } from '../../../utils/blockchain/util';
 import { plainToInstance, ClassConstructor } from 'class-transformer';
 import { validate } from 'class-validator';
 import { ValidationError } from '@nestjs/common/interfaces/external/validation-error.interface';
-import { MarketConfig } from '../../config/market-config';
+import { AuctionCredentials } from '../../providers';
 
 @Injectable()
-export class TxDecoder implements OnModuleInit {
+export class TxDecoder {
   private readonly logger = new Logger(TxDecoder.name);
   private readonly exceptionFactory: (validationErrors?: ValidationError[]) => unknown;
 
@@ -20,9 +20,11 @@ export class TxDecoder implements OnModuleInit {
   constructor(
     @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
-    @Inject('CONFIG') private config: MarketConfig,
+    @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
   ) {
     this.exceptionFactory = new ValidationPipe().createExceptionFactory();
+    this.marketAuctionUniqueAddress = this.auctionCredentials.uniqueAddress;
+    this.marketAuctionKusamaAddress = this.auctionCredentials.kusamaAddress;
   }
 
   async decodeUniqueTransfer(tx: string): Promise<TokenTransferTxInfo> {
@@ -35,7 +37,7 @@ export class TxDecoder implements OnModuleInit {
 
     const validTx = await this.transformAndValidate(TokenTransferTxInfoDto, txInfo);
 
-    this.checkRecipient(this.marketAuctionUniqueAddress, validTx.args.recipient);
+    TxDecoder.checkRecipient(this.marketAuctionUniqueAddress, validTx.args.recipient);
 
     return validTx;
   }
@@ -51,18 +53,18 @@ export class TxDecoder implements OnModuleInit {
 
     const validTx = await this.transformAndValidate(BalanceTransferTxInfoDto, txInfo);
 
-    this.checkRecipient(this.marketAuctionKusamaAddress, validTx.args.dest);
+    TxDecoder.checkRecipient(this.marketAuctionKusamaAddress, validTx.args.dest);
 
     return validTx;
   }
 
-  private checkRecipient(market: string, recipient: string): void {
+  private static checkRecipient(market: string, recipient: string): void {
     if (recipient !== market) {
       throw new BadRequestException(`Recipient of transfer should be market account (${market})`);
     }
   }
 
-  private async transformAndValidate<T extends object>(classConstructor: ClassConstructor<T>, txInfo: TxInfo): Promise<T> {
+  private async transformAndValidate<T extends Record<string, any>>(classConstructor: ClassConstructor<T>, txInfo: TxInfo): Promise<T> {
     const txInfoDto = plainToInstance(classConstructor, txInfo);
 
     const errors = await validate(txInfoDto);
@@ -99,15 +101,6 @@ export class TxDecoder implements OnModuleInit {
       this.logger.error(error);
 
       throw new BadRequestException(error.message);
-    }
-  }
-
-  async onModuleInit(): Promise<void> {
-    if (this.config.auction.seed) {
-      const address = await seedToAddress(this.config.auction.seed);
-
-      this.marketAuctionUniqueAddress = await convertAddress(address, this.uniqueApi.registry.chainSS58);
-      this.marketAuctionKusamaAddress = await convertAddress(address, this.kusamaApi.registry.chainSS58);
     }
   }
 }

@@ -45,6 +45,5 @@ export class Auction_Constraints_20220215000000 implements MigrationInterface {
     await queryRunner.query('ALTER TABLE contract_ask ALTER COLUMN price TYPE bigint;');
 
     await queryRunner.dropColumn('bids', 'pending_amount');
-    await queryRunner.dropIndex('contract_ask', 'UNIQUE_active_contract_ask');
   }
 }

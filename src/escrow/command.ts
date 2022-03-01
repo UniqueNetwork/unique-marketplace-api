@@ -1,10 +1,20 @@
-import { Command, Positional } from 'nestjs-command';
+import { Command, Positional, Option } from 'nestjs-command';
 import { ModuleRef } from '@nestjs/core';
 import { Injectable } from '@nestjs/common';
 
 import { KusamaEscrow } from './kusama';
 import { UniqueEscrow } from './unique';
 import { EscrowService } from './service';
+import { Escrow } from './base';
+import { AuctionClosingScheduler } from '../auction/services/closing/auction-closing.scheduler';
+
+const AuctionManagerOption = Option({
+  name: 'auction-manager',
+  describe: 'is should start auction close scheduler',
+  type: 'boolean',
+  default: false,
+  demandOption: false,
+});
 
 @Injectable()
 export class EscrowCommand {
@@ -14,19 +24,33 @@ export class EscrowCommand {
     command: 'start_escrow <network>',
     describe: 'Starts escrow service for selected network',
   })
-  async start_escrow(@Positional({name: 'network'}) network: string) {
-    const networks = {
-      'unique': UniqueEscrow,
-      'kusama': KusamaEscrow
-    }
-    if(!networks.hasOwnProperty(network)) {
+  async start_escrow(@Positional({ name: 'network' }) network: string, @AuctionManagerOption isAuctionManager: boolean) {
+    const networks: Record<string, typeof Escrow> = {
+      unique: UniqueEscrow,
+      kusama: KusamaEscrow,
+    };
+
+    if (!networks.hasOwnProperty(network)) {
       console.error(`No escrow service for ${network} network`);
       return;
     }
-    const escrow = new networks[network](this.moduleRef.get('CONFIG', {strict: false}), this.moduleRef.get(EscrowService, {strict: false}));
+
+    if (isAuctionManager) this.startAuctionManager();
+
+    const config = this.moduleRef.get('CONFIG', { strict: false });
+    const service = this.moduleRef.get(EscrowService, { strict: false });
+    const escrow = new networks[network](config, service);
 
     await escrow.init();
 
-    await escrow.work()
+    await escrow.work();
+  }
+
+  private startAuctionManager(): void {
+    setImmediate(() => {
+      const auctionClosingScheduler = this.moduleRef.get(AuctionClosingScheduler, { strict: false });
+
+      auctionClosingScheduler.startIntervals();
+    });
   }
 }

@@ -5,20 +5,21 @@ import { waitReady } from '@polkadot/wasm-crypto';
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 
-import { ExtrinsicSubmitter } from '../../src/auction/services/extrinsic-submitter';
+import { ExtrinsicSubmitter } from '../../src/auction/services/helpers/extrinsic-submitter';
 import * as util from '../../src/utils/blockchain/util';
+import { convertAddress } from '../../src/utils/blockchain/util';
 import { initApp, runMigrations } from '../data';
 import { CreateAuctionRequest, PlaceBidRequest } from '../../src/auction/requests';
 import { MarketConfig } from '../../src/config/market-config';
 import { connect as connectSocket, Socket } from 'socket.io-client';
-import { ServerToClientEvents, ClientToServerEvents } from '../../src/broadcast/types';
-import {convertAddress} from "../../src/utils/blockchain/util";
+import { ClientToServerEvents, ServerToClientEvents } from '../../src/broadcast/types';
+import { u8aToHex } from '@polkadot/util';
 
 type Actor = {
   keyring: KeyringPair;
   kusamaAddress: string;
   uniqueAddress: string;
-}
+};
 
 export type AuctionTestEntities = {
   app: INestApplication;
@@ -43,12 +44,13 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
   const buyer = util.privateKey(`//Buyer/${Date.now()}`);
   const anotherBuyer = util.privateKey(`//AnotherBuyer/${Date.now()}`);
 
-  let extrinsicSubmitterCounter = 0;
+  let extrinsicSubmitterCounter = 0n;
 
   const extrinsicSubmitter = {
     submit() {
       const result = {
-        block: { header: { number: extrinsicSubmitterCounter++ } },
+        isSucceed: true,
+        blockNumber: extrinsicSubmitterCounter++,
       };
 
       return new Promise((resolve) => {
@@ -150,7 +152,7 @@ export const placeBid = async (
     actors: { market, buyer },
   } = testEntities;
 
-  const signedExtrinsic = await kusamaApi.tx.balances.transfer(market.kusamaAddress, amount).signAsync(signer || buyer.keyring);
+  const signedExtrinsic = await kusamaApi.tx.balances.transferKeepAlive(market.kusamaAddress, amount).signAsync(signer || buyer.keyring);
 
   return request(app.getHttpServer())
     .post('/auction/place_bid')
@@ -159,4 +161,36 @@ export const placeBid = async (
       tokenId,
       tx: signedExtrinsic.toJSON(),
     } as PlaceBidRequest);
+};
+
+export const withdrawBid = async (
+  testEntities: AuctionTestEntities,
+  collectionId: string,
+  tokenId: string,
+  signer: KeyringPair,
+  address?: string,
+): Promise<request.Test> => {
+  const query = `collectionId=${collectionId}&tokenId=${tokenId}&timestamp=${Date.now()}`;
+  const signature = signer.sign(query);
+
+  return request(testEntities.app.getHttpServer())
+    .delete(`/auction/withdraw_bid?${query}`)
+    .set({
+      'x-polkadot-signature': u8aToHex(signature),
+      'x-polkadot-signer': address || signer.address,
+    })
+    .send();
+};
+
+export const calculate = async (
+  testEntities: AuctionTestEntities,
+  collectionId: string,
+  tokenId: string,
+  bidderAddress?: string,
+): Promise<request.Test> => {
+  return request(testEntities.app.getHttpServer()).post(`/auction/calculate`).send({
+    collectionId,
+    tokenId,
+    bidderAddress,
+  });
 };

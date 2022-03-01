@@ -108,7 +108,7 @@ export class OffersService {
         'auction.bids',
         BidEntity,
         'bid',
-        'bid.auction_id = auction.id and bid.is_withdrawn = false')
+        'bid.auction_id = auction.id and bid.amount > 0')
       .innerJoinAndMapOne(
         'offer.block',
         BlockchainBlock,

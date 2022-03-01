@@ -1,27 +1,16 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
-import { Connection, LessThan, Repository } from 'typeorm';
-
+import { Connection, EntityManager, Repository } from 'typeorm';
+import { ApiPromise } from '@polkadot/api';
 import { v4 as uuid } from 'uuid';
 
 import { AuctionEntity, BidEntity } from '../entities';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { BlockchainBlock, ContractAsk } from '../../entity';
-import { WithdrawBidRequest } from '../requests/withdraw-bid';
-import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
-import { ExtrinsicSubmitter } from './extrinsic-submitter';
-import { ASK_STATUS } from '../../escrow/constants';
-import { BN } from '@polkadot/util';
-import { BidStatus } from '../types';
-
-type PlaceBidArgs = {
-  collectionId: number;
-  tokenId: number;
-  amount: string;
-  bidderAddress: string;
-  tx: string;
-};
+import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
+import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs } from '../types';
+import { DatabaseHelper } from './helpers/database-helper';
 
 @Injectable()
 export class BidPlacingService {
@@ -49,9 +38,10 @@ export class BidPlacingService {
     const { tx } = placeBidArgs;
 
     let contractAsk: ContractAsk;
+    let nextUserBid: BidEntity;
 
     try {
-      contractAsk = await this.tryPlacePendingBid(placeBidArgs);
+      [contractAsk, nextUserBid] = await this.tryPlacePendingBid(placeBidArgs);
 
       const offer = OfferContractAskDto.fromContractAsk(contractAsk);
 
@@ -63,216 +53,158 @@ export class BidPlacingService {
 
       throw new BadRequestException(error.message);
     } finally {
-      if (contractAsk) {
+      if (contractAsk && nextUserBid) {
         await this.extrinsicSubmitter
           .submit(this.kusamaApi, tx)
-          .then(() => this.handleBidTxSuccess(placeBidArgs, contractAsk))
-          .catch(() => this.handleBidTxFail(placeBidArgs, contractAsk));
+          .then(({ blockNumber }) => this.handleBidTxSuccess(placeBidArgs, contractAsk, nextUserBid, blockNumber))
+          .catch(() => this.handleBidTxFail(placeBidArgs, contractAsk, nextUserBid));
       }
     }
   }
 
-  private async handleBidTxSuccess(placeBidArgs: PlaceBidArgs, oldContractAsk: ContractAsk): Promise<void> {
-    const { amount } = placeBidArgs;
-    const userBidId = oldContractAsk.auction.bids[0].id;
-
+  private async handleBidTxSuccess(
+    placeBidArgs: PlaceBidArgs,
+    oldContractAsk: ContractAsk,
+    userBid: BidEntity,
+    blockNumber: bigint,
+  ): Promise<void> {
     try {
-      await this.connection.transaction(async (transactionEntityManager) => {
-        const currentUserBid = await transactionEntityManager.findOne(BidEntity, userBidId);
-        currentUserBid.amount = new BN(currentUserBid.amount).add(new BN(amount)).toString();
-
-        const currentContractAsk = await transactionEntityManager.findOne(ContractAsk, oldContractAsk.id);
-
-        if (currentUserBid.amount === currentUserBid.pendingAmount) {
-          // no mints for current bidder - update bids statuses
-
-          if (currentContractAsk.price === currentUserBid.amount) {
-            await transactionEntityManager.update(
-              BidEntity,
-              {
-                auctionId: oldContractAsk.auction.id,
-                status: BidStatus.winning,
-              },
-              { status: BidStatus.outbid },
-            );
-
-            currentUserBid.status = BidStatus.winning;
-          } else {
-            currentUserBid.status = BidStatus.outbid;
-          }
-        }
-
-        await transactionEntityManager.save(BidEntity, currentUserBid);
+      await this.bidRepository.update(userBid.id, {
+        status: BidStatus.finished,
+        blockNumber: blockNumber.toString(),
       });
     } catch (error) {
-      this.logger.error('handleBidTxSuccess');
-      this.logger.error(JSON.stringify(placeBidArgs));
-      this.logger.error(JSON.stringify(oldContractAsk));
-      this.logger.error(error.message);
+      const fullError = {
+        method: 'handleBidTxSuccess',
+        message: error.message,
+        placeBidArgs,
+        oldContractAsk,
+        userBid,
+      };
+
+      this.logger.error(JSON.stringify(fullError));
     }
   }
 
-  private async handleBidTxFail(placeBidArgs: PlaceBidArgs, oldContractAsk: ContractAsk): Promise<void> {
-    const { amount } = placeBidArgs;
-    const oldUserBid = oldContractAsk.auction.bids[0];
-    const userBidId = oldUserBid.id;
+  private async handleBidTxFail(placeBidArgs: PlaceBidArgs, oldContractAsk: ContractAsk, userBid: BidEntity): Promise<void> {
+    const {
+      auction: { id: auctionId },
+    } = oldContractAsk;
 
     try {
-      await this.connection.transaction<void>(async (transactionEntityManager) => {
-        const currentUserBid = await transactionEntityManager.findOne(BidEntity, userBidId);
-        const currentContractAsk = await transactionEntityManager.findOne(ContractAsk, oldContractAsk.id);
+      await this.connection.transaction<void>('REPEATABLE READ', async (transactionEntityManager) => {
+        const databaseHelper = new DatabaseHelper(transactionEntityManager);
+        await transactionEntityManager.update(BidEntity, userBid.id, { status: BidStatus.error });
 
-        const isRefreshContractPrice = currentContractAsk.price === currentUserBid.pendingAmount;
-
-        currentUserBid.pendingAmount = new BN(currentUserBid.pendingAmount).sub(new BN(amount)).toString();
-
-        if (currentUserBid.pendingAmount === '0' && currentUserBid.amount === '0') {
-          await transactionEntityManager.delete(BidEntity, userBidId);
-        } else {
-          if (currentUserBid.pendingAmount === currentUserBid.amount) {
-            currentUserBid.status = BidStatus.created;
-          }
-
-          await transactionEntityManager.save(BidEntity, currentUserBid);
-        }
-
-        if (isRefreshContractPrice) {
-          const bids = await transactionEntityManager.find(BidEntity, { where: { auctionId: oldContractAsk.auction.id } });
-          BidPlacingService.sortBids(bids);
-
-          const maxPendingBid = bids[0];
-          currentContractAsk.price = maxPendingBid ? maxPendingBid.pendingAmount : oldContractAsk.auction.startPrice;
-
-          await transactionEntityManager.save(currentContractAsk);
-        }
+        const newWinner = await databaseHelper.getAuctionPendingWinner({ auctionId });
+        const newOfferPrice = newWinner ? newWinner.totalAmount.toString() : oldContractAsk.auction.startPrice;
+        await transactionEntityManager.update(ContractAsk, oldContractAsk.id, { price: newOfferPrice });
       });
     } catch (error) {
-      this.logger.error('handleBidTxFail');
-      this.logger.error(JSON.stringify(placeBidArgs));
-      this.logger.error(JSON.stringify(oldContractAsk));
-      this.logger.error(error.message);
+      const fullError = {
+        method: 'handleBidTxFail',
+        message: error.message,
+        placeBidArgs,
+        oldContractAsk,
+        userBid,
+      };
+
+      this.logger.error(JSON.stringify(fullError));
     }
   }
 
-  private async tryPlacePendingBid(placeBidArgs: PlaceBidArgs): Promise<ContractAsk> {
-    const { collectionId, tokenId, amount, bidderAddress } = placeBidArgs;
+  getCalculationInfo(calculateArgs: CalculateArgs, entityManager?: EntityManager): Promise<[CalculationInfo, ContractAsk]> {
+    const { collectionId, tokenId, bidderAddress } = calculateArgs;
 
-    return this.connection.transaction<ContractAsk>(async (transactionEntityManager) => {
-      const contractAsk = await transactionEntityManager.findOne(ContractAsk, {
-        where: { collection_id: collectionId, token_id: tokenId, status: ASK_STATUS.ACTIVE },
-        relations: ['auction'],
-      });
+    const calculate = async (entityManager: EntityManager): Promise<[CalculationInfo, ContractAsk]> => {
+      const databaseHelper = new DatabaseHelper(entityManager);
+      const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
-      if (!contractAsk) throw new BadRequestException('no offer');
-      if (!contractAsk.auction) throw new BadRequestException('no auction');
+      const price = BigInt(contractAsk.price);
+      const startPrice = BigInt(contractAsk.auction.startPrice);
+      const priceStep = BigInt(contractAsk.auction.priceStep);
+      const isFirstBid = price === startPrice;
 
-      const priceStepBn = new BN(contractAsk.auction.priceStep);
-      const amountBn = new BN(amount);
-      if (amountBn.lt(priceStepBn)) throw new BadRequestException(`Price step is ${contractAsk.auction.priceStep}`);
-
-      let bids = await transactionEntityManager.find(BidEntity, {
-        where: { auctionId: contractAsk.auction.id },
-      });
-      console.log('!!! bids before sort ', JSON.stringify(bids, null, 2));
-      bids = BidPlacingService.sortBids(bids);
-      console.log('!!! bids after sort ', JSON.stringify(bids, null, 2));
-      const [currentMaxBid, ...restBids] = bids;
-
-      let userBid: BidEntity | undefined = bids.find((bid) => bid.bidderAddress === bidderAddress);
-
-      console.log('bidderAddress ', bidderAddress);
-
-      const userTotalAmountBn = userBid ? amountBn.add(new BN(userBid.pendingAmount)) : amountBn;
-
-      console.log('userBid ', JSON.stringify(userBid));
-      console.log('userTotalAmountBn ',JSON.stringify(userTotalAmountBn.toString()));
-
-      const minTotalPriceBn = currentMaxBid ? new BN(currentMaxBid.pendingAmount).add(priceStepBn) : new BN(contractAsk.price);
-      if (userTotalAmountBn.lt(minTotalPriceBn)) {
-        const minAmountBn = BN.max(minTotalPriceBn.sub(userTotalAmountBn).add(amountBn), priceStepBn);
-
-        throw new Error(`Current price is ${minTotalPriceBn.toString()}; minimum amount for you is ${minAmountBn}, you offered ${userTotalAmountBn.toString()}`);
+      if (isFirstBid) {
+        return [
+          {
+            contractPendingPrice: startPrice,
+            priceStep,
+            bidderPendingAmount: 0n,
+            minBidderAmount: startPrice,
+          },
+          contractAsk,
+        ];
       }
 
-      if (userBid) {
-        userBid.pendingAmount = userTotalAmountBn.toString();
-        userBid.status = BidStatus.minting;
-      } else {
-        userBid = this.bidRepository.create({
-          id: uuid(),
-          amount: '0',
-          pendingAmount: userTotalAmountBn.toString(),
-          auctionId: contractAsk.auction.id,
-          bidderAddress,
-          isWithdrawn: false,
-          status: BidStatus.minting,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+      const contractPendingPrice = price + priceStep;
+
+      const bidderPendingAmount = await databaseHelper.getUserPendingSum({
+        auctionId: contractAsk.auction.id,
+        bidderAddress,
+      });
+
+      let minBidderAmount = contractPendingPrice - bidderPendingAmount;
+
+      if (minBidderAmount < priceStep) minBidderAmount = priceStep;
+
+      return [
+        {
+          contractPendingPrice,
+          priceStep,
+          bidderPendingAmount,
+          minBidderAmount,
+        },
+        contractAsk,
+      ];
+    };
+
+    return entityManager ? calculate(entityManager) : this.connection.transaction('REPEATABLE READ', calculate);
+  }
+
+  private async tryPlacePendingBid(placeBidArgs: PlaceBidArgs): Promise<[ContractAsk, BidEntity]> {
+    const { bidderAddress } = placeBidArgs;
+
+    const placeWithTransaction = async (transactionEntityManager: EntityManager): Promise<[ContractAsk, BidEntity]> => {
+      const databaseHelper = new DatabaseHelper(transactionEntityManager);
+
+      const [calculationInfo, contractAsk] = await this.getCalculationInfo(placeBidArgs, transactionEntityManager);
+      const { minBidderAmount, bidderPendingAmount, priceStep } = calculationInfo;
+      const amount = BigInt(placeBidArgs.amount);
+
+      if (amount < priceStep) {
+        throw new BadRequestException(`Min price step is ${priceStep}`);
+      }
+
+      if (amount < minBidderAmount) {
+        throw new BadRequestException({
+          ...calculationInfo,
+          amount,
+          message: `Offered bid is not enough`,
         });
       }
 
-      await transactionEntityManager.save(BidEntity, userBid);
+      const userNextPendingAmount = bidderPendingAmount + amount;
 
-      contractAsk.price = userTotalAmountBn.toString();
-      await transactionEntityManager.save(ContractAsk, contractAsk);
-
-      contractAsk.auction.bids = [];
-      contractAsk.auction.bids.push(userBid);
-
-      if (currentMaxBid && currentMaxBid.bidderAddress !== userBid.bidderAddress) {
-        contractAsk.auction.bids.push(currentMaxBid);
-      }
-
-      contractAsk.auction.bids.push(...restBids.filter((bid) => bid.bidderAddress !== userBid.bidderAddress));
-
-      return contractAsk;
-    });
-  }
-
-  private static sortBids(bids: BidEntity[]): BidEntity[] {
-    return [...bids].sort((a, b) => {
-      const aAmount = new BN(a.pendingAmount);
-      const bAmount = new BN(b.pendingAmount);
-
-      return bAmount.cmp(aAmount);
-    });
-  }
-
-  async withdrawBid(withdrawBidRequest: WithdrawBidRequest): Promise<void> {
-    const { collectionId, tokenId, bidderAddress } = withdrawBidRequest;
-
-    const {
-      auction: { id: auctionId },
-      price,
-    } = await this.getContractAsk(collectionId, tokenId);
-
-    const result = await this.bidRepository.update(
-      {
-        auctionId,
+      const nextUserBid = transactionEntityManager.create(BidEntity, {
+        id: uuid(),
+        status: BidStatus.minting,
         bidderAddress,
-        isWithdrawn: false,
-        amount: LessThan(price),
-      },
-      { isWithdrawn: true },
-    );
+        amount: amount.toString(),
+        balance: userNextPendingAmount.toString(),
+        auctionId: contractAsk.auction.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
-    this.logger.debug(JSON.stringify(result));
-  }
+      await transactionEntityManager.update(ContractAsk, contractAsk.id, { price: userNextPendingAmount.toString() });
+      await transactionEntityManager.save(BidEntity, nextUserBid);
 
-  private async getContractAsk(collectionId: number, tokenId: number): Promise<ContractAsk> {
-    const offerWithAuction = await this.contractAskRepository.findOne({
-      where: {
-        collection_id: collectionId,
-        token_id: tokenId,
-        status: 'active',
-      },
-      relations: ['auction'],
-    });
+      contractAsk.auction.bids = await databaseHelper.getBids({ auctionId: contractAsk.auction.id });
 
-    if (offerWithAuction?.auction) {
-      return offerWithAuction;
-    }
+      return [contractAsk, nextUserBid];
+    };
 
-    throw new BadRequestException(`No active auction found for ${JSON.stringify({ collectionId, tokenId })}`);
+    return this.connection.transaction<[ContractAsk, BidEntity]>('REPEATABLE READ', placeWithTransaction);
   }
 }

@@ -4,6 +4,7 @@ import { CreateAuctionRequest } from '../../src/auction/requests';
 import * as util from '../../src/utils/blockchain/util';
 import { OfferContractAskDto } from '../../src/offers/dto/offer-dto';
 import { AuctionTestEntities, createAuction, getAuctionTestEntities, placeBid } from './base';
+import { Bid } from "../../src/auction/types";
 
 const getEventHook = (): [Promise<void>, CallableFunction] => {
   let onResolve: CallableFunction = null;
@@ -74,11 +75,11 @@ describe('Auction creation method', () => {
     expect(offerWithBids.auction.bids).toEqual([
       {
         bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        amount: '0',
-        pendingAmount: '1100',
+        amount: '1100',
+        balance: '1100',
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
-      },
+      } as Bid,
     ]);
 
     const offerByCollectionAndToken = await request(testEntities.app.getHttpServer()).get(`/offer/${collectionId}/${tokenId}`);
@@ -94,6 +95,7 @@ describe('Auction creation method', () => {
           },
         ],
       },
+      price: '1100',
     });
 
     await untilClientReceivedBid;
