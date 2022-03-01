@@ -9,8 +9,8 @@ import { Escrow } from './base';
 import { AuctionClosingScheduler } from '../auction/services/closing/auction-closing.scheduler';
 
 const AuctionManagerOption = Option({
-  name: 'auction-manager',
-  describe: 'is should start auction close scheduler',
+  name: 'auction',
+  describe: 'additionally start auction closing scheduler',
   type: 'boolean',
   default: false,
   demandOption: false,
