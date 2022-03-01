@@ -1,4 +1,4 @@
-import { Command, Positional, Option } from 'nestjs-command';
+import { Command, Option, Positional } from 'nestjs-command';
 import { ModuleRef } from '@nestjs/core';
 import { Injectable } from '@nestjs/common';
 
@@ -8,13 +8,6 @@ import { EscrowService } from './service';
 import { Escrow } from './base';
 import { AuctionClosingScheduler } from '../auction/services/closing/auction-closing.scheduler';
 
-const AuctionManagerOption = Option({
-  name: 'auction',
-  type: 'boolean',
-  default: false,
-  demandOption: false,
-});
-
 @Injectable()
 export class EscrowCommand {
   constructor(private moduleRef: ModuleRef) {}
@@ -23,7 +16,7 @@ export class EscrowCommand {
     command: 'start_escrow <network>',
     describe: 'Starts escrow service for selected network',
   })
-  async start_escrow(@Positional({ name: 'network' }) network: string, @AuctionManagerOption isAuctionManager: boolean) {
+  async start_escrow(@Positional({ name: 'network' }) network: string, @Option({ name: 'auction' }) isAuctionManager = false) {
     const networks: Record<string, typeof Escrow> = {
       unique: UniqueEscrow,
       kusama: KusamaEscrow,
