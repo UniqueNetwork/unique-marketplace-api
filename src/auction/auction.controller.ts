@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Delete, Headers, Post, Query, Req } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiResponse } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { BidPlacingService } from './services/bid-placing.service';
@@ -30,6 +30,7 @@ export class AuctionController {
   ) {}
 
   @Post('create_auction')
+  @ApiResponse({ type: OfferContractAskDto })
   async createAuction(@Body() createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
     const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
 
@@ -42,6 +43,7 @@ export class AuctionController {
   }
 
   @Post('place_bid')
+  @ApiResponse({ type: OfferContractAskDto })
   async placeBid(@Body() placeBidRequest: PlaceBidRequestDto): Promise<OfferContractAskDto> {
     const txInfo = await this.txDecoder.decodeBalanceTransfer(placeBidRequest.tx);
 
@@ -53,6 +55,7 @@ export class AuctionController {
   }
 
   @Post('calculate')
+  @ApiResponse({ type: CalculationInfoResponseDto })
   async calculate(@Body() calculationRequest: CalculationRequestDto): Promise<CalculationInfoResponseDto> {
     const [calculationInfo] = await this.bidPlacingService.getCalculationInfo(calculationRequest);
 
@@ -60,6 +63,7 @@ export class AuctionController {
   }
 
   @Delete('cancel_auction')
+  @ApiResponse({ type: OfferContractAskDto })
   async cancelAuction(
     @Query() query: CancelAuctionQueryDto,
     @Headers('x-polkadot-signature') signature: string,
