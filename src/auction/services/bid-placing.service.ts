@@ -137,7 +137,7 @@ export class BidPlacingService {
         ];
       }
 
-      const contractPendingPrice = price + priceStep;
+      const contractPendingPrice = price;
 
       const bidderPendingAmount = await databaseHelper.getUserPendingSum({
         auctionId: contractAsk.auction.id,
@@ -145,8 +145,7 @@ export class BidPlacingService {
       });
 
       let minBidderAmount = contractPendingPrice - bidderPendingAmount;
-
-      if (minBidderAmount < priceStep) minBidderAmount = priceStep;
+      if (minBidderAmount) minBidderAmount += priceStep;
 
       return [
         {

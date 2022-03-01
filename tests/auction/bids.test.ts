@@ -130,6 +130,9 @@ describe('Bid placing method', () => {
     placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount.toString(), anotherBuyer.keyring);
     expect(placedBidResponse.status).toEqual(201);
 
+    calculationResponse = await calculate(testEntities, collectionId, tokenId, anotherBuyer.kusamaAddress);
+    expect(calculationResponse.body).toMatchObject({ minBidderAmount: '0' });
+
     amount = BigInt(offer.auction.priceStep);
     placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount.toString(), anotherBuyer.keyring);
     expect(placedBidResponse.status).toEqual(201);
@@ -145,13 +148,6 @@ describe('Bid placing method', () => {
 
     placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '80', anotherBuyer.keyring);
     expect(placedBidResponse.status).toEqual(201);
-
-    // offer = await fetchOffer();
-    // bidsInfo = getBidsInfo(offer);
-    // amount = bidsInfo[anotherBuyer.kusamaAddress].amount;
-    //
-    // placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount.toString(), anotherBuyer.keyring);
-    // expect(placedBidResponse.status).toEqual(201);
 
     offer = await fetchOffer();
     expect(offer.price).toEqual('210'.toString());
