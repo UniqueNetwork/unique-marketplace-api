@@ -10,7 +10,7 @@ import { AuctionClosingScheduler } from '../auction/services/closing/auction-clo
 
 const AuctionManagerOption = Option({
   name: 'auction',
-  describe: 'additionally start auction closing scheduler',
+  description: 'additionally start auction closing scheduler',
   type: 'boolean',
   default: false,
   demandOption: false,
