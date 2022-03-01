@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
-import { Connection, Repository } from 'typeorm';
+import { Connection, EntityManager, Repository } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
 import { v4 as uuid } from 'uuid';
 
@@ -9,16 +9,8 @@ import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { BlockchainBlock, ContractAsk } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { BidStatus } from '../types';
+import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs } from '../types';
 import { DatabaseHelper } from './helpers/database-helper';
-
-type PlaceBidArgs = {
-  collectionId: number;
-  tokenId: number;
-  amount: string;
-  bidderAddress: string;
-  tx: string;
-};
 
 @Injectable()
 export class BidPlacingService {
@@ -121,41 +113,78 @@ export class BidPlacingService {
     }
   }
 
-  private async tryPlacePendingBid(placeBidArgs: PlaceBidArgs): Promise<[ContractAsk, BidEntity]> {
-    const { collectionId, tokenId, bidderAddress } = placeBidArgs;
+  getCalculationInfo(calculateArgs: CalculateArgs, entityManager?: EntityManager): Promise<[CalculationInfo, ContractAsk]> {
+    const { collectionId, tokenId, bidderAddress } = calculateArgs;
 
-    return this.connection.transaction<[ContractAsk, BidEntity]>('REPEATABLE READ', async (transactionEntityManager) => {
-      const databaseHelper = new DatabaseHelper(transactionEntityManager);
-
+    const calculate = async (entityManager: EntityManager): Promise<[CalculationInfo, ContractAsk]> => {
+      const databaseHelper = new DatabaseHelper(entityManager);
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
+
+      const price = BigInt(contractAsk.price);
+      const startPrice = BigInt(contractAsk.auction.startPrice);
       const priceStep = BigInt(contractAsk.auction.priceStep);
-      const isFirstBid = contractAsk.price === contractAsk.auction.startPrice;
-      const currentPendingPrice = isFirstBid
-        ? BigInt(contractAsk.price)
-        : BigInt(contractAsk.price) + BigInt(contractAsk.auction.priceStep);
+      const isFirstBid = price === startPrice;
 
-      const amount = BigInt(placeBidArgs.amount);
+      if (isFirstBid) {
+        return [
+          {
+            contractPendingPrice: startPrice,
+            priceStep,
+            bidderPendingAmount: 0n,
+            minBidderAmount: startPrice,
+          },
+          contractAsk,
+        ];
+      }
 
-      if (priceStep > amount) throw new Error(`Minimum price step is ${priceStep}`);
+      const contractPendingPrice = price + priceStep;
 
-      const userCurrentPendingAmount = await databaseHelper.getUserPendingSum({
+      const bidderPendingAmount = await databaseHelper.getUserPendingSum({
         auctionId: contractAsk.auction.id,
         bidderAddress,
       });
 
-      const userNextPendingAmount = userCurrentPendingAmount + amount;
+      let minBidderAmount = contractPendingPrice - bidderPendingAmount;
 
-      if (userNextPendingAmount < currentPendingPrice) {
-        let bidderTotal = userNextPendingAmount.toString();
-        if (userNextPendingAmount !== amount) bidderTotal += ` (your current balance + this transfer)`;
+      if (minBidderAmount < priceStep) minBidderAmount = priceStep;
 
-        let currentPrice = currentPendingPrice.toString();
-        if (!isFirstBid) currentPrice += ` (price + price min step)`;
+      return [
+        {
+          contractPendingPrice,
+          priceStep,
+          bidderPendingAmount,
+          minBidderAmount,
+        },
+        contractAsk,
+      ];
+    };
 
-        const minAmount = currentPendingPrice - userCurrentPendingAmount;
+    return entityManager ? calculate(entityManager) : this.connection.transaction('REPEATABLE READ', calculate);
+  }
 
-        throw new Error(`You offered ${bidderTotal}, but current price is ${currentPrice}. Minimum amount for you is ${minAmount}`);
+  private async tryPlacePendingBid(placeBidArgs: PlaceBidArgs): Promise<[ContractAsk, BidEntity]> {
+    const { bidderAddress } = placeBidArgs;
+
+    const placeWithTransaction = async (transactionEntityManager: EntityManager): Promise<[ContractAsk, BidEntity]> => {
+      const databaseHelper = new DatabaseHelper(transactionEntityManager);
+
+      const [calculationInfo, contractAsk] = await this.getCalculationInfo(placeBidArgs, transactionEntityManager);
+      const { minBidderAmount, bidderPendingAmount, priceStep } = calculationInfo;
+      const amount = BigInt(placeBidArgs.amount);
+
+      if (amount < priceStep) {
+        throw new BadRequestException(`Min price step is ${priceStep}`);
       }
+
+      if (amount < minBidderAmount) {
+        throw new BadRequestException({
+          ...calculationInfo,
+          amount,
+          message: `Offered bid is not enough`,
+        });
+      }
+
+      const userNextPendingAmount = bidderPendingAmount + amount;
 
       const nextUserBid = transactionEntityManager.create(BidEntity, {
         id: uuid(),
@@ -174,6 +203,8 @@ export class BidPlacingService {
       contractAsk.auction.bids = await databaseHelper.getBids({ auctionId: contractAsk.auction.id });
 
       return [contractAsk, nextUserBid];
-    });
+    };
+
+    return this.connection.transaction<[ContractAsk, BidEntity]>('REPEATABLE READ', placeWithTransaction);
   }
 }

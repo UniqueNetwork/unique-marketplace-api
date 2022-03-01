@@ -1,6 +1,6 @@
 import * as request from 'supertest';
 
-import { AuctionTestEntities, getAuctionTestEntities, placeBid, withdrawBid } from './base';
+import { AuctionTestEntities, calculate, getAuctionTestEntities, placeBid, withdrawBid } from './base';
 
 import { Connection } from 'typeorm';
 import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk } from '../../src/entity';
@@ -101,10 +101,14 @@ describe('Bid placing method', () => {
   }, 30_000);
 
   it('bid placing', async () => {
+    const { buyer, anotherBuyer } = testEntities.actors;
+
     let offer = await fetchOffer();
 
-    const { buyer, anotherBuyer } = testEntities.actors;
-    let amount = BigInt(offer.price);
+    let calculationResponse = await calculate(testEntities, collectionId, tokenId, buyer.kusamaAddress);
+    expect(calculationResponse.body).toMatchObject({ minBidderAmount: '20' });
+
+    let amount: bigint;
 
     let withdrawBidResponse = await withdrawBid(testEntities, collectionId, tokenId, buyer.keyring, buyer.kusamaAddress);
     expect(withdrawBidResponse.status).toEqual(200);
@@ -112,8 +116,14 @@ describe('Bid placing method', () => {
     withdrawBidResponse = await withdrawBid(testEntities, collectionId, tokenId, buyer.keyring, buyer.kusamaAddress);
     expect(withdrawBidResponse.status).toEqual(400);
 
+    calculationResponse = await calculate(testEntities, collectionId, tokenId, buyer.kusamaAddress);
+    expect(calculationResponse.body).toMatchObject({ minBidderAmount: '120' });
+
+    calculationResponse = await calculate(testEntities, collectionId, tokenId, anotherBuyer.kusamaAddress);
+    expect(calculationResponse.body).toMatchObject({ minBidderAmount: '120' });
+
+    amount = BigInt(calculationResponse.body.minBidderAmount) - 1n;
     let placedBidResponse = await placeBid(testEntities, collectionId, tokenId, amount.toString(), anotherBuyer.keyring);
-    expect(placedBidResponse.body.message).toMatch(/but current price is/);
     expect(placedBidResponse.status).toEqual(400);
 
     amount = BigInt(offer.price) + BigInt(offer.auction.priceStep);

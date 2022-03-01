@@ -1,11 +1,13 @@
-import { Body, Controller, Delete, Post, Query, Req, Headers, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Headers, Post, Query, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { BidPlacingService } from './services/bid-placing.service';
 import {
-  CreateAuctionRequestDto,
+  CalculationInfoResponseDto,
+  CalculationRequestDto,
   CancelAuctionQueryDto,
+  CreateAuctionRequestDto,
   PlaceBidRequestDto,
   WithdrawBidQueryDto,
 } from './requests';
@@ -13,7 +15,7 @@ import { OfferContractAskDto } from '../offers/dto/offer-dto';
 import { TxDecoder } from './services/helpers/tx-decoder';
 import { SignatureVerifier } from './services/helpers/signature-verifier';
 import { AuctionCancellingService } from './services/auction-cancelling.service';
-import { BidWithdrawService } from "./services/bid-withdraw.service";
+import { BidWithdrawService } from './services/bid-withdraw.service';
 
 @ApiTags('Auction')
 @Controller('auction')
@@ -48,6 +50,13 @@ export class AuctionController {
       bidderAddress: txInfo.signerAddress,
       amount: txInfo.args.value,
     });
+  }
+
+  @Post('calculate')
+  async calculate(@Body() calculationRequest: CalculationRequestDto): Promise<CalculationInfoResponseDto> {
+    const [calculationInfo] = await this.bidPlacingService.getCalculationInfo(calculationRequest);
+
+    return CalculationInfoResponseDto.fromCalculationInfo(calculationInfo);
   }
 
   @Delete('cancel_auction')

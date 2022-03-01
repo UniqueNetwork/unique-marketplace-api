@@ -7,19 +7,19 @@ import { INestApplication } from '@nestjs/common';
 
 import { ExtrinsicSubmitter } from '../../src/auction/services/helpers/extrinsic-submitter';
 import * as util from '../../src/utils/blockchain/util';
+import { convertAddress } from '../../src/utils/blockchain/util';
 import { initApp, runMigrations } from '../data';
 import { CreateAuctionRequest, PlaceBidRequest } from '../../src/auction/requests';
 import { MarketConfig } from '../../src/config/market-config';
 import { connect as connectSocket, Socket } from 'socket.io-client';
-import { ServerToClientEvents, ClientToServerEvents } from '../../src/broadcast/types';
-import {convertAddress} from "../../src/utils/blockchain/util";
-import { u8aToHex } from "@polkadot/util";
+import { ClientToServerEvents, ServerToClientEvents } from '../../src/broadcast/types';
+import { u8aToHex } from '@polkadot/util';
 
 type Actor = {
   keyring: KeyringPair;
   kusamaAddress: string;
   uniqueAddress: string;
-}
+};
 
 export type AuctionTestEntities = {
   app: INestApplication;
@@ -180,4 +180,17 @@ export const withdrawBid = async (
       'x-polkadot-signer': address || signer.address,
     })
     .send();
-}
+};
+
+export const calculate = async (
+  testEntities: AuctionTestEntities,
+  collectionId: string,
+  tokenId: string,
+  bidderAddress?: string,
+): Promise<request.Test> => {
+  return request(testEntities.app.getHttpServer()).post(`/auction/calculate`).send({
+    collectionId,
+    tokenId,
+    bidderAddress,
+  });
+};
