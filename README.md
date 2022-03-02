@@ -120,6 +120,14 @@ CONTRACT_ADDRESS: '0x74C2d83b868f7E7B7C02B7D0b87C3532a06f392c'
 ```shell
 $ docker-compose up -d
 ```
+#### Step 7: Сheck installation
+
+You can check your installation by running:
+
+```shell
+$ docker exec marketplace-api node dist/cli.js playground check_config
+```
+
 
 ### Check running application
 
