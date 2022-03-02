@@ -1,6 +1,4 @@
-import * as request from 'supertest';
-
-import { AuctionTestEntities, calculate, getAuctionTestEntities, placeBid, withdrawBid } from './base';
+import { AuctionTestEntities, calculate, getAuctionTestEntities, placeBid, withdrawBid, fetchOffer } from './base';
 
 import { Connection } from 'typeorm';
 import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk } from '../../src/entity';
@@ -9,14 +7,12 @@ import { ASK_STATUS } from '../../src/escrow/constants';
 import { v4 as uuid } from 'uuid';
 import { AuctionStatus, Bid, BidStatus } from '../../src/auction/types';
 import { DateHelper } from '../../src/utils/date-helper';
-import { OfferContractAskDto } from '../../src/offers/dto/offer-dto';
 
 describe('Bid placing method', () => {
   const collectionId = '222';
   const tokenId = '333';
 
   let testEntities: AuctionTestEntities;
-  let fetchOffer: () => Promise<OfferContractAskDto>;
 
   beforeAll(async () => {
     testEntities = await getAuctionTestEntities();
@@ -79,12 +75,6 @@ describe('Bid placing method', () => {
         status: BidStatus.finished,
       },
     ] as Bid[]);
-
-    fetchOffer = async () => {
-      return request(testEntities.app.getHttpServer())
-        .get(`/offer/${collectionId}/${tokenId}`)
-        .then((response) => response.body as OfferContractAskDto);
-    };
   });
 
   afterAll(async () => {
@@ -92,7 +82,7 @@ describe('Bid placing method', () => {
   });
 
   it('fetching multiple bids', async () => {
-    const offer = await fetchOffer();
+    const offer = await fetchOffer(testEntities, collectionId, tokenId);
 
     expect(offer).toBeDefined();
     expect(offer.auction).toBeDefined();
@@ -103,7 +93,7 @@ describe('Bid placing method', () => {
   it('bid placing', async () => {
     const { buyer, anotherBuyer } = testEntities.actors;
 
-    let offer = await fetchOffer();
+    let offer = await fetchOffer(testEntities, collectionId, tokenId);
 
     let calculationResponse = await calculate(testEntities, collectionId, tokenId, buyer.kusamaAddress);
     expect(calculationResponse.body).toMatchObject({ minBidderAmount: '20' });
@@ -149,7 +139,7 @@ describe('Bid placing method', () => {
     placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '80', anotherBuyer.keyring);
     expect(placedBidResponse.status).toEqual(201);
 
-    offer = await fetchOffer();
+    offer = await fetchOffer(testEntities, collectionId, tokenId);
     expect(offer.price).toEqual('210'.toString());
   }, 30_000);
 });

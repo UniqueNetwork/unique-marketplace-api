@@ -1,26 +1,26 @@
-import {BadRequestException, Inject, Injectable, Logger} from "@nestjs/common";
-import { AuctionStatus} from "../types";
-import { Connection, Repository} from "typeorm";
-import { AuctionEntity} from "../entities";
-import { BroadcastService} from "../../broadcast/services/broadcast.service";
-import { BlockchainBlock, ContractAsk} from "../../entity";
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import { AuctionStatus } from '../types';
+import { Connection, Repository } from 'typeorm';
+import { AuctionEntity } from '../entities';
+import { BroadcastService } from '../../broadcast/services/broadcast.service';
+import { BlockchainBlock, ContractAsk } from '../../entity';
 import { v4 as uuid } from 'uuid';
-import { ASK_STATUS } from "../../escrow/constants";
-import { OfferContractAskDto } from "../../offers/dto/offer-dto";
-import { ApiPromise } from "@polkadot/api";
-import { DateHelper } from "../../utils/date-helper";
-import { ExtrinsicSubmitter } from "./helpers/extrinsic-submitter";
-import { MarketConfig } from "../../config/market-config";
+import { ASK_STATUS } from '../../escrow/constants';
+import { OfferContractAskDto } from '../../offers/dto/offer-dto';
+import { ApiPromise } from '@polkadot/api';
+import { DateHelper } from '../../utils/date-helper';
+import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
+import { MarketConfig } from '../../config/market-config';
 
 type CreateAuctionArgs = {
   collectionId: string;
   tokenId: string;
-  ownerAddress: string,
+  ownerAddress: string;
   days: number;
-  startPrice: string
+  startPrice: string;
   priceStep: string;
   tx: string;
-}
+};
 
 @Injectable()
 export class AuctionCreationService {

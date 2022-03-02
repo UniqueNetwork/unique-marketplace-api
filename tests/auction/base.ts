@@ -14,6 +14,7 @@ import { MarketConfig } from '../../src/config/market-config';
 import { connect as connectSocket, Socket } from 'socket.io-client';
 import { ClientToServerEvents, ServerToClientEvents } from '../../src/broadcast/types';
 import { u8aToHex } from '@polkadot/util';
+import {OfferContractAskDto} from "../../src/offers/dto/offer-dto";
 
 type Actor = {
   keyring: KeyringPair;
@@ -47,7 +48,7 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
   let extrinsicSubmitterCounter = 0n;
 
   const extrinsicSubmitter = {
-    submit() {
+    submit: jest.fn().mockImplementation(() => {
       const result = {
         isSucceed: true,
         blockNumber: extrinsicSubmitterCounter++,
@@ -56,7 +57,7 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
       return new Promise((resolve) => {
         setTimeout(() => resolve(result), 1000);
       });
-    },
+    }),
   } as unknown as ExtrinsicSubmitter;
 
   const configPart: Partial<MarketConfig> = {
@@ -193,4 +194,14 @@ export const calculate = async (
     tokenId,
     bidderAddress,
   });
+};
+
+export const fetchOffer = (
+  testEntities: AuctionTestEntities,
+  collectionId: string,
+  tokenId: string,
+): Promise<OfferContractAskDto> => {
+  return request(testEntities.app.getHttpServer())
+    .get(`/offer/${collectionId}/${tokenId}`)
+    .then((response) => response.body as OfferContractAskDto);
 };

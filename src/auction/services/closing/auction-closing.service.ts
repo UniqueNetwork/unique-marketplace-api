@@ -59,7 +59,7 @@ export class AuctionClosingService {
     await Promise.all(withdrawsPromises);
   }
 
-  private async processAuctionWithdraws(auction: AuctionEntity): Promise<void> {
+  async processAuctionWithdraws(auction: AuctionEntity): Promise<void> {
     const databaseHelper = await new DatabaseHelper(this.connection.manager);
     await this.auctionRepository.update(auction.id, { status: AuctionStatus.withdrawing });
 
@@ -67,6 +67,9 @@ export class AuctionClosingService {
       auctionId: auction.id,
       bidStatuses: [BidStatus.finished],
     });
+
+    const contractAsk = await this.contractAskRepository.findOne(auction.contractAskId);
+    const { address_from } = contractAsk;
 
     // force withdraw bids for all except winner
     await Promise.all(
@@ -83,17 +86,14 @@ export class AuctionClosingService {
       }),
     );
 
-    const contractAsk = await this.contractAskRepository.findOne(auction.contractAskId);
-    const { address_from } = contractAsk;
-
     if (winner) {
       const { bidderAddress: winnerAddress, totalAmount: finalPrice } = winner;
 
-      const marketFee = (finalPrice * 100n) / BigInt(this.config.auction.commission);
+      const marketFee = finalPrice * BigInt(this.config.auction.commission) / 100n;
       const ownerPrice = finalPrice - marketFee;
 
       let message = AuctionClosingService.getIdentityMessage(contractAsk, winnerAddress, finalPrice);
-      message += `is winner;\n`;
+      message += ` is winner;\n`;
       message += `going to send ${ownerPrice} to owner (${address_from});\n`;
       message += `market fee is ${marketFee};\n`;
       this.logger.log(message);
@@ -123,7 +123,12 @@ export class AuctionClosingService {
     try {
       const { collection_id, token_id } = contractAsk;
 
-      const tx = await this.uniqueApi.tx.unique.transfer(winnerAddress, collection_id, token_id, 1).signAsync(this.auctionKeyring);
+      const tx = await this.uniqueApi.tx.unique.transfer(
+        { Substrate: winnerAddress },
+        collection_id,
+        token_id,
+        1,
+      ).signAsync(this.auctionKeyring);
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 

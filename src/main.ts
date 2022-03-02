@@ -1,4 +1,4 @@
-import { INestApplication, Logger, ShutdownSignal, ValidationPipe } from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { expressMiddleware as prometheusMiddleware } from 'prometheus-api-metrics';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';

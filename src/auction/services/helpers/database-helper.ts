@@ -1,4 +1,4 @@
-import { EntityManager, MoreThan, MoreThanOrEqual, SelectQueryBuilder, Any } from 'typeorm';
+import { EntityManager, MoreThan, LessThanOrEqual, SelectQueryBuilder, Any } from 'typeorm';
 import { AuctionEntity, BidEntity, ContractAsk } from '../../../entity';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { AuctionStatus, BidStatus } from '../../types';
@@ -27,6 +27,10 @@ export class DatabaseHelper {
   constructor(private readonly entityManager: EntityManager) {}
 
   async getActiveAuctionContract(filter: ContractFilter): Promise<ContractAsk> {
+    return this.getAuctionContract(filter, [AuctionStatus.active]);
+  }
+
+  async getAuctionContract(filter: ContractFilter, auctionStatuses: AuctionStatus[]): Promise<ContractAsk> {
     const { collectionId, tokenId } = filter;
 
     const contractAsk = await this.entityManager.findOne(ContractAsk, {
@@ -37,7 +41,7 @@ export class DatabaseHelper {
     if (!contractAsk) throw new Error('no offer');
     if (!contractAsk.auction) throw new Error('no auction');
 
-    if (contractAsk.auction.status !== AuctionStatus.active) {
+    if (!auctionStatuses.includes(contractAsk.auction.status)) {
       throw new Error(`Current auction status is ${contractAsk.auction.status}`);
     }
 
@@ -48,10 +52,8 @@ export class DatabaseHelper {
     await this.entityManager.update(
       AuctionEntity,
       {
-        where: {
-          status: AuctionStatus.active,
-          stopAt: MoreThanOrEqual(new Date()),
-        }
+        status: AuctionStatus.active,
+        stopAt: LessThanOrEqual(new Date()),
       },
       {
         status: AuctionStatus.stopped,
