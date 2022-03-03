@@ -168,10 +168,10 @@ export class BidPlacingService {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
 
       const [calculationInfo, contractAsk] = await this.getCalculationInfo(placeBidArgs, transactionEntityManager);
-      const { minBidderAmount, bidderPendingAmount, priceStep } = calculationInfo;
+      const { minBidderAmount, bidderPendingAmount, priceStep, contractPendingPrice } = calculationInfo;
       const amount = BigInt(placeBidArgs.amount);
 
-      if (amount < priceStep) {
+      if ((contractPendingPrice >= priceStep) && (amount < priceStep)) {
         throw new BadRequestException(`Min price step is ${priceStep}`);
       }
 
