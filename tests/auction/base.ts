@@ -177,8 +177,7 @@ export const withdrawBid = async (
   return request(testEntities.app.getHttpServer())
     .delete(`/auction/withdraw_bid?${query}`)
     .set({
-      'x-polkadot-signature': u8aToHex(signature),
-      'x-polkadot-signer': address || signer.address,
+      'Authorization': `${address || signer.address}:${u8aToHex(signature)}`,
     })
     .send();
 };

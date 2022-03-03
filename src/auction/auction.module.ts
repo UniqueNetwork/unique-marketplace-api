@@ -1,5 +1,4 @@
-import { Inject, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { Response } from 'express';
+import { Module } from '@nestjs/common';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidPlacingService } from './services/bid-placing.service';
@@ -14,7 +13,6 @@ import { AuctionClosingScheduler } from './services/closing/auction-closing.sche
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuctionClosingService } from './services/closing/auction-closing.service';
 import { ForceClosingService } from './services/closing/force-closing.service';
-import { MarketConfig } from '../config/market-config';
 
 @Module({
   imports: [ConfigModule, ScheduleModule.forRoot()],
@@ -35,17 +33,4 @@ import { MarketConfig } from '../config/market-config';
   controllers: [AuctionController],
   exports: ['KUSAMA_API', 'UNIQUE_API', AuctionClosingScheduler],
 })
-export class AuctionModule implements NestModule {
-  constructor(@Inject('CONFIG') private config: MarketConfig) {}
-
-  configure(consumer: MiddlewareConsumer) {
-    if (!this.config.auction.seed) return;
-
-    consumer
-      .apply(function (req, res: Response, next) {
-        res.append('access-control-allow-headers', 'x-polkadot-signature,x-polkadot-signer');
-        next();
-      })
-      .forRoutes('/auction/');
-  }
-}
+export class AuctionModule {}

@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Delete, Headers, Post, Query, Req } from '@nestjs/common';
-import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags, ApiHeader } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { BidPlacingService } from './services/bid-placing.service';
@@ -17,6 +17,14 @@ import { SignatureVerifier } from './services/helpers/signature-verifier';
 import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidWithdrawService } from './services/bid-withdraw.service';
 import { ForceClosingService } from './services/closing/force-closing.service';
+
+const WithSignature = ApiHeader({
+  name: 'Authorization',
+  allowEmptyValue: false,
+  example: 'address:signature',
+  description: 'address:signature',
+})
+
 
 @ApiTags('Auction')
 @Controller('auction')
@@ -66,14 +74,14 @@ export class AuctionController {
 
   @Delete('cancel_auction')
   @ApiResponse({ type: OfferContractAskDto })
+  @WithSignature
   async cancelAuction(
     @Query() query: CancelAuctionQueryDto,
-    @Headers('x-polkadot-signature') signature: string,
-    @Headers('x-polkadot-signer') signerAddress: string,
+    @Headers('Authorization') authorization = '',
     @Req() req: Request,
   ): Promise<OfferContractAskDto> {
     AuctionController.checkRequestTimestamp(query.timestamp);
-
+    const [signerAddress = '', signature = ''] = authorization.split(':');
     const queryString = req.originalUrl.split('?')[1];
 
     await this.signatureVerifier.verify({
@@ -90,14 +98,14 @@ export class AuctionController {
   }
 
   @Delete('withdraw_bid')
+  @WithSignature
   async withdrawBid(
     @Query() query: WithdrawBidQueryDto,
-    @Headers('x-polkadot-signature') signature: string,
-    @Headers('x-polkadot-signer') signerAddress: string,
+    @Headers('Authorization') authorization = '',
     @Req() req: Request,
   ): Promise<void> {
     AuctionController.checkRequestTimestamp(query.timestamp);
-
+    const [signerAddress = '', signature = ''] = authorization.split(':');
     const queryString = req.originalUrl.split('?')[1];
 
     await this.signatureVerifier.verify({
