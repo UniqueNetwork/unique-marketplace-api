@@ -14,7 +14,7 @@ import { MarketConfig } from '../../src/config/market-config';
 import { connect as connectSocket, Socket } from 'socket.io-client';
 import { ClientToServerEvents, ServerToClientEvents } from '../../src/broadcast/types';
 import { u8aToHex } from '@polkadot/util';
-import {OfferContractAskDto} from "../../src/offers/dto/offer-dto";
+import { OfferContractAskDto} from "../../src/offers/dto/offer-dto";
 
 type Actor = {
   keyring: KeyringPair;

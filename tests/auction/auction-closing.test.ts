@@ -9,6 +9,8 @@ import { AuctionStatus, Bid, BidStatus } from '../../src/auction/types';
 import { AuctionClosingService } from '../../src/auction/services/closing/auction-closing.service';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { TxDecoder } from '../../src/auction/services/helpers/tx-decoder';
+import * as request from 'supertest';
+import { DateHelper } from '../../src/utils/date-helper';
 
 describe('Bid placing method', () => {
   const collectionId = '223';
@@ -75,8 +77,8 @@ describe('Bid placing method', () => {
       contractAskId: offerId,
       startPrice: '10',
       priceStep: '10',
-      status: AuctionStatus.active,
-      stopAt: new Date(),
+      status: AuctionStatus.created,
+      stopAt: DateHelper.addDays(2),
     });
 
     await bidsRepository.save([
@@ -103,9 +105,23 @@ describe('Bid placing method', () => {
       },
       {
         auctionId,
+        amount: '-30',
+        balance: '0',
+        bidderAddress: testEntities.actors.seller.kusamaAddress,
+        status: BidStatus.finished,
+      },
+      {
+        auctionId,
         amount: '100',
         balance: '100',
         bidderAddress: testEntities.actors.buyer.kusamaAddress,
+        status: BidStatus.finished,
+      },
+      {
+        auctionId,
+        amount: '30',
+        balance: '30',
+        bidderAddress: testEntities.actors.seller.kusamaAddress,
         status: BidStatus.finished,
       },
       {
@@ -128,9 +144,15 @@ describe('Bid placing method', () => {
     const connection = testEntities.app.get<Connection>('DATABASE_CONNECTION');
     const activeAuction = await connection.manager.findOne(AuctionEntity);
 
+    await request(testEntities.app.getHttpServer())
+      .delete(`/auction/force_close_auction_for_test?collectionId=${collectionId}&tokenId=${tokenId}`)
+      .send();
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     await auctionClosingService.auctionsStoppingIntervalHandler();
     const stoppedAuction = await connection.manager.findOne(AuctionEntity);
-    expect(stoppedAuction).toEqual({ ...activeAuction, status: AuctionStatus.stopped });
+    expect(stoppedAuction).toEqual({ ...activeAuction, status: AuctionStatus.stopped, stopAt: expect.any(Date) });
 
     await auctionClosingService.auctionsWithdrawingIntervalHandler();
 
@@ -171,7 +193,7 @@ describe('Bid placing method', () => {
         isSigned: true,
         method: 'transfer',
         section: 'unique',
-        signerAddress: market.keyring.address,
+        signerAddress: market.uniqueAddress,
       },
       {
         args: {
