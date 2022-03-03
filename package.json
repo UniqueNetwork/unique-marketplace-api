@@ -16,7 +16,7 @@
     "test": "jest --config tests/jest.config.json --detectOpenHandles",
     "test:escrow": "jest --config tests/jest.config.json --detectOpenHandles tests/escrow.unique.test.ts",
     "test:watch": "jest --config tests/jest.config.json --watch --detectOpenHandles",
-    "escrow:kusama": "node dist/cli.js start_escrow kusama",
+    "escrow:kusama": "node dist/cli.js start_escrow kusama --auction",
     "escrow:unique": "node dist/cli.js start_escrow unique",
     "playground": "npx nestjs-command playground",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/.bin/typeorm --config src/database/connection-options.ts",
