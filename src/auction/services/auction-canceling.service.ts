@@ -18,8 +18,8 @@ type AuctionCancelArgs = {
   ownerAddress: string;
 };
 
-export class AuctionCancellingService {
-  private readonly logger = new Logger(AuctionCancellingService.name);
+export class AuctionCancelingService {
+  private readonly logger = new Logger(AuctionCancelingService.name);
 
   private readonly blockchainBlockRepository: Repository<BlockchainBlock>;
   private readonly contractAskRepository: Repository<ContractAsk>;
@@ -81,7 +81,12 @@ export class AuctionCancellingService {
       const { address_from, collection_id, token_id } = contractAsk;
       const auctionKeyring = this.auctionCredentials.keyring;
 
-      const tx = await this.uniqueApi.tx.unique.transfer(address_from, collection_id, token_id, 1).signAsync(auctionKeyring);
+      const tx = await this.uniqueApi.tx.unique.transfer(
+        { Substrate: address_from },
+        collection_id,
+        token_id,
+        1,
+      ).signAsync(auctionKeyring);
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 

@@ -5,16 +5,16 @@ import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk } from '../../sr
 import { ASK_STATUS } from '../../src/escrow/constants';
 
 import { v4 as uuid } from 'uuid';
-import { AuctionStatus, Bid, BidStatus } from '../../src/auction/types';
+import { AuctionStatus } from '../../src/auction/types';
 import { AuctionClosingService } from '../../src/auction/services/closing/auction-closing.service';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { TxDecoder } from '../../src/auction/services/helpers/tx-decoder';
 import * as request from 'supertest';
 import { DateHelper } from '../../src/utils/date-helper';
 
-describe('Auction closing', () => {
-  const collectionId = '223';
-  const tokenId = '334';
+describe('Auction cancelling', () => {
+  const collectionId = '224';
+  const tokenId = '335';
 
   let testEntities: AuctionTestEntities;
   let tryParseTx: (tx: SubmittableExtrinsic<any>) => Record<string, any>;
@@ -80,58 +80,6 @@ describe('Auction closing', () => {
       status: AuctionStatus.created,
       stopAt: DateHelper.addDays(2),
     });
-
-    await bidsRepository.save([
-      {
-        auctionId,
-        amount: '20',
-        balance: '120',
-        bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        status: BidStatus.finished,
-      },
-      {
-        auctionId,
-        amount: '20',
-        balance: '120',
-        bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        status: BidStatus.error,
-      },
-      {
-        auctionId,
-        amount: '100',
-        balance: '110',
-        bidderAddress: testEntities.actors.anotherBuyer.kusamaAddress,
-        status: BidStatus.finished,
-      },
-      {
-        auctionId,
-        amount: '-30',
-        balance: '0',
-        bidderAddress: testEntities.actors.seller.kusamaAddress,
-        status: BidStatus.finished,
-      },
-      {
-        auctionId,
-        amount: '100',
-        balance: '100',
-        bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        status: BidStatus.finished,
-      },
-      {
-        auctionId,
-        amount: '30',
-        balance: '30',
-        bidderAddress: testEntities.actors.seller.kusamaAddress,
-        status: BidStatus.finished,
-      },
-      {
-        auctionId,
-        amount: '10',
-        balance: '10',
-        bidderAddress: testEntities.actors.anotherBuyer.kusamaAddress,
-        status: BidStatus.finished,
-      },
-    ] as Bid[]);
   });
 
   afterAll(async () => {
@@ -156,37 +104,18 @@ describe('Auction closing', () => {
 
     await auctionClosingService.auctionsWithdrawingIntervalHandler();
 
-    const endedAuction = await connection.manager.findOne(AuctionEntity);
-    expect(endedAuction).toEqual({ ...stoppedAuction, status: AuctionStatus.ended });
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    expect(testEntities.extrinsicSubmitter.submit).toHaveBeenCalledTimes(3);
-    const lastBid = await connection.manager.findOne(BidEntity, { order: { createdAt: 'DESC' } });
-    expect(lastBid).toMatchObject({
-      bidderAddress: anotherBuyer.kusamaAddress,
-      amount: '-110',
-    } as Partial<BidEntity>);
-
+    expect(testEntities.extrinsicSubmitter.submit).toHaveBeenCalledTimes(1);
     const submittedExtrinsics = (testEntities.extrinsicSubmitter.submit as jest.Mock).mock.calls.map((args) => tryParseTx(args[1]));
 
     expect(submittedExtrinsics).toEqual([
       {
         args: {
-          dest: {
-            id: anotherBuyer.kusamaAddress,
-          },
-          value: '110',
-        },
-        isSigned: true,
-        method: 'transferKeepAlive',
-        section: 'balances',
-        signerAddress: market.kusamaAddress,
-      },
-      {
-        args: {
           collection_id: collectionId,
           item_id: tokenId,
           recipient: {
-            substrate: buyer.uniqueAddress,
+            substrate: seller.uniqueAddress,
           },
           value: '1',
         },
@@ -194,18 +123,6 @@ describe('Auction closing', () => {
         method: 'transfer',
         section: 'unique',
         signerAddress: market.uniqueAddress,
-      },
-      {
-        args: {
-          dest: {
-            id: seller.kusamaAddress,
-          },
-          value: '108',
-        },
-        isSigned: true,
-        method: 'transferKeepAlive',
-        section: 'balances',
-        signerAddress: market.kusamaAddress,
       },
     ]);
   }, 30_000);

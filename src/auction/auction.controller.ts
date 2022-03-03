@@ -14,7 +14,7 @@ import {
 import { OfferContractAskDto } from '../offers/dto/offer-dto';
 import { TxDecoder } from './services/helpers/tx-decoder';
 import { SignatureVerifier } from './services/helpers/signature-verifier';
-import { AuctionCancellingService } from './services/auction-cancelling.service';
+import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidWithdrawService } from './services/bid-withdraw.service';
 import { ForceClosingService } from './services/closing/force-closing.service';
 
@@ -23,7 +23,7 @@ import { ForceClosingService } from './services/closing/force-closing.service';
 export class AuctionController {
   constructor(
     private readonly auctionCreationService: AuctionCreationService,
-    private readonly auctionCancellingService: AuctionCancellingService,
+    private readonly auctionCancellingService: AuctionCancelingService,
     private readonly bidPlacingService: BidPlacingService,
     private readonly bidWithdrawService: BidWithdrawService,
     private readonly txDecoder: TxDecoder,

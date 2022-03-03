@@ -7,7 +7,7 @@ import { BlockchainBlock, ContractAsk } from '../../../entity';
 import { DatabaseHelper } from '../helpers/database-helper';
 import { AuctionStatus, BidStatus } from '../../types';
 import { BidWithdrawService } from '../bid-withdraw.service';
-import { AuctionCancellingService } from '../auction-cancelling.service';
+import { AuctionCancelingService } from '../auction-canceling.service';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { ExtrinsicSubmitter } from '../helpers/extrinsic-submitter';
 import { MarketConfig } from '../../../config/market-config';
@@ -30,7 +30,7 @@ export class AuctionClosingService {
     @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
     private broadcastService: BroadcastService,
     private bidWithdrawService: BidWithdrawService,
-    private auctionCancellingService: AuctionCancellingService,
+    private auctionCancellingService: AuctionCancelingService,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @Inject('CONFIG') private config: MarketConfig,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuctionCreationService } from './services/auction-creation.service';
-import { AuctionCancellingService } from './services/auction-cancelling.service';
+import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidPlacingService } from './services/bid-placing.service';
 import { BidWithdrawService } from './services/bid-withdraw.service';
 import { AuctionController } from './auction.controller';
@@ -23,7 +23,7 @@ import { ForceClosingService } from './services/closing/force-closing.service';
     TxDecoder,
     SignatureVerifier,
     AuctionCreationService,
-    AuctionCancellingService,
+    AuctionCancelingService,
     BidPlacingService,
     BidWithdrawService,
     AuctionClosingService,
