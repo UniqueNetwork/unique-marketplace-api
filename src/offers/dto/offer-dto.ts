@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ContractAsk } from "../../entity";
-import {Auction, AuctionStatus, Bid, BidStatus} from "../../auction/types";
-import { Exclude, Type, plainToInstance, Expose } from 'class-transformer'
+import { ContractAsk } from '../../entity';
+import { Auction, AuctionStatus, Bid, BidStatus } from '../../auction/types';
+import { Exclude, Expose, plainToInstance, Type } from 'class-transformer';
 
 class AuctionDto implements Auction {
   @Exclude() id: string;
@@ -33,45 +33,47 @@ class BidDto implements Bid {
 
 
 export class OfferContractAskDto {
-    @ApiProperty({ description: 'Collection ID' })
-    @Expose()
-    collectionId: number;
-    @ApiProperty({ description: 'Token ID' })
-    @Expose()
-    tokenId: number;
-    @ApiProperty({ description: 'Price' })
-    @Expose()
-    price: string;
-    @ApiProperty({ description: 'Contract ask currency' })
-    @Expose()
-    quoteId: number;
-    @ApiProperty({ description: 'Contract ask from' })
-    @Expose()
-    seller: string;
-    @ApiProperty({ description: 'Date blockchain block created' })
-    @Expose()
-    creationDate: Date;
+  @ApiProperty({ description: 'Collection ID' })
+  @Expose()
+  collectionId: number;
+  @ApiProperty({ description: 'Token ID' })
+  @Expose()
+  tokenId: number;
+  @ApiProperty({ description: 'Price' })
+  @Expose()
+  price: string;
+  @ApiProperty({ description: 'Contract ask currency' })
+  @Expose()
+  quoteId: number;
+  @ApiProperty({ description: 'Contract ask from' })
+  @Expose()
+  seller: string;
+  @ApiProperty({ description: 'Date blockchain block created' })
+  @Expose()
+  creationDate: Date;
 
-    @ApiProperty({ required: false })
-    @Expose()
-    @Type(() => AuctionDto)
-    auction?: AuctionDto;
+  @ApiProperty({ required: false })
+  @Expose()
+  @Type(() => AuctionDto)
+  auction?: AuctionDto;
 
-    static fromContractAsk(contractAsk: ContractAsk): OfferContractAskDto {
-      const plain: Record<string, any> = {
-        ...contractAsk,
-        collectionId: +contractAsk.collection_id,
-        tokenId: +contractAsk.token_id,
-        price: contractAsk.price.toString(),
-        quoteId: +contractAsk.currency,
-        seller: contractAsk.address_from,
-        creationDate: contractAsk.created_at,
-      };
+  static fromContractAsk(contractAsk: ContractAsk): OfferContractAskDto {
+    const plain: Record<string, any> = {
+      ...contractAsk,
+      collectionId: +contractAsk.collection_id,
+      tokenId: +contractAsk.token_id,
+      price: contractAsk.price.toString(),
+      quoteId: +contractAsk.currency,
+      seller: contractAsk.address_from,
+      creationDate: contractAsk.created_at,
+    };
 
-      return plainToInstance<OfferContractAskDto, Record<string, any>>(
-        OfferContractAskDto,
-        plain,
-        { excludeExtraneousValues: true },
-      );
+    if (contractAsk?.auction?.bids?.length) {
+      contractAsk.auction.bids = contractAsk.auction.bids.sort((a, b) => {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
     }
+
+    return plainToInstance<OfferContractAskDto, Record<string, any>>(OfferContractAskDto, plain, { excludeExtraneousValues: true });
+  }
 }
