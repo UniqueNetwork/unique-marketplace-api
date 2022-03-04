@@ -1,6 +1,8 @@
-import { BadRequestException, Body, Controller, Delete, Headers, Post, Query, Req } from '@nestjs/common';
+import { ApiPromise } from '@polkadot/api';
+import { BadRequestException, Body, Controller, Delete, Headers, Inject, Post, Query, Req } from '@nestjs/common';
 import { ApiHeader, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import { convertAddress } from '../utils/blockchain/util';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { BidPlacingService } from './services/bid-placing.service';
 import {
@@ -34,6 +36,8 @@ export class AuctionController {
     private readonly bidWithdrawService: BidWithdrawService,
     private readonly txDecoder: TxDecoder,
     private readonly signatureVerifier: SignatureVerifier,
+    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
+    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
   ) {}
 
   @Post('create_auction')
@@ -64,7 +68,9 @@ export class AuctionController {
   @Post('calculate')
   @ApiResponse({ type: CalculationInfoResponseDto })
   async calculate(@Body() calculationRequest: CalculationRequestDto): Promise<CalculationInfoResponseDto> {
-    const [calculationInfo] = await this.bidPlacingService.getCalculationInfo(calculationRequest);
+    const bidderAddress = await convertAddress(calculationRequest.bidderAddress, this.kusamaApi.registry.chainSS58);
+
+    const [calculationInfo] = await this.bidPlacingService.getCalculationInfo({ ...calculationRequest, bidderAddress });
 
     return CalculationInfoResponseDto.fromCalculationInfo(calculationInfo);
   }
@@ -87,20 +93,18 @@ export class AuctionController {
       signerAddress,
     });
 
+    const ownerAddress = await convertAddress(signerAddress, this.uniqueApi.registry.chainSS58);
+
     return await this.auctionCancellingService.tryCancelAuction({
       collectionId: query.collectionId,
       tokenId: query.tokenId,
-      ownerAddress: signerAddress,
+      ownerAddress,
     });
   }
 
   @Delete('withdraw_bid')
   @WithSignature
-  async withdrawBid(
-    @Query() query: WithdrawBidQueryDto,
-    @Headers('Authorization') authorization = '',
-    @Req() req: Request,
-  ): Promise<void> {
+  async withdrawBid(@Query() query: WithdrawBidQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<void> {
     AuctionController.checkRequestTimestamp(query.timestamp);
     const [signerAddress = '', signature = ''] = authorization.split(':');
     const queryString = req.originalUrl.split('?')[1];
@@ -111,10 +115,12 @@ export class AuctionController {
       signerAddress,
     });
 
+    const bidderAddress = await convertAddress(signerAddress, this.kusamaApi.registry.chainSS58);
+
     await this.bidWithdrawService.withdrawBidByBidder({
       collectionId: query.collectionId,
       tokenId: query.tokenId,
-      bidderAddress: signerAddress,
+      bidderAddress,
     });
   }
 
