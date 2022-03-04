@@ -175,8 +175,7 @@ export class TradesService {
     if (nullOrWhitespace(accountId)) {
       return query;
     }
-
-    return query.andWhere('trade.address_seller = :accountId OR trade.address_buyer = :accountId', { accountId: accountId });
+    return query.andWhere('(trade.address_seller = :accountId OR trade.address_buyer = :accountId)', { accountId: accountId });
   }
   public get isConnected(): boolean {
     return true;
