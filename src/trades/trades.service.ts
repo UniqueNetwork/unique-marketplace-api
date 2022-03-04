@@ -38,7 +38,7 @@ export class TradesService {
    */
   async get(
     collectionIds: number[] | undefined,
-    seller: string | undefined,
+    accountId: string | undefined,
     paginationRequest: PaginationRequest,
     sort: TradeSortingRequest,
   ): Promise<PaginationResult<MarketTradeDto>> {
@@ -47,7 +47,7 @@ export class TradesService {
     try {
       tradesQuery = this.connection.manager.createQueryBuilder(MarketTrade, 'trade');
       tradesQuery = this.filterByCollectionIds(tradesQuery, collectionIds);
-      tradesQuery = this.filterBySeller(tradesQuery, seller);
+      tradesQuery = this.filterByAccountId(tradesQuery, accountId);
       tradesQuery = this.applySort(tradesQuery, sort);
       paginationResult = await paginate(tradesQuery, paginationRequest);
     } catch (e) {
@@ -171,12 +171,12 @@ export class TradesService {
    * @see TradesService.get
    * @return ({SelectQueryBuilder<IMarketTrade>})
    */
-  private filterBySeller(query: SelectQueryBuilder<IMarketTrade>, seller: string | undefined): SelectQueryBuilder<IMarketTrade> {
-    if (nullOrWhitespace(seller)) {
+  private filterByAccountId(query: SelectQueryBuilder<IMarketTrade>, accountId: string | undefined): SelectQueryBuilder<IMarketTrade> {
+    if (nullOrWhitespace(accountId)) {
       return query;
     }
 
-    return query.andWhere('trade.address_seller = :seller', { seller: seller });
+    return query.andWhere('trade.address_seller = :accountId OR trade.address_buyer = :accountId', { accountId: accountId });
   }
   public get isConnected(): boolean {
     return true;
