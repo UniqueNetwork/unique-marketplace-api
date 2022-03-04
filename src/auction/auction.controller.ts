@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Delete, Headers, Post, Query, Req } from '@nestjs/common';
-import { ApiResponse, ApiTags, ApiHeader } from '@nestjs/swagger';
+import { ApiHeader, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { BidPlacingService } from './services/bid-placing.service';
@@ -16,15 +16,13 @@ import { TxDecoder } from './services/helpers/tx-decoder';
 import { SignatureVerifier } from './services/helpers/signature-verifier';
 import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidWithdrawService } from './services/bid-withdraw.service';
-import { ForceClosingService } from './services/closing/force-closing.service';
 
 const WithSignature = ApiHeader({
   name: 'Authorization',
   allowEmptyValue: false,
   example: 'address:signature',
   description: 'address:signature',
-})
-
+});
 
 @ApiTags('Auction')
 @Controller('auction')
@@ -36,7 +34,6 @@ export class AuctionController {
     private readonly bidWithdrawService: BidWithdrawService,
     private readonly txDecoder: TxDecoder,
     private readonly signatureVerifier: SignatureVerifier,
-    private readonly forceClosingService: ForceClosingService,
   ) {}
 
   @Post('create_auction')
@@ -119,11 +116,6 @@ export class AuctionController {
       tokenId: query.tokenId,
       bidderAddress: signerAddress,
     });
-  }
-
-  @Delete('force_close_auction_for_test')
-  async forceCloseAuctionForTest(@Query('collectionId') collectionId: string, @Query('tokenId') tokenId: string): Promise<void> {
-    await this.forceClosingService.forceCloseAuction(collectionId, tokenId);
   }
 
   // todo - make custom validator?

@@ -4,6 +4,7 @@ import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidPlacingService } from './services/bid-placing.service';
 import { BidWithdrawService } from './services/bid-withdraw.service';
 import { AuctionController } from './auction.controller';
+import { AuctionForceCloseController } from './auction-force-close.controller';
 import { auctionCredentialsProvider, polkadotApiProviders } from './providers';
 import { ConfigModule } from '../config/module';
 import { ExtrinsicSubmitter } from './services/helpers/extrinsic-submitter';
@@ -13,6 +14,9 @@ import { AuctionClosingScheduler } from './services/closing/auction-closing.sche
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuctionClosingService } from './services/closing/auction-closing.service';
 import { ForceClosingService } from './services/closing/force-closing.service';
+
+
+const isAuctionTestingStage = process.env.IS_AUCTION_TESTING_STAGE === 'true' || process.env.NODE_ENV === 'test';
 
 @Module({
   imports: [ConfigModule, ScheduleModule.forRoot()],
@@ -30,7 +34,10 @@ import { ForceClosingService } from './services/closing/force-closing.service';
     AuctionClosingScheduler,
     ForceClosingService,
   ],
-  controllers: [AuctionController],
+  controllers: [
+    AuctionController,
+    ...isAuctionTestingStage ? [AuctionForceCloseController] : [],
+  ],
   exports: ['KUSAMA_API', 'UNIQUE_API', AuctionClosingScheduler],
 })
 export class AuctionModule {}

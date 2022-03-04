@@ -174,11 +174,11 @@ export const withdrawBid = async (
   const query = `collectionId=${collectionId}&tokenId=${tokenId}&timestamp=${Date.now()}`;
   const signature = signer.sign(query);
 
+  const authorization = `${address || signer.address}:${u8aToHex(signature)}`;
+
   return request(testEntities.app.getHttpServer())
     .delete(`/auction/withdraw_bid?${query}`)
-    .set({
-      'Authorization': `${address || signer.address}:${u8aToHex(signature)}`,
-    })
+    .set({ 'Authorization': authorization })
     .send();
 };
 
