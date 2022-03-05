@@ -43,6 +43,7 @@ export default {
       startFromBlock: `${process.env.KUSAMA_START_FROM_BLOCK || 'current'}`,
       ss58Format: parseInt(process.env.KUSAMA_SS58_FORMAT || '2'),
       marketCommission: parseInt(process.env.COMMISSION_PERCENT || '10'),
+      waitBlocks: parseInt(process.env.KUSAMA_WAIT_BLOCKS || '0'),
     },
     testing: {
       escrowSeed: '//Alice',

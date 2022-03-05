@@ -33,7 +33,7 @@ export class TradesController {
         return this.tradesService.get(parseCollectionIdRequest(collectionId), undefined, pagination, sort);
     }
 
-    @Get('/:seller')
+    @Get('/:accountId')
     @ApiQuery(queryArray('collectionId', 'integer'))
     @ApiOperation({
         summary: 'Get trades with sort, filters and seller',
@@ -41,11 +41,11 @@ export class TradesController {
     })
     @ApiResponse({ type: MarketTradeDto, status: HttpStatus.OK })
     getBySeller(
-        @Param('seller') seller: string,
+        @Param('accountId') accountId: string,
         @Query() sort: TradeSortingRequest,
         @Query() pagination: PaginationRequest,
         @Query('collectionId') collectionId?: QueryParamArray,
     ): Promise<PaginationResult<MarketTradeDto>> {
-        return this.tradesService.get(parseCollectionIdRequest(collectionId), seller, pagination, sort);
+        return this.tradesService.get(parseCollectionIdRequest(collectionId), accountId, pagination, sort);
     }
 }

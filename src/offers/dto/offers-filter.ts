@@ -3,21 +3,22 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Dto } from '../../utils/dto';
 import { ClassToDto } from '../../utils/type-generators/class-to-dto';
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, Max, Min } from 'class-validator';
+import { IsNumber, IsOptional, Min } from 'class-validator';
+import { Max } from '../decorators/max-bigint.decorator';
 
 export class OffersFilter {
     @ApiProperty({ name: 'collectionId', items: { type: 'integer', default: '' }, required: false, type: 'array', isArray: true })
     public collectionId?: number[];
 
     @ApiProperty({ required: false, type: String })
-    @Type(() => Number)
-    @IsNumber()
+    @Type(() => BigInt)
     @IsOptional()
+    @Min(0)
     public minPrice?: BigInt;
 
     @ApiProperty({ required: false, type: String })
-    @Type(() => Number)
-    @IsNumber()
+    @Type(() => BigInt)
+
     @Max(9223372036854775807)
     @IsOptional()
     public maxPrice?: BigInt;

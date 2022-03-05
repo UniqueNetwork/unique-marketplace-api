@@ -3,7 +3,7 @@ import { Connection, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResultDto } from '../utils/pagination/pagination-result';
+import { PaginationResult } from '../utils/pagination/pagination-result';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
@@ -26,12 +26,16 @@ export class OffersService {
   private offerSortingColumns = ['Price', 'TokenId', 'token_id', 'CollectionId', 'collection_id'];
   private sortingColumns = [...this.offerSortingColumns, 'CreationDate'];
   private logger: Logger;
+  private readonly contractAskRepository: Repository<ContractAsk>;
+  private readonly searchIndexRepository: Repository<SearchIndex>;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     @InjectSentry() private readonly sentryService: SentryService,
   ) {
     this.logger = new Logger(OffersService.name);
+    this.contractAskRepository = connection.manager.getRepository(ContractAsk);
+    this.searchIndexRepository = connection.manager.getRepository(SearchIndex);
   }
   /**
    * Get Offers
@@ -44,13 +48,22 @@ export class OffersService {
     pagination: PaginationRequest,
     offersFilter: OffersFilter,
     sort: OfferSortingRequest,
-  ): Promise<PaginationResultDto<OfferContractAskDto>> {
+  ): Promise<PaginationResult<OfferContractAskDto>> {
     let offers: SelectQueryBuilder<ContractAsk>;
     let paginationResult;
 
     try {
-      offers = this.connection.manager.createQueryBuilder(ContractAsk, 'offer');
-      this.addRelations(offers);
+      offers = this.connection.manager
+        .createQueryBuilder(ContractAsk, 'offer')
+        .innerJoinAndSelect(BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask')
+        .select('offer')
+        .addSelect('block.created_at', 'created_at')
+        .innerJoinAndMapOne(
+          'offer.block',
+          BlockchainBlock,
+          'blocks',
+          'offer.network = blocks.network and blocks.block_number = offer.block_number_ask',
+        );
 
       offers = this.filter(offers, offersFilter);
       offers = this.applySort(offers, sort);
@@ -148,10 +161,9 @@ export class OffersService {
     let first = true;
     for (let param of params) {
       let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'offer' : 'block';
-      query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
-      first = false;
+      query = query.addOrderBy(`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
     }
-
+    query = query.addOrderBy('offer.block_number_ask', 'DESC')
     return query;
   }
   /**
@@ -231,28 +243,38 @@ export class OffersService {
    * @see OffersService.get
    * @return SelectQueryBuilder<ContractAsk>
    */
-  private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string): SelectQueryBuilder<ContractAsk> {
-    if (nullOrWhitespace(text)) {
-      return query;
+  private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
+
+    let matchedText = this.searchIndexRepository.createQueryBuilder('searchIndex')
+
+    if ((traitsCount ?? []).length !== 0) {
+      matchedText = matchedText.andWhere(`searchIndex.is_trait = true`);
     }
 
-    let matchedText = this.connection
-      .createQueryBuilder(SearchIndex, 'searchIndex')
-      .andWhere(`searchIndex.value like CONCAT('%', cast(:searchText as text), '%')`, { searchText: text });
-    if (!nullOrWhitespace(locale)) {
-      matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', {
-        locale: locale,
-      });
-    }
+    if(!nullOrWhitespace(text)) { matchedText = matchedText.andWhere(`searchIndex.value ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) }
+
+    if(!nullOrWhitespace(locale) ){matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale, }) }
+
 
     const groupedMatches = matchedText
       .select('searchIndex.collection_id, searchIndex.token_id')
+      .addSelect('COUNT(searchIndex.id)', 'traitsCount')
       .groupBy('searchIndex.collection_id, searchIndex.token_id');
+
     //innerJoin doesn't add parentesises around joined value, which is required in case of complex subquery.
     const getQueryOld = groupedMatches.getQuery.bind(groupedMatches);
     groupedMatches.getQuery = () => `(${getQueryOld()})`;
     groupedMatches.getQuery.prototype = getQueryOld;
-    return query.innerJoin(() => groupedMatches, 'gr', 'gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"');
+
+    if ((traitsCount ?? []).length !== 0) {
+      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"  AND gr."traitsCount" IN (:...traitsCount)`, {
+        traitsCount: traitsCount,
+      })
+
+    } else {
+      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"`);
+    }
+    return query
   }
 
   /**
@@ -272,23 +294,6 @@ export class OffersService {
     return query.andWhere('offer.address_from = :seller', { seller });
   }
 
-  /**
-   * Filter by Traits Count
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {Array<number>} traitsCount - Array numbers traits
-   * @private
-   * @see OffersService.get
-   * @return SelectQueryBuilder<ContractAsk>
-   */
-  private filterByTraitsCount(query: SelectQueryBuilder<ContractAsk>, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
-    if ((traitsCount ?? []).length <= 0) {
-      return query;
-    }
-
-    return query.andWhere(`offer.indexData.is_trait ? 'traits') in (:...traitsCount)`, {
-      traitsCount: traitsCount,
-    });
-  }
 
   /**
    * Filter all create OffersFilter Dto
@@ -303,10 +308,9 @@ export class OffersService {
     query = this.filterByMaxPrice(query, offersFilter.maxPrice);
     query = this.filterByMinPrice(query, offersFilter.minPrice);
     query = this.filterBySeller(query, offersFilter.seller);
-    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale);
-    // query = this.filterByTraitsCount(query, offersFilter.traitsCount);
-    const qr = query.andWhere(`offer.status = :status`, { status: 'active' });
-    return qr;
+    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
+
+    return query.andWhere(`offer.status = :status`, { status: 'active' });
   }
 
   public get isConnected(): boolean {

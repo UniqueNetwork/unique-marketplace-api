@@ -12,6 +12,8 @@ import { initApp, runMigrations } from './data';
 import { EscrowService } from '../src/escrow/service';
 import { UniqueEscrow } from '../src/escrow';
 import { MONEY_TRANSFER_STATUS } from '../src/escrow/constants';
+import { ConstDataPlayload, TraitsSchema } from './data/escrow.data';
+import { encodeData } from '../src/utils/blockchain/token';
 
 describe('Escrow test', () => {
   jest.setTimeout(60 * 60 * 1000);
@@ -69,19 +71,14 @@ describe('Escrow test', () => {
       from: contractOwner.address,
       ...lib.GAS_ARGS,
     });
-    const contract = await contractAbi
-      .deploy({ data: readBCStatic('MarketPlace.bin') })
-      .send({ from: contractOwner.address, gas: 10000000 });
+    const contract = await contractAbi.deploy({ data: readBCStatic('MarketPlace.bin') }).send({ from: contractOwner.address, gas: 10000000 });
     await contract.methods.setEscrow(contractOwner.address, true).send({ from: contractOwner.address });
     const helpers = lib.contractHelpers(web3, contractOwner.address);
     await helpers.methods.toggleSponsoring(contract.options.address, true).send({ from: contractOwner.address });
     await helpers.methods.setSponsoringRateLimit(contract.options.address, 1).send({ from: contractOwner.address });
     await lib.transferBalanceToEth(api, admin, contract.options.address);
 
-    fs.writeFileSync(
-      cachedPath,
-      JSON.stringify({ contractOwnerSeed: contractOwner.privateKey, contractAddress: contract.options.address }),
-    );
+    fs.writeFileSync(cachedPath, JSON.stringify({ contractOwnerSeed: contractOwner.privateKey, contractAddress: contract.options.address }));
 
     return { contractOwner, contract, helpers };
   };
@@ -105,20 +102,12 @@ describe('Escrow test', () => {
     }
 
     const collectionId = await explorer.createCollection({ name: 'test', description: 'test collection', tokenPrefix: 'test' });
-    await unique.signTransaction(
-      admin,
-      api.tx.unique.setCollectionLimits(collectionId, { sponsorApproveTimeout: 1 }),
-      'api.tx.unique.setCollectionLimits',
-    );
+    await unique.signTransaction(admin, api.tx.unique.setCollectionLimits(collectionId, { sponsorApproveTimeout: 1 }), 'api.tx.unique.setCollectionLimits');
     const evmCollection = lib.createEvmCollection(collectionId, contractOwner, web3);
-    await unique.signTransaction(
-      admin,
-      api.tx.unique.setCollectionSponsor(collectionId, admin.address),
-      'api.tx.unique.setCollectionSponsor',
-    );
+    await unique.signTransaction(admin, api.tx.unique.setCollectionSponsor(collectionId, admin.address), 'api.tx.unique.setCollectionSponsor');
     await lib.transferBalanceToEth(api, admin, lib.subToEth(admin.address));
     await unique.signTransaction(admin, api.tx.unique.confirmSponsorship(collectionId), 'api.tx.unique.confirmSponsorship');
-
+    await unique.signTransaction(admin, api.tx.unique.setConstOnChainSchema(collectionId, JSON.stringify(TraitsSchema)), 'api.tx.unique.setConstOnChainSchema');
     fs.writeFileSync(cachedPath, JSON.stringify({ collectionId }));
 
     return { collectionId, evmCollection };
@@ -144,8 +133,8 @@ describe('Escrow test', () => {
       }
     };
 
-    return {escrow, workEscrow, blocks, service};
-  }
+    return { escrow, workEscrow, blocks, service };
+  };
 
   const init = async () => {
     const config = app.get('CONFIG');
@@ -167,11 +156,21 @@ describe('Escrow test', () => {
     const { service, workEscrow, blocks, escrow } = await getEscrow(config);
 
     return {
-      config, alice, explorer, contract, contractOwner, collectionId, evmCollection, service, workEscrow, blocks, escrow
+      config,
+      alice,
+      explorer,
+      contract,
+      contractOwner,
+      collectionId,
+      evmCollection,
+      service,
+      workEscrow,
+      blocks,
+      escrow,
     };
-  }
+  };
 
-  const addAsk = async (tokenId, price, seller, state: {evmCollection, contract, explorer, collectionId, blocks, workEscrow, config, service}) => {
+  const addAsk = async (tokenId, price, seller, state: { evmCollection; contract; explorer; collectionId; blocks; workEscrow; config; service }) => {
     // Give contract permissions to manipulate token
     let res = await lib.executeEthTxOnSub(web3, api, seller, state.evmCollection, (m) => m.approve(state.contract.options.address, tokenId));
     await expect(res.success).toBe(true);
@@ -191,10 +190,10 @@ describe('Escrow test', () => {
     await state.workEscrow(state.blocks.start, state.blocks.latest);
 
     let activeAsk = await state.service.getActiveAsk(state.collectionId, tokenId, state.config.blockchain.testing.unique.network);
-    await expect(activeAsk).not.toBeUndefined();
+    await expect(activeAsk.status).toBe('active');
   };
 
-  const processKYC = async (user: IKeyringPair, state: {service, blocks, config, workEscrow, contract}) => {
+  const processKYC = async (user: IKeyringPair, state: { service; blocks; config; workEscrow; contract }) => {
     // KYC action (transfer to escrow, kusama escrow daemon perform this call normally)
     await state.service.modifyContractBalance(KYC_PRICE, user.address, state.blocks.latest, state.config.blockchain.testing.kusama.network);
 
@@ -209,9 +208,9 @@ describe('Escrow test', () => {
 
     // Escrow must set finished status for transfer
     await expect(await state.service.getPendingContractBalance(state.config.blockchain.testing.kusama.network)).toBeUndefined();
-  }
+  };
 
-  const transferTokenToEVM = async (user: IKeyringPair, tokenId: number, state: {collectionId, explorer}) => {
+  const transferTokenToEVM = async (user: IKeyringPair, tokenId: number, state: { collectionId; explorer }) => {
     await unique.signTransaction(
       user,
       api.tx.unique.transfer(util.normalizeAccountId({ Ethereum: lib.subToEth(user.address) }), state.collectionId, tokenId, 1),
@@ -220,7 +219,7 @@ describe('Escrow test', () => {
     await expect(util.normalizeAccountId(await state.explorer.getTokenOwner(state.collectionId, BigInt(tokenId)))).toEqual({
       Ethereum: lib.subToEthLowercase(user.address),
     });
-  }
+  };
 
   it('Withdraw balance', async () => {
     const TO_WITHDRAW = 2_000_000_000n; // 2 KSM
@@ -255,27 +254,31 @@ describe('Escrow test', () => {
   });
 
   it('Get token traits', async () => {
-    // const PRICE = 2_000_000_000_000n; // 2 KSM
-    // const state = await init();
-    //
-    // const { explorer, collectionId } = state;
-    //
-    // const seller = util.privateKey(`//Seller/${Date.now()}`);
-    //
-    // await processKYC(seller, state);
-    //
-    // const tokenId = (await explorer.createToken({ collectionId, owner: seller.address })).tokenId;
-    //
-    // await transferTokenToEVM(seller, tokenId, state);
-    //
-    // await addAsk(tokenId, PRICE, seller, state);
+    const PRICE = 2_000_000_000_000n; // 2 KSM
+    const state = await init();
 
-    // await blocks.updateLatest();
-    // await workEscrow(blocks.start, blocks.latest);
-    //
-    // await escrow.destroy();
+    const { explorer, collectionId, blocks, workEscrow, escrow, service, config} = state;
 
-    // TODO: check search_index table
+    const seller = util.privateKey(`//Seller/${Date.now()}`);
+
+    await processKYC(seller, state);
+
+    const createToken = await explorer.createToken({ collectionId, owner: seller.address, constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) });
+    const tokenId = createToken.tokenId;
+
+    await transferTokenToEVM(seller, tokenId, state);
+
+    await addAsk(tokenId, PRICE, seller, state);
+
+    await blocks.updateLatest();
+    await workEscrow(blocks.start, blocks.latest);
+
+    await escrow.destroy();
+
+    const searchTraits = await service.getSearchIndexTraits(collectionId, tokenId, config.blockchain.testing.unique.network)
+    await expect(searchTraits.map(x => x.value === 'Teeth Smile' || x.value === 'Up Hair')).toEqual([true,true]);
+    await expect(searchTraits.length).toBe(2);
+
   });
 
   it('Register transfer', async () => {
@@ -287,16 +290,14 @@ describe('Escrow test', () => {
     // await lib.transferBalanceToEth(api, alice, lib.subToEth(buyer.address));
     await unique.signTransaction(alice, api.tx.balances.transfer(buyer.address, 10n * lib.UNIQUE));
 
-    const tokenId = (await explorer.createToken({ collectionId, owner: seller.address })).tokenId;
+    const tokenId = (await explorer.createToken({ collectionId, owner: seller.address,constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) })).tokenId;
     await unique.signTransaction(
       seller,
       api.tx.unique.transfer(util.normalizeAccountId({ Substrate: buyer.address }), collectionId, tokenId, 1),
-      'api.tx.unique.transfer'
+      'api.tx.unique.transfer',
     );
-    await expect(
-      escrow.normalizeSubstrate(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, tokenId)).Substrate)
-    ).toEqual(
-      util.normalizeAccountId(buyer.address).Substrate
+    await expect(escrow.normalizeSubstrate(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, tokenId)).Substrate)).toEqual(
+      util.normalizeAccountId(buyer.address).Substrate,
     );
 
     let beforeTransfers = await service.getTokenTransfers(collectionId, tokenId, config.blockchain.testing.unique.network);
@@ -314,12 +315,12 @@ describe('Escrow test', () => {
     let notInterested = afterTransfers[0].id;
 
     // Escrow should register ethereum transfer
-    await transferTokenToEVM(buyer, tokenId, {collectionId, explorer});
+    await transferTokenToEVM(buyer, tokenId, { collectionId, explorer });
     await blocks.updateLatest();
     await workEscrow(blocks.start, blocks.latest);
     afterTransfers = await service.getTokenTransfers(collectionId, tokenId, config.blockchain.testing.unique.network);
     await expect(afterTransfers.length).toBe(2);
-    let transfer = afterTransfers.find(x => x.id != notInterested);
+    let transfer = afterTransfers.find((x) => x.id != notInterested);
     await expect(transfer.address_from).toEqual(buyer.address);
     await expect(transfer.address_to).toEqual(lib.subToEthLowercase(buyer.address));
   });
@@ -334,7 +335,7 @@ describe('Escrow test', () => {
 
     await processKYC(seller, state);
 
-    const cancelTokenId = (await explorer.createToken({ collectionId, owner: seller.address })).tokenId;
+    const cancelTokenId = (await explorer.createToken({ collectionId, owner: seller.address,constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) })).tokenId;
 
     await transferTokenToEVM(seller, cancelTokenId, state);
 
@@ -361,7 +362,7 @@ describe('Escrow test', () => {
 
   it('Buy token', async () => {
     const PRICE_WITHOUT_COMISSION = 1_000_000_000_000n; // 1 KSM
-    const PRICE = PRICE_WITHOUT_COMISSION * 1100n / 1000n; // 1.1 KSM
+    const PRICE = (PRICE_WITHOUT_COMISSION * 1100n) / 1000n; // 1.1 KSM
 
     const state = await init();
 
@@ -372,7 +373,7 @@ describe('Escrow test', () => {
 
     await processKYC(seller, state);
 
-    const sellTokenId = (await explorer.createToken({ collectionId, owner: seller.address })).tokenId;
+    const sellTokenId = (await explorer.createToken({ collectionId, owner: seller.address,constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) })).tokenId;
 
     // To transfer item to matcher it first needs to be transferred to EVM account of seller
     await transferTokenToEVM(seller, sellTokenId, state);
@@ -414,7 +415,7 @@ describe('Escrow test', () => {
       await workEscrow(blocks.start, blocks.latest);
 
       // Buyer
-      await expect(await contract.methods.balanceKSM(lib.subToEth(seller.address)).call()).toEqual(KYC_PRICE.toString());
+      //await expect(await contract.methods.balanceKSM(lib.subToEth(seller.address)).call()).toEqual(KYC_PRICE.toString());
       activeWithdraw = await service.getPendingKusamaWithdraw(config.blockchain.testing.kusama.network);
       await expect(activeWithdraw.amount).toEqual(PRICE_WITHOUT_COMISSION.toString());
 
@@ -446,10 +447,8 @@ describe('Escrow test', () => {
     );
 
     // Token is transferred to substrate account of buyer, seller received funds
-    await expect(
-      escrow.normalizeSubstrate(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, sellTokenId)).Substrate)
-    ).toEqual(
-      util.normalizeAccountId(buyer.address).Substrate
+    await expect(escrow.normalizeSubstrate(util.normalizeAccountId(await explorer.getTokenOwner(collectionId, sellTokenId)).Substrate)).toEqual(
+      util.normalizeAccountId(buyer.address).Substrate,
     );
 
     await escrow.destroy();

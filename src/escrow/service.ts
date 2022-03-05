@@ -134,7 +134,7 @@ export class EscrowService {
 
   async getTokenTransfers(collectionId: number, tokenId: number, network: string) {
     const repository = this.db.getRepository(NFTTransfer);
-    return repository.find({network: this.getNetwork(network), collection_id: collectionId.toString(), token_id: tokenId.toString()});
+    return repository.find({ network: this.getNetwork(network), collection_id: collectionId.toString(), token_id: tokenId.toString() });
   }
 
   async addBlock(blockNum: bigint | number, timestamp: number, network?: string) {
@@ -238,6 +238,11 @@ export class EscrowService {
     await this.buyKSM(parseInt(ask.collection_id), parseInt(ask.token_id), blockNum, network);
   }
 
+  async getSearchIndexTraits( collectionId: number, tokenId: number, network?: string){
+    const repository = this.db.getRepository(SearchIndex);
+    return await repository.find({ collection_id: collectionId.toString(), token_id: tokenId.toString(), network: this.getNetwork(network) , is_trait: true })
+  }
+
   async addSearchIndexes(keywords, collectionId: number, tokenId: number, network?: string) {
     const repository = this.db.getRepository(SearchIndex);
     network = this.getNetwork(network);
@@ -252,6 +257,7 @@ export class EscrowService {
           network,
           locale: x.locale,
           value: x.text,
+          is_trait: !!x.is_trait,
         };
       }),
     );

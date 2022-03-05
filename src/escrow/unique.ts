@@ -9,7 +9,6 @@ import * as util from '../utils/blockchain/util';
 import { MONEY_TRANSFER_STATUS } from './constants';
 import { MoneyTransfer } from '../entity';
 
-
 export class UniqueEscrow extends Escrow {
   inputDecoder;
   etherDecoder;
@@ -49,9 +48,9 @@ export class UniqueEscrow extends Escrow {
   }
 
   async destroy() {
-    if(!this.initialized) return;
-    this.web3conn.provider.connection.close()
-    await this.api.disconnect()
+    if (!this.initialized) return;
+    this.web3conn.provider.connection.close();
+    await this.api.disconnect();
   }
 
   getAbi() {
@@ -97,12 +96,12 @@ export class UniqueEscrow extends Escrow {
     this.admin = util.privateKey(this.config('escrowSeed'));
   }
 
-  *convertEnumToString(value, key, protoSchema) {
+  *convertEnumToString(value, key, protoSchema, isTrait) {
     try {
       let valueJsonComment = protoSchema.fields[key].resolvedType.options[value];
       let translationObject = JSON.parse(valueJsonComment);
       if (translationObject) {
-        yield* Object.keys(translationObject).map((k) => ({ locale: k, text: translationObject[k] }));
+        yield* Object.keys(translationObject).map((k) => ({ locale: k, text: translationObject[k] , is_trait: isTrait }));
       }
     } catch (e) {
       logging.log('Error parsing schema when trying to convert enum to string', logging.level.ERROR);
@@ -113,25 +112,27 @@ export class UniqueEscrow extends Escrow {
   *getKeywords(protoSchema, dataObj) {
     for (let key of Object.keys(dataObj)) {
       if (this.BLOCKED_SCHEMA_KEYS.indexOf(key) > -1) continue;
-      yield { locale: null, text: key };
+      let isTrait = key === 'traits';
+      yield { locale: null, text: key , is_trait: false};
       if (protoSchema.fields[key].resolvedType && protoSchema.fields[key].resolvedType.constructor.name.toString() === 'Enum') {
         if (Array.isArray(dataObj[key])) {
           for (let i = 0; i < dataObj[key].length; i++) {
-            yield* this.convertEnumToString(dataObj[key][i], key, protoSchema);
+            yield* this.convertEnumToString(dataObj[key][i], key, protoSchema, isTrait);
           }
         } else {
-          yield* this.convertEnumToString(dataObj[key], key, protoSchema);
+          yield* this.convertEnumToString(dataObj[key], key, protoSchema, isTrait);
         }
       } else {
-        yield { locale: null, text: dataObj[key] };
+        yield { locale: null, text: dataObj[key] , is_trait: false };
       }
     }
   }
 
   async getSearchIndexes(collectionId, tokenId) {
     let keywords = [];
+    let data = await this.explorer.getTokenData(tokenId, collectionId);
     try {
-      let data = await this.explorer.getTokenData(tokenId, collectionId);
+
       keywords.push({ locale: null, text: data.collection.toHuman().tokenPrefix });
       for (let k of this.getKeywords(data.schema.NFTMeta, data.data.human)) {
         keywords.push(k);
@@ -149,7 +150,7 @@ export class UniqueEscrow extends Escrow {
     const extrinsic = rawExtrinsic.toHuman().method;
     const addressFrom = util.normalizeAccountId(this.normalizeSubstrate(rawExtrinsic.signer.toString()));
     let addressTo = util.normalizeAccountId(extrinsic.args.recipient);
-    addressTo = (addressTo.Substrate) ? this.normalizeSubstrate(addressTo.Substrate) : addressTo.Ethereum;
+    addressTo = addressTo.Substrate ? this.normalizeSubstrate(addressTo.Substrate) : addressTo.Ethereum;
     const collectionId = parseInt(extrinsic.args.collection_id);
     const tokenId = parseInt(extrinsic.args.item_id);
     if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
@@ -212,7 +213,7 @@ export class UniqueEscrow extends Escrow {
     const origPrice = this.getPriceWithoutCommission(realPrice);
     const buyerEth = this.address2string(buyer);
     const buyerSub = await this.service.getSubstrateAddress(buyerEth);
-    if(!buyerSub) {
+    if (!buyerSub) {
       logging.log(`No substrate address pair for ${buyerEth} eth address`, logging.level.WARNING);
     }
     const buyerAddress = buyerSub ? buyerSub : buyerEth;
@@ -246,20 +247,19 @@ export class UniqueEscrow extends Escrow {
 
   async processWithdrawAllKSM(blockNum: number, extrinsic, events, singer) {
     const isToContract = this.address2string(extrinsic.args.target).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
-    if(!isToContract) return; // Not our contract
+    if (!isToContract) return; // Not our contract
     let eventLogEVM = events.find((e) => e.event.method === 'Log' && e.event.section === 'evm'); // TODO: check this
-    if(!eventLogEVM) {
+    if (!eventLogEVM) {
       let isFailed = events.find((e) => e.event.method == 'ExecutedFailed' && e.event.section === 'evm');
-      if(isFailed) {
+      if (isFailed) {
         logging.log(`Failed WithdrawAllKSM for ${singer} in block #${blockNum}`, logging.level.WARNING);
       }
       return;
     }
     let withDrawData;
-    try{
+    try {
       withDrawData = this.etherDecoder.decodeEventLog('WithdrawnKSM', eventLogEVM.event.data[0].data);
-    }
-    catch (e) {
+    } catch (e) {
       logging.log(`Failed to decode WithdrawnKSM event for ${singer} in block #${blockNum}`, logging.level.ERROR);
       logging.log(e, logging.level.ERROR);
       return;
@@ -267,7 +267,7 @@ export class UniqueEscrow extends Escrow {
     let sender = withDrawData._sender;
     let balance = withDrawData.balance.toBigInt();
     let substrateAddress = await this.service.getSubstrateAddress(sender);
-    if(!substrateAddress) {
+    if (!substrateAddress) {
       logging.log(`No substrate address pair for ${sender} eth address`, logging.level.WARNING);
     }
     substrateAddress = substrateAddress ? substrateAddress : singer.toString();
@@ -385,9 +385,7 @@ export class UniqueEscrow extends Escrow {
     this.store.currentBlock = await this.getStartBlock();
     this.store.latestBlock = await this.getLatestBlockNumber();
     logging.log(
-      `Unique escrow starting from block #${this.store.currentBlock} (mode: ${this.config('unique.startFromBlock')}, maxBlock: ${
-        this.store.latestBlock
-      })`,
+      `Unique escrow starting from block #${this.store.currentBlock} (mode: ${this.config('unique.startFromBlock')}, maxBlock: ${this.store.latestBlock})`,
     );
     logging.log(`Unique escrow contract owner address: ${this.contractOwner.address}`);
     logging.log(`Unique escrow contract address: ${this.config('unique.contractAddress')}`);
