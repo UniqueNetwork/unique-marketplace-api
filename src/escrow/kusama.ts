@@ -125,8 +125,12 @@ export class KusamaEscrow extends Escrow {
       try {
         currentHead = await this.getLatestBlockNumber();
       }
-      catch (e) {
-
+      catch (ex) {}
+      if(e.toString().indexOf('Unable to retrieve header and parent from supplied hash') > -1) {
+        // TODO: check this. Subscribe send blocks greater then currentHead
+        // Only full restart helps
+        logging.log(`Invalid block from subscribe, got #${blockNum} while current head is #${currentHead}`, logging.level.ERROR);
+        process.exit(1);
       }
       logging.log(`Unable to scan block #${blockNum} (current head ${currentHead}) (WTF?)`, logging.level.ERROR);
       logging.log(e, logging.level.ERROR);
