@@ -32,7 +32,7 @@ const blockMapping: SortMapping<BlockchainBlock> = {
   creationDate: 'created_at',
 };
 
-const blockAlias = 'blocks';
+const blockAlias = 'block';
 
 export class OffersQuerySortHelper {
   readonly contractAskSorts: Record<string, string>;
