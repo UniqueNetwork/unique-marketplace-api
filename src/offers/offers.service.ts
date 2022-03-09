@@ -52,7 +52,7 @@ export class OffersService {
     let paginationResult;
 
     try {
-      offers = this.connection.manager.createQueryBuilder(ContractAsk, 'offer')
+      offers = await this.contractAskRepository.createQueryBuilder('offer')
       this.addRelations(offers);
 
 
@@ -110,9 +110,9 @@ export class OffersService {
       .leftJoinAndMapOne(
         'offer.block',
         BlockchainBlock,
-        'blocks',
-        'offer.network = blocks.network and blocks.block_number = offer.block_number_ask',
-      );
+        'block',
+        'offer.network = block.network and block.block_number = offer.block_number_ask',
+      ).groupBy('offer.id, auction.id, bid.id, block.block_number, block.network');
   }
 
   /**
@@ -175,7 +175,7 @@ export class OffersService {
    * @return SelectQueryBuilder<ContractAsk>
    */
   private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
-    if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
+   // if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
 
     let matchedText = this.searchIndexRepository.createQueryBuilder('searchIndex')
 
