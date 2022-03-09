@@ -4,7 +4,6 @@
 docker-compose.yml
 dist
 node_modules
-package-lock.json
 yarn.lock
 src/config/*
 !src/config/index.ts
