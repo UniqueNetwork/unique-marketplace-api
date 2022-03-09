@@ -1,9 +1,9 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
-import { Connection, SelectQueryBuilder } from 'typeorm';
+import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResult } from '../utils/pagination/pagination-result';
+import { PaginationResult, PaginationResultDto } from '../utils/pagination/pagination-result';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
@@ -48,22 +48,14 @@ export class OffersService {
     pagination: PaginationRequest,
     offersFilter: OffersFilter,
     sort: OfferSortingRequest,
-  ): Promise<PaginationResult<OfferContractAskDto>> {
+  ): Promise<PaginationResultDto<OfferContractAskDto>> {
     let offers: SelectQueryBuilder<ContractAsk>;
     let paginationResult;
 
     try {
-      offers = this.connection.manager
-        .createQueryBuilder(ContractAsk, 'offer')
-        .innerJoinAndSelect(BlockchainBlock, 'block', 'block.network = offer.network and block.block_number = offer.block_number_ask')
-        .select('offer')
-        .addSelect('block.created_at', 'created_at')
-        .innerJoinAndMapOne(
-          'offer.block',
-          BlockchainBlock,
-          'blocks',
-          'offer.network = blocks.network and blocks.block_number = offer.block_number_ask',
-        );
+      offers = this.connection.manager.createQueryBuilder(ContractAsk, 'offer')
+      this.addRelations(offers);
+
 
       offers = this.filter(offers, offersFilter);
       offers = this.applySort(offers, sort);
@@ -104,13 +96,7 @@ export class OffersService {
 
 
   private addRelations(queryBuilder: SelectQueryBuilder<ContractAsk>): void {
-    queryBuilder.innerJoinAndSelect(
-      BlockchainBlock,
-      'block',
-      'block.network = offer.network and block.block_number = offer.block_number_ask',
-    )
-      .select('offer')
-      .addSelect('block.created_at', 'created_at')
+    queryBuilder
       .leftJoinAndMapOne(
         'offer.auction',
         AuctionEntity,
@@ -122,7 +108,7 @@ export class OffersService {
         BidEntity,
         'bid',
         'bid.auction_id = auction.id and bid.amount > 0')
-      .innerJoinAndMapOne(
+      .leftJoinAndMapOne(
         'offer.block',
         BlockchainBlock,
         'blocks',
@@ -244,6 +230,7 @@ export class OffersService {
    * @return SelectQueryBuilder<ContractAsk>
    */
   private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
+    if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
 
     let matchedText = this.searchIndexRepository.createQueryBuilder('searchIndex')
 
@@ -267,12 +254,12 @@ export class OffersService {
     groupedMatches.getQuery.prototype = getQueryOld;
 
     if ((traitsCount ?? []).length !== 0) {
-      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"  AND gr."traitsCount" IN (:...traitsCount)`, {
+      query.leftJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"  AND gr."traitsCount" IN (:...traitsCount)`, {
         traitsCount: traitsCount,
       })
 
     } else {
-      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"`);
+      query.leftJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"`);
     }
     return query
   }
