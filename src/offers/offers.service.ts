@@ -3,10 +3,8 @@ import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResult, PaginationResultDto } from '../utils/pagination/pagination-result';
-import { SortingOrder } from '../utils/sorting/sorting-order';
+import { PaginationResultDto } from '../utils/pagination/pagination-result';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
-import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 
 import { OfferContractAskDto } from './dto/offer-dto';
@@ -20,14 +18,14 @@ import {
   BidEntity,
 } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
+import { OffersQuerySortHelper } from "./offers-query-sort-helper";
 
 @Injectable()
 export class OffersService {
-  private offerSortingColumns = ['Price', 'TokenId', 'token_id', 'CollectionId', 'collection_id'];
-  private sortingColumns = [...this.offerSortingColumns, 'CreationDate'];
   private logger: Logger;
   private readonly contractAskRepository: Repository<ContractAsk>;
   private readonly searchIndexRepository: Repository<SearchIndex>;
+  private offersQuerySortHelper: OffersQuerySortHelper;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
@@ -36,6 +34,7 @@ export class OffersService {
     this.logger = new Logger(OffersService.name);
     this.contractAskRepository = connection.manager.getRepository(ContractAsk);
     this.searchIndexRepository = connection.manager.getRepository(SearchIndex);
+    this.offersQuerySortHelper = new OffersQuerySortHelper(connection);
   }
   /**
    * Get Offers
@@ -58,7 +57,7 @@ export class OffersService {
 
 
       offers = this.filter(offers, offersFilter);
-      offers = this.applySort(offers, sort);
+      offers = this.offersQuerySortHelper.applySort(offers, sort);
       paginationResult = await paginate(offers, pagination);
     } catch (e) {
       this.logger.error(e.message);
@@ -117,61 +116,6 @@ export class OffersService {
   }
 
   /**
-   * Adds fields to the sort and sorts the data
-   * in ascending and descending order, depending on the request
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate).
-   * @private
-   * @see OffersService.get
-   * @return {SelectQueryBuilder<ContractAsk>}
-   */
-  private applySort(query: SelectQueryBuilder<ContractAsk>, sort: OfferSortingRequest): SelectQueryBuilder<ContractAsk> {
-    let params = [];
-
-    for (let param of sort.sort ?? []) {
-      let column = this.sortingColumns.find((column) => equalsIgnoreCase(param.column, column));
-
-      if (column === 'tokenid' || column === 'TokenId') {
-        column = 'token_id';
-      }
-      if (column === 'creationdate' || column === 'CreationDate') {
-        column = 'created_at';
-      }
-      if (column === 'collectionid' || column === 'CollectionId') {
-        column = 'collection_id';
-      }
-      if (column === null) continue;
-      params.push({ ...param, column });
-    }
-
-    let first = true;
-    for (let param of params) {
-      let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'offer' : 'block';
-      query = query.addOrderBy(`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
-    }
-    query = query.addOrderBy('offer.block_number_ask', 'DESC')
-    return query;
-  }
-  /**
-   * Conversion of data from ContractAsk to JSON
-   * @example: items: OfferContractAskDto[]
-   * @param {ContractAsk} offer - DTO Offer Contract Ask Dto
-   * @private
-   * @see OffersService.get
-   * @return {OfferContractAskDto}
-   */
-  private serializeOffersToDto(offer: ContractAsk): OfferContractAskDto {
-    return {
-      collectionId: +offer.collection_id,
-      tokenId: +offer.token_id,
-      price: offer.price.toString(),
-      quoteId: +offer.currency,
-      seller: offer.address_from,
-      creationDate: offer.block.created_at,
-    };
-  }
-
-  /**
    * Filter by Collection ID
    * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
    * @param {Array<number>} collectionIds - Array collection ID
@@ -225,6 +169,7 @@ export class OffersService {
    * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
    * @param {String} text - Search field from SearchIndex in which traits are specified
    * @param {String} locale -
+   * @param {number[]} traitsCount -
    * @private
    * @see OffersService.get
    * @return SelectQueryBuilder<ContractAsk>
