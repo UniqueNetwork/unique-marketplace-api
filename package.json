@@ -1,6 +1,6 @@
 {
   "name": "unique-marketplace-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend project for unique marketplace",
   "author": "Unique Network",
   "private": true,
@@ -24,7 +24,8 @@
     "migration:run": "npm run typeorm -- migration:run",
     "migration:show": "npm run typeorm -- migration:show",
     "migration:revert": "npm run typeorm -- migration:revert",
-    "schema:log": "npm run typeorm -- schema:log"
+    "schema:log": "npm run typeorm -- schema:log",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@nestjs/axios": "^0.0.5",
@@ -42,9 +43,9 @@
     "@nestjs/websockets": "^8.2.6",
     "@polkadot/api": "6.12.1",
     "@polkadot/keyring": "8.2.2",
+    "@polkadot/networks": "8.2.2",
     "@polkadot/util": "8.2.2",
     "@polkadot/util-crypto": "8.2.2",
-    "@polkadot/networks": "8.2.2",
     "@sentry/node": "^5.5.0",
     "@socket.io/postgres-adapter": "^0.2.0",
     "@types/cli-color": "^2.0.2",
@@ -79,6 +80,7 @@
     "@typescript-eslint/eslint-plugin": "^4.28.2",
     "@typescript-eslint/parser": "^4.28.2",
     "eslint": "^7.30.0",
+    "husky": "^7.0.4",
     "jest": "^27.0.6",
     "prettier": "^2.5.1",
     "socket.io-client": "^4.4.1",

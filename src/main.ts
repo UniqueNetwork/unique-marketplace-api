@@ -7,15 +7,17 @@ import { AppModule } from './app.module';
 import { runMigrations } from './database/migrations';
 import { ignoreQueryCase, useGlobalPipes } from './utils/application';
 import * as fs from 'fs';
+import { promises } from 'fs';
+import { join } from 'path';
 
 const APP_NAME_PREFIX = 'unique-marketplace-api';
 const logger = new Logger('NestApplication');
 
-const initSwagger = (app: INestApplication, config) => {
+const initSwagger = (app: INestApplication, config, pkg) => {
   const swaggerConf = new DocumentBuilder()
     .setTitle(config.swagger.title)
     .setDescription(fs.readFileSync('docs/description.md').toString())
-    .setVersion(config.swagger.version)
+    .setVersion(pkg.version)
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConf);
   SwaggerModule.setup('api/docs/', app, swaggerDocument);
@@ -26,7 +28,9 @@ let app: INestApplication;
 async function bootstrap() {
   app = await NestFactory.create(AppModule);
   const config = app.get('CONFIG');
-
+  const pkg = JSON.parse(
+    await promises.readFile(join('.', 'package.json'), 'utf8'),
+  );
   if (config.autoDBMigrations) await runMigrations(config, 'migrations');
 
   if (config.disableSecurity) app.enableCors();
@@ -42,7 +46,7 @@ async function bootstrap() {
   //app.setGlobalPrefix('api');
   app.enableShutdownHooks();
 
-  initSwagger(app, config);
+  initSwagger(app, config, pkg);
   ignoreQueryCase(app);
   useGlobalPipes(app);
 
