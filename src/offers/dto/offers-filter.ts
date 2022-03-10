@@ -13,13 +13,12 @@ export class OffersFilter {
     @ApiProperty({ required: false, type: String })
     @Type(() => BigInt)
     @IsOptional()
-    @Min(0)
+    //@Min(0)
     public minPrice?: BigInt;
 
     @ApiProperty({ required: false, type: String })
     @Type(() => BigInt)
-
-    @Max(9223372036854775807)
+   // @Max(9223372036854775807)
     @IsOptional()
     public maxPrice?: BigInt;
 
