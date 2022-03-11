@@ -112,7 +112,7 @@ export class OffersService {
         BlockchainBlock,
         'block',
         'offer.network = block.network and block.block_number = offer.block_number_ask',
-      ).groupBy('offer.id, auction.id, bid.id, block.block_number, block.network');
+      )
   }
 
   /**
@@ -199,12 +199,12 @@ export class OffersService {
     groupedMatches.getQuery.prototype = getQueryOld;
 
     if ((traitsCount ?? []).length !== 0) {
-      query.leftJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"  AND gr."traitsCount" IN (:...traitsCount)`, {
+      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"  AND gr."traitsCount" IN (:...traitsCount)`, {
         traitsCount: traitsCount,
       })
 
     } else {
-      query.leftJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"`);
+      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"`);
     }
     return query
   }
