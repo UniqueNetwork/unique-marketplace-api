@@ -175,7 +175,7 @@ export class OffersService {
    * @return SelectQueryBuilder<ContractAsk>
    */
   private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
-    if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
+    //if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
 
     let matchedText = this.searchIndexRepository.createQueryBuilder('searchIndex')
 
