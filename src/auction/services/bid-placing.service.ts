@@ -196,7 +196,9 @@ export class BidPlacingService {
         updatedAt: new Date(),
       });
 
+      contractAsk.price = userNextPendingAmount.toString();
       await transactionEntityManager.update(ContractAsk, contractAsk.id, { price: userNextPendingAmount.toString() });
+
       await transactionEntityManager.save(BidEntity, nextUserBid);
 
       contractAsk.auction.bids = await databaseHelper.getBids({ auctionId: contractAsk.auction.id });
