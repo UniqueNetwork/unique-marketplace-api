@@ -33,7 +33,7 @@ export default {
       collectionIds: (process.env.UNIQUE_COLLECTION_IDS || '')
         .split(',')
         .map((x) => Number(x.trim()))
-        .filter((x) => !isNaN(x) && x > 1 && x !== Infinity),
+        .filter((x) => !isNaN(x) && x > 0 && x !== Infinity),
     },
     kusama: {
       wsEndpoint: process.env.KUSAMA_WS_ENDPOINT || 'wss://kusama-rpc.polkadot.io',
