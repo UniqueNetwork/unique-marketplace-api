@@ -1,10 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import {ApiProperty} from '@nestjs/swagger';
 
-import { Dto } from '../../utils/dto';
-import { ClassToDto } from '../../utils/type-generators/class-to-dto';
-import {Transform, Type} from 'class-transformer';
-import {IsInt, IsNumber, IsOptional, IsPositive, Min} from 'class-validator';
-import {IsBigInt} from "../decorators/biging.decorator";
+import {Dto} from '../../utils/dto';
+import {ClassToDto} from '../../utils/type-generators/class-to-dto';
+import {Type} from 'class-transformer';
+import {IsOptional} from 'class-validator';
 
 export class OffersFilter {
     @ApiProperty({ name: 'collectionId', items: { type: 'integer', default: '' }, required: false, type: 'array', isArray: true })
