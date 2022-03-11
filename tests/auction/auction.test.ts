@@ -46,8 +46,11 @@ describe('Auction creation method', () => {
 
     testEntities.clientSocket.on('bidPlaced', (offer) => {
       socketEvents.push(['bidPlaced', offer]);
+      const bidPlacedItems = socketEvents.filter((item) => item[0] === 'bidPlaced');
 
-      clientReceivedBid();
+      if (bidPlacedItems.length === 2) {
+        clientReceivedBid();
+      }
     });
 
     const createAuctionResponse = await createAuction(testEntities, collectionId, tokenId, { startPrice: '1000', priceStep: '100' });
@@ -67,7 +70,10 @@ describe('Auction creation method', () => {
     const placedBidBadResponse = await placeBid(testEntities, collectionId, tokenId, '999');
     expect(placedBidBadResponse.status).toEqual(400);
 
-    const placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '1100');
+    let placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '1100');
+    expect(placedBidResponse.status).toEqual(201);
+
+    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '199');
     expect(placedBidResponse.status).toEqual(201);
 
     const offerWithBids = placedBidResponse.body as OfferContractAskDto;
@@ -75,35 +81,43 @@ describe('Auction creation method', () => {
     expect(offerWithBids.auction.bids).toEqual([
       {
         bidderAddress: testEntities.actors.buyer.kusamaAddress,
+        amount: '199',
+        balance: '1299',
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      },
+      {
+        bidderAddress: testEntities.actors.buyer.kusamaAddress,
         amount: '1100',
         balance: '1100',
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
-      } as Bid,
-    ]);
+      },
+    ] as Bid[]);
 
     const offerByCollectionAndToken = await request(testEntities.app.getHttpServer()).get(`/offer/${collectionId}/${tokenId}`);
 
-    expect(offerByCollectionAndToken.body).toEqual({
-      ...offerWithBids,
-      auction: {
-        ...offerWithBids.auction,
-        bids: [
-          {
-            ...offerWithBids.auction.bids[0],
-            amount: expect.any(String),
-          },
-        ],
-      },
-      price: '1100',
-    });
+    expect(offerByCollectionAndToken.body).toEqual(offerWithBids);
 
     await untilClientReceivedBid;
 
-    expect(socketEvents).toEqual([
-      ['auctionStarted', auctionOffer],
-      ['bidPlaced', offerWithBids],
-    ]);
+    const auctionCreatedEvent = socketEvents[0];
+    const firstBidEvent = socketEvents[1];
+    const secondBidEvent = socketEvents[2];
+
+    expect(auctionCreatedEvent).toBeDefined();
+    expect(auctionCreatedEvent[0]).toEqual('auctionStarted');
+    expect(auctionCreatedEvent[1]).toEqual(auctionOffer);
+
+    expect(firstBidEvent).toBeDefined();
+    expect(firstBidEvent[0]).toEqual('bidPlaced');
+    expect(firstBidEvent[1].price).toEqual('1100');
+    expect(firstBidEvent[1].auction.bids.length).toEqual(1);
+
+    expect(secondBidEvent).toBeDefined();
+    expect(secondBidEvent[0]).toEqual('bidPlaced');
+    expect(secondBidEvent[1].price).toEqual('1299');
+    expect(secondBidEvent[1].auction.bids.length).toEqual(2);
   });
 
   it('bad request - unsigned tx', async () => {
