@@ -284,7 +284,7 @@ As you can gather from http://localhost:9090/metrics, one metric that Prometheus
 
 ## License
 
-Copyright &copy; 2022 UniqueNetwork
+Copyright &copy; 2022 Unique Network Limited < developer@unique.network >
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
