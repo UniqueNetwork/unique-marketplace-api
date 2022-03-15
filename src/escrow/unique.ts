@@ -177,8 +177,13 @@ export class UniqueEscrow extends Escrow {
     const collectionId = util.extractCollectionIdFromAddress(collectionEVMAddress);
     const tokenId = inputData.inputs[3].toNumber();
     if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
+    const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
+    if(activeAsk) {
+      logging.log(`Got duplicate ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum})`, logging.level.WARNING);
+      logging.log(`Changed status to cancelled for old ask #${activeAsk.id}`, logging.level.WARNING);
+      await this.service.cancelAsk(collectionId, tokenId, blockNum, this.getNetwork());
+    }
     await this.service.registerAccountPair(addressFrom, this.address2string(addressFromEth));
-
     let isToContract = this.address2string(addressTo).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
     if (!isToContract) return;
     logging.log(`Got ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum}`);
@@ -250,10 +255,7 @@ export class UniqueEscrow extends Escrow {
     if (!isToContract) return; // Not our contract
     let eventLogEVM = events.find((e) => e.event.method === 'Log' && e.event.section === 'evm'); // TODO: check this
     if (!eventLogEVM) {
-      let isFailed = events.find((e) => e.event.method == 'ExecutedFailed' && e.event.section === 'evm');
-      if (isFailed) {
-        logging.log(`Failed WithdrawAllKSM for ${singer} in block #${blockNum}`, logging.level.WARNING);
-      }
+      logging.log(`Failed WithdrawAllKSM for ${singer} in block #${blockNum}`, logging.level.WARNING);
       return;
     }
     let withDrawData;
@@ -278,6 +280,11 @@ export class UniqueEscrow extends Escrow {
   async processCall(blockNum, rawExtrinsic, events) {
     const extrinsic = rawExtrinsic.toHuman().method;
     const inputData = this.inputDecoder.decodeData(extrinsic.args.input);
+    let isFailed = events.find((e) => e.event.method == 'ExecutedFailed' && e.event.section === 'evm');
+    if(isFailed) {
+      logging.log(`evm call failed (Method: ${inputData.method}, sender: ${rawExtrinsic.signer})`, logging.level.WARNING);
+      return;
+    }
     if (inputData.method === 'addAsk') {
       return await this.processAddAsk(blockNum, extrinsic, inputData, rawExtrinsic.signer);
     }
