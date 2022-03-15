@@ -15,6 +15,10 @@ const success = (message, indent='') => {
 
 const checkCollection = async (collectionId, api, indent='  ') => {
   let collection = (await api.query.common.collectionById(collectionId)).toHuman();
+  if(collection === null) {
+    fail('Collection does not exists', false, indent);
+    return;
+  }
   let sponsorship = collection.sponsorship;
   if(typeof collection.sponsorship !== 'string') {
     sponsorship = {}
@@ -101,7 +105,21 @@ export const main = async (moduleRef, args: string[]) => {
 
   console.log('\nChecking CONTRACT_ADDRESS');
 
+  let validContract = false;
+
   if(config.blockchain.unique.contractAddress) {
+    let code = '';
+    try {
+      code = await api.rpc.eth.getCode(config.blockchain.unique.contractAddress);
+    } catch (e) {
+      code = '';
+    }
+    validContract = code.length > 0;
+  }
+  else {
+    fail('No contract address provided. You must set CONTRACT_ADDRESS env variable, or override blockchain.unique.contractAddress in config');
+  }
+  if (validContract) {
     let address = config.blockchain.unique.contractAddress;
     success(`Contract address valid: ${address}`);
     const balance = (await api.rpc.eth.getBalance(config.blockchain.unique.contractAddress)).toBigInt();
@@ -122,8 +140,8 @@ export const main = async (moduleRef, args: string[]) => {
       success(`Rate limit is zero blocks`);
     }
   }
-  else {
-    fail('No contract address provided. You must set CONTRACT_ADDRESS env variable, or override blockchain.unique.contractAddress in config');
+  else if (config.blockchain.unique.contractAddress) {
+    fail(`Contract address invalid: ${config.blockchain.unique.contractAddress}`);
   }
   if(config.blockchain.unique.contractOwnerSeed) {
     try {
