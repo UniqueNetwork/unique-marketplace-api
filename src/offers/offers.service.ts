@@ -199,12 +199,12 @@ export class OffersService {
     groupedMatches.getQuery.prototype = getQueryOld;
 
     if ((traitsCount ?? []).length !== 0) {
-      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"  AND gr."traitsCount" IN (:...traitsCount)`, {
-        traitsCount: traitsCount,
-      })
+       query.leftJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"  AND gr."traitsCount" IN (:...traitsCount)`, {
+         traitsCount: traitsCount,
+       })
 
     } else {
-      query.innerJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"`);
+      query.leftJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"`);
     }
     return query
   }
