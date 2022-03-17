@@ -1,3 +1,4 @@
+import { SearchIndexController } from './search-index.controller';
 import { Module } from '@nestjs/common';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { AuctionCancelingService } from './services/auction-canceling.service';
@@ -14,7 +15,7 @@ import { AuctionClosingScheduler } from './services/closing/auction-closing.sche
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuctionClosingService } from './services/closing/auction-closing.service';
 import { ForceClosingService } from './services/closing/force-closing.service';
-
+import { SearchIndexService } from './services/search-index.service';
 
 const isAuctionTestingStage = process.env.IS_AUCTION_TESTING_STAGE === 'true' || process.env.NODE_ENV === 'test';
 
@@ -33,11 +34,13 @@ const isAuctionTestingStage = process.env.IS_AUCTION_TESTING_STAGE === 'true' ||
     AuctionClosingService,
     AuctionClosingScheduler,
     ForceClosingService,
+    SearchIndexService,
   ],
   controllers: [
     AuctionController,
+    SearchIndexController,
     ...isAuctionTestingStage ? [AuctionForceCloseController] : [],
   ],
-  exports: ['KUSAMA_API', 'UNIQUE_API', AuctionClosingScheduler],
+  exports: ['KUSAMA_API', 'UNIQUE_API', AuctionClosingScheduler, SearchIndexService],
 })
 export class AuctionModule {}

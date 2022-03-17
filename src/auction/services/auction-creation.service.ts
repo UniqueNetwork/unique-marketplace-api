@@ -11,6 +11,7 @@ import { ApiPromise } from '@polkadot/api';
 import { DateHelper } from '../../utils/date-helper';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { MarketConfig } from '../../config/market-config';
+import { SearchIndexService } from './search-index.service';
 
 type CreateAuctionArgs = {
   collectionId: string;
@@ -36,6 +37,7 @@ export class AuctionCreationService {
     @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @Inject('CONFIG') private config: MarketConfig,
+    private searchIndexService: SearchIndexService,
   ) {
     this.contractAskRepository = connection.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
@@ -80,6 +82,9 @@ export class AuctionCreationService {
     await this.contractAskRepository.save(contractAsk);
 
     const offer = OfferContractAskDto.fromContractAsk(contractAsk);
+    await this.searchIndexService.addSearchIndexIfNotExists({
+      collectionId: Number(collectionId),
+      tokenId: Number(tokenId) });
 
     this.broadcastService.sendAuctionStarted(offer);
 

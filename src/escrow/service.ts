@@ -1,13 +1,20 @@
+import { SearchIndexService } from './../auction/services/search-index.service';
+import { ModuleRef } from '@nestjs/core';
 import { Injectable, Inject } from '@nestjs/common';
 import { Connection } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 
 import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex } from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
+import { CollectionToken } from 'src/auction/types';
 
 @Injectable()
 export class EscrowService {
-  constructor(@Inject('DATABASE_CONNECTION') private db: Connection, @Inject('CONFIG') private config) {}
+  constructor(
+    @Inject('DATABASE_CONNECTION') private db: Connection,
+    @Inject('CONFIG') private config,
+    private moduleRef: ModuleRef
+    ) {}
 
   getNetwork(network?: string): string {
     if (!network) return this.config.blockchain.unique.network;
@@ -243,23 +250,8 @@ export class EscrowService {
     return await repository.find({ collection_id: collectionId.toString(), token_id: tokenId.toString(), network: this.getNetwork(network) , is_trait: true })
   }
 
-  async addSearchIndexes(keywords, collectionId: number, tokenId: number, network?: string) {
-    const repository = this.db.getRepository(SearchIndex);
-    network = this.getNetwork(network);
-    const alreadyExist = await repository.count({ collection_id: collectionId.toString(), token_id: tokenId.toString(), network });
-    if (alreadyExist > 0) return;
-    await repository.insert(
-      keywords.map((x) => {
-        return {
-          id: uuid(),
-          collection_id: collectionId.toString(),
-          token_id: tokenId.toString(),
-          network,
-          locale: x.locale,
-          value: x.text,
-          is_trait: !!x.is_trait,
-        };
-      }),
-    );
+  async addSearchIndexes(token:CollectionToken): Promise<void> {
+    const searchIndex = this.moduleRef.get(SearchIndexService, { strict: false });
+    return searchIndex.addSearchIndexIfNotExists(token);
   }
 }
