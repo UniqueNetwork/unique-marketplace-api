@@ -4,6 +4,8 @@ WORKDIR /src
 
 COPY ./package.json .
 
+RUN npm install husky -g
+
 RUN npm install --production
 
 COPY . .
