@@ -19,6 +19,7 @@ import {
 } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersQuerySortHelper } from "./offers-query-sort-helper";
+import { filter } from 'rxjs';
 
 @Injectable()
 export class OffersService {
@@ -53,19 +54,17 @@ export class OffersService {
 
     try {
       offers = await this.contractAskRepository.createQueryBuilder('offer')
-
       this.addRelations(offers);
 
       offers = this.filter(offers, offersFilter);
       offers = this.offersQuerySortHelper.applySort(offers, sort);
       paginationResult = await paginate(offers, pagination);
 
-      if (offersFilter?.traitsCount) {
+      if ((offersFilter.traitsCount ?? []).length !== 0 ) {
         const filterItems = paginationResult.items.filter((item) => (offersFilter?.traitsCount.includes(item.search_index.length)));
         paginationResult.items = filterItems;
         paginationResult.itemsCount = filterItems.length;
       }
-
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -104,7 +103,6 @@ export class OffersService {
   private addRelations(
       queryBuilder: SelectQueryBuilder<ContractAsk>
     ): void {
-
     queryBuilder
       .leftJoinAndMapOne(
         'offer.auction',
@@ -127,7 +125,7 @@ export class OffersService {
         'offer.search_index',
         SearchIndex,
         'search_index',
-        `offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id`
+        'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
       )
   }
 

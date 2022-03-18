@@ -1,4 +1,5 @@
 FROM node:16-alpine
+LABEL maintainer="Unique.Network"
 
 WORKDIR /src
 
