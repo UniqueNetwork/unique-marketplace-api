@@ -19,6 +19,7 @@ import {
 } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersQuerySortHelper } from "./offers-query-sort-helper";
+import { filter } from 'rxjs';
 
 @Injectable()
 export class OffersService {
@@ -55,10 +56,15 @@ export class OffersService {
       offers = await this.contractAskRepository.createQueryBuilder('offer')
       this.addRelations(offers);
 
-
       offers = this.filter(offers, offersFilter);
       offers = this.offersQuerySortHelper.applySort(offers, sort);
       paginationResult = await paginate(offers, pagination);
+
+      if ((offersFilter.traitsCount ?? []).length !== 0 ) {
+        const filterItems = paginationResult.items.filter((item) => (offersFilter?.traitsCount.includes(item.search_index.length)));
+        paginationResult.items = filterItems;
+        paginationResult.itemsCount = filterItems.length;
+      }
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -94,7 +100,9 @@ export class OffersService {
   }
 
 
-  private addRelations(queryBuilder: SelectQueryBuilder<ContractAsk>): void {
+  private addRelations(
+      queryBuilder: SelectQueryBuilder<ContractAsk>
+    ): void {
     queryBuilder
       .leftJoinAndMapOne(
         'offer.auction',
@@ -112,6 +120,12 @@ export class OffersService {
         BlockchainBlock,
         'block',
         'offer.network = block.network and block.block_number = offer.block_number_ask',
+      )
+      .leftJoinAndMapMany(
+        'offer.search_index',
+        SearchIndex,
+        'search_index',
+        'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
       )
   }
 
@@ -175,37 +189,21 @@ export class OffersService {
    * @return SelectQueryBuilder<ContractAsk>
    */
   private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
+
     //if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
 
-    let matchedText = this.searchIndexRepository.createQueryBuilder('searchIndex')
-
     if ((traitsCount ?? []).length !== 0) {
-      matchedText = matchedText.andWhere(`searchIndex.is_trait = true`);
+      query.andWhere(`search_index.is_trait = true`);
     }
 
-    if(!nullOrWhitespace(text)) { matchedText = matchedText.andWhere(`searchIndex.value ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text }) }
-
-    if(!nullOrWhitespace(locale) ){matchedText = matchedText.andWhere('(searchIndex.locale is null OR searchIndex.locale = :locale)', { locale: locale, }) }
-
-
-    const groupedMatches = matchedText
-      .select('searchIndex.collection_id, searchIndex.token_id')
-      .addSelect('COUNT(searchIndex.id)', 'traitsCount')
-      .groupBy('searchIndex.collection_id, searchIndex.token_id');
-
-    //innerJoin doesn't add parentesises around joined value, which is required in case of complex subquery.
-    const getQueryOld = groupedMatches.getQuery.bind(groupedMatches);
-    groupedMatches.getQuery = () => `(${getQueryOld()})`;
-    groupedMatches.getQuery.prototype = getQueryOld;
-
-    if ((traitsCount ?? []).length !== 0) {
-       query.leftJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"  AND gr."traitsCount" IN (:...traitsCount)`, {
-         traitsCount: traitsCount,
-       })
-
-    } else {
-      query.leftJoin(() => groupedMatches, 'gr', `gr."collection_id" = offer."collection_id" AND gr."token_id" = offer."token_id"`);
+    if(!nullOrWhitespace(text)) {
+      query.andWhere(`search_index.value ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text })
     }
+
+    if(!nullOrWhitespace(locale)) {
+      query.andWhere('(search_index.locale is null OR search_index.locale = :locale)', { locale: locale, })
+    }
+
     return query
   }
 
