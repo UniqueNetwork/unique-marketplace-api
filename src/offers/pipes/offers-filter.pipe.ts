@@ -47,7 +47,7 @@ export class ParseOffersFilterPipe implements PipeTransform<any, TransformationR
                 .filter((id) => id != null) as number[],
             traits: requestArray(value.traits)
                     .filter((id) => id != null) as string[],
-            ownerBid: value.ownerBid,
+            bidderAddress: value.bidderAddress,
             isAuction: value?.isAuction || null,
         });
     }

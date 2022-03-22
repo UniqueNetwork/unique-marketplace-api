@@ -53,7 +53,7 @@ export class OffersFilter {
       required: false,
       type: String
     })
-    public ownerBid?: string
+    public bidderAddress?: string
 
     constructor(value: ClassToDto<OffersFilter>) {
         Dto.init(this, value);

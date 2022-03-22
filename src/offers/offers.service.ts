@@ -227,10 +227,31 @@ export class OffersService {
     return query.andWhere('offer.address_from = :seller', { seller });
   }
 
-  private filterByAuction(query: SelectQueryBuilder<ContractAsk>, ownerBid?: string, isAuction?: boolean): SelectQueryBuilder<ContractAsk> {
+  private filterByAuction(query: SelectQueryBuilder<ContractAsk>, bidderAddress?: string, isAuction?: boolean | string): SelectQueryBuilder<ContractAsk> {
+
+    if (isAuction !== null) {
+      const _auction = (isAuction === 'true');
+      if (_auction === true) {
+        query.andWhere('auction.id is not null');
+      } else {
+        query.andWhere('auction.id is null');
+      }
+    }
+
+
+    if(!nullOrWhitespace(bidderAddress)) {
+      query.andWhere('(bid.bidder_address = :bidderAddress)', { bidderAddress });
+    }
+
     return query;
   }
-
+  /**
+   *
+   * @param query
+   * @param collectionIds
+   * @param traits
+   * @returns
+   */
   private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], traits?: string[]): SelectQueryBuilder<ContractAsk> {
 
     if ((collectionIds ?? []).length <= 0) {
@@ -240,11 +261,7 @@ export class OffersService {
     if ((traits ?? []).length <= 0) {
       return query
     }
-
-    const queryTraits = traits.join(',');
-    console.log('->', queryTraits);
-
-    return query.andWhere(`search_index.value in ('Normal Hair')`, { queryTraits });
+    return query.andWhere('search_index.value in (:...traits)', { traits });
   }
 
   /**
@@ -261,11 +278,12 @@ export class OffersService {
     query = this.filterByMinPrice(query, offersFilter.minPrice);
     query = this.filterBySeller(query, offersFilter.seller);
     query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
-    //query = this.filterByAuction(query, offersFilter.ownerBid, offersFilter.isAuction);
+    query = this.filterByAuction(query, offersFilter.bidderAddress, offersFilter.isAuction);
     query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.traits);
 
     console.dir(offersFilter, { depth: 4 });
-    console.log('sql->', query.getQueryAndParameters());
+
+    console.log(query.getQueryAndParameters());
 
     return query.andWhere(`offer.status = :status`, { status: 'active' });
   }
