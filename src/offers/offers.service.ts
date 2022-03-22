@@ -226,7 +226,15 @@ export class OffersService {
 
     return query.andWhere('offer.address_from = :seller', { seller });
   }
-
+/**
+ * Filter by Auction
+ * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
+ * @param {String} bidderAddress - bidder address for bids in auction
+ * @param {Boolean} isAuction - flag for checking auctions in offers
+ * @private
+ * @see OffersService.get
+ * @return SelectQueryBuilder<ContractAsk>
+ */
   private filterByAuction(query: SelectQueryBuilder<ContractAsk>, bidderAddress?: string, isAuction?: boolean | string): SelectQueryBuilder<ContractAsk> {
 
     if (isAuction !== null) {
@@ -246,11 +254,13 @@ export class OffersService {
     return query;
   }
   /**
-   *
-   * @param query
-   * @param collectionIds
-   * @param traits
-   * @returns
+   * Filter by Traits
+   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
+   * @param {Array<number>} collectionIds - Array collection ID
+   * @param {Array<string>} traits - Array traits for token
+   * @private
+   * @see OffersService.get
+   * @return SelectQueryBuilder<ContractAsk>
    */
   private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], traits?: string[]): SelectQueryBuilder<ContractAsk> {
 
@@ -280,10 +290,6 @@ export class OffersService {
     query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
     query = this.filterByAuction(query, offersFilter.bidderAddress, offersFilter.isAuction);
     query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.traits);
-
-    console.dir(offersFilter, { depth: 4 });
-
-    console.log(query.getQueryAndParameters());
 
     return query.andWhere(`offer.status = :status`, { status: 'active' });
   }
