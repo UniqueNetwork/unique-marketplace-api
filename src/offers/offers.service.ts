@@ -1,3 +1,4 @@
+import { OfferTraits } from './dto/offer-traits';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
 
@@ -19,7 +20,6 @@ import {
 } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersQuerySortHelper } from "./offers-query-sort-helper";
-import { filter } from 'rxjs';
 
 @Injectable()
 export class OffersService {
@@ -65,6 +65,9 @@ export class OffersService {
         paginationResult.items = filterItems;
         paginationResult.itemsCount = filterItems.length;
       }
+
+      console.dir(paginationResult, { depth: 4 });
+
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -90,7 +93,7 @@ export class OffersService {
       .createQueryBuilder(ContractAsk, 'offer')
       .where('offer.collection_id = :collectionId', { collectionId })
       .andWhere('offer.token_id = :tokenId', { tokenId })
-      .andWhere(`offer.status = :status`, { status: 'active' });
+      .andWhere('offer.status = :status', { status: 'active' });
 
     this.addRelations(queryBuilder);
 
@@ -224,6 +227,25 @@ export class OffersService {
     return query.andWhere('offer.address_from = :seller', { seller });
   }
 
+  private filterByAuction(query: SelectQueryBuilder<ContractAsk>, ownerBid?: string, isAuction?: boolean): SelectQueryBuilder<ContractAsk> {
+    return query;
+  }
+
+  private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], traits?: string[]): SelectQueryBuilder<ContractAsk> {
+
+    if ((collectionIds ?? []).length <= 0) {
+      return query;
+    }
+
+    if ((traits ?? []).length <= 0) {
+      return query
+    }
+
+    const queryTraits = traits.join(',');
+    console.log('->', queryTraits);
+
+    return query.andWhere(`search_index.value in ('Normal Hair')`, { queryTraits });
+  }
 
   /**
    * Filter all create OffersFilter Dto
@@ -239,11 +261,43 @@ export class OffersService {
     query = this.filterByMinPrice(query, offersFilter.minPrice);
     query = this.filterBySeller(query, offersFilter.seller);
     query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
+    //query = this.filterByAuction(query, offersFilter.ownerBid, offersFilter.isAuction);
+    query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.traits);
+
+    console.dir(offersFilter, { depth: 4 });
+    console.log('sql->', query.getQueryAndParameters());
 
     return query.andWhere(`offer.status = :status`, { status: 'active' });
   }
 
   public get isConnected(): boolean {
     return true;
+  }
+
+  async getTraits( collectionId: number ): Promise<OfferTraits | null> {
+    let traits = [];
+    try {
+      traits =  await this.connection.manager.query(`
+      select value as trait, COUNT(value) as count
+      from search_index
+      where collection_id = $1 and locale is not null
+      group by value`, [collectionId]);
+
+    } catch (e) {
+      this.logger.error(e.message);
+      this.sentryService.instance().captureException(new BadRequestException(e), {
+        tags: { section: 'get_traits' },
+      });
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Something went wrong!',
+        error: e.message,
+      });
+    }
+
+    return {
+      collectionId,
+      traits
+    };
   }
 }
