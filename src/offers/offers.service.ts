@@ -1,3 +1,4 @@
+import { OfferTraits } from './dto/offer-traits';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
 
@@ -19,7 +20,6 @@ import {
 } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersQuerySortHelper } from "./offers-query-sort-helper";
-import { filter } from 'rxjs';
 
 @Injectable()
 export class OffersService {
@@ -90,7 +90,7 @@ export class OffersService {
       .createQueryBuilder(ContractAsk, 'offer')
       .where('offer.collection_id = :collectionId', { collectionId })
       .andWhere('offer.token_id = :tokenId', { tokenId })
-      .andWhere(`offer.status = :status`, { status: 'active' });
+      .andWhere('offer.status = :status', { status: 'active' });
 
     this.addRelations(queryBuilder);
 
@@ -223,7 +223,53 @@ export class OffersService {
 
     return query.andWhere('offer.address_from = :seller', { seller });
   }
+/**
+ * Filter by Auction
+ * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
+ * @param {String} bidderAddress - bidder address for bids in auction
+ * @param {Boolean} isAuction - flag for checking auctions in offers
+ * @private
+ * @see OffersService.get
+ * @return SelectQueryBuilder<ContractAsk>
+ */
+  private filterByAuction(query: SelectQueryBuilder<ContractAsk>, bidderAddress?: string, isAuction?: boolean | string): SelectQueryBuilder<ContractAsk> {
 
+    if (isAuction !== null) {
+      const _auction = (isAuction === 'true');
+      if (_auction === true) {
+        query.andWhere('auction.id is not null');
+      } else {
+        query.andWhere('auction.id is null');
+      }
+    }
+
+
+    if(!nullOrWhitespace(bidderAddress)) {
+      query.andWhere('(bid.bidder_address = :bidderAddress)', { bidderAddress });
+    }
+
+    return query;
+  }
+  /**
+   * Filter by Traits
+   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
+   * @param {Array<number>} collectionIds - Array collection ID
+   * @param {Array<string>} traits - Array traits for token
+   * @private
+   * @see OffersService.get
+   * @return SelectQueryBuilder<ContractAsk>
+   */
+  private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], traits?: string[]): SelectQueryBuilder<ContractAsk> {
+
+    if ((collectionIds ?? []).length <= 0) {
+      return query;
+    }
+
+    if ((traits ?? []).length <= 0) {
+      return query
+    }
+    return query.andWhere('search_index.value in (:...traits)', { traits });
+  }
 
   /**
    * Filter all create OffersFilter Dto
@@ -239,11 +285,40 @@ export class OffersService {
     query = this.filterByMinPrice(query, offersFilter.minPrice);
     query = this.filterBySeller(query, offersFilter.seller);
     query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
+    query = this.filterByAuction(query, offersFilter.bidderAddress, offersFilter.isAuction);
+    query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.traits);
 
     return query.andWhere(`offer.status = :status`, { status: 'active' });
   }
 
   public get isConnected(): boolean {
     return true;
+  }
+
+  async getTraits( collectionId: number ): Promise<OfferTraits | null> {
+    let traits = [];
+    try {
+      traits =  await this.connection.manager.query(`
+      select value as trait, COUNT(value) as count
+      from search_index
+      where collection_id = $1 and locale is not null
+      group by value`, [collectionId]);
+
+    } catch (e) {
+      this.logger.error(e.message);
+      this.sentryService.instance().captureException(new BadRequestException(e), {
+        tags: { section: 'get_traits' },
+      });
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Something went wrong!',
+        error: e.message,
+      });
+    }
+
+    return {
+      collectionId,
+      traits
+    };
   }
 }

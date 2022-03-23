@@ -1,3 +1,4 @@
+import { OfferTraits } from './dto/offer-traits';
 import {
   Controller,
   Get,
@@ -52,6 +53,19 @@ export class OffersController {
 
       throw new NotFoundException(
         `No active offer for collection ${collectionId}, token ${tokenId}`,
+      );
+    }
+
+    @Get('traits/:collectionId')
+    @ApiResponse({ type: OfferTraits, status: HttpStatus.OK })
+    async getTraitsByCollection(@Param('collectionId', ParseIntPipe) collectionId: number ): Promise<OfferTraits> {
+
+      const traits = await this.offersService.getTraits(collectionId);
+
+      if (traits) return traits;
+
+      throw new NotFoundException(
+        `No found  collection ${collectionId} in offer`,
       );
     }
 }

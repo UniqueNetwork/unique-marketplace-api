@@ -4,7 +4,7 @@ import { Dto } from '../../utils/dto';
 import { ClassToDto } from '../../utils/type-generators/class-to-dto';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, Min } from 'class-validator';
-import { Max } from '../decorators/max-bigint.decorator';
+
 
 export class OffersFilter {
     @ApiProperty({ name: 'collectionId', items: { type: 'integer', default: '' }, required: false, type: 'array', isArray: true })
@@ -33,6 +33,27 @@ export class OffersFilter {
 
     @ApiProperty({ required: false })
     public searchLocale?: string;
+
+    @ApiProperty({
+      name: 'traits',
+      items: { type: 'string', default: '' },
+      required: false,
+      type: 'array',
+      isArray: true })
+    public traits?: string[];
+
+    @ApiProperty({
+      required: false,
+      type: Boolean
+    })
+    @Type(() => Boolean )
+    public isAuction?: boolean | string;
+
+    @ApiProperty({
+      required: false,
+      type: String
+    })
+    public bidderAddress?: string
 
     constructor(value: ClassToDto<OffersFilter>) {
         Dto.init(this, value);
