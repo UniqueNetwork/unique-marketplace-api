@@ -11,6 +11,11 @@ import { privateKey, blockchainStaticFile } from './util';
 const contractHelpersAbi = JSON.parse(blockchainStaticFile('contractHelpersAbi.json'));
 const nonFungibleAbi = JSON.parse(blockchainStaticFile('nonFungibleAbi.json'));
 
+enum SponsoringMode {
+  Disabled = 0,
+  Allowlisted = 1,
+  Generous = 2,
+}
 
 const GAS_ARGS = {gas: 2500000};
 const MICROUNIQUE = 1_000_000_000_000n;
@@ -99,5 +104,5 @@ const unlockAccount = (web3, account, password, timeout = 60) => {
 export {
   createEthAccount, createEthAccountWithBalance, createEvmCollection, transferBalanceToEth, subToEth, subToEthLowercase, GAS_ARGS, UNIQUE,
   contractHelpers, connectWeb3, executeEthTxOnSub, unlockAccount, collectionIdToAddress,
-  nonFungibleAbi
+  nonFungibleAbi, SponsoringMode
 }

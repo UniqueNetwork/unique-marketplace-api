@@ -97,8 +97,10 @@ export const main = async(moduleRef, args: string[]) => {
   logging.log('Set escrow...');
   await contract.methods.setEscrow(account.address, true).send({from: account.address});
   const helpers = lib.contractHelpers(web3, account.address);
-  logging.log('Set sponsoring...');
-  await helpers.methods.toggleSponsoring(contract.options.address, true).send({from: account.address});
+  logging.log('Set sponsoring mode...');
+  // await helpers.methods.toggleSponsoring(contract.options.address, true).send({from: account.address});
+  await helpers.methods.setSponsoringMode(contract.options.address, lib.SponsoringMode.Allowlisted).send({from: account.address});
+  logging.log('Set sponsoring rate limit...')
   await helpers.methods.setSponsoringRateLimit(contract.options.address, 0).send({from: account.address});
   logging.log('Transfer balance...');
   let result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(contract.options.address), CONTRACT_MIN_BALANCE), 'api.tx.balances.transfer') as any;
