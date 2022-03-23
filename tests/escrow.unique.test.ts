@@ -74,8 +74,13 @@ describe('Escrow test', () => {
     const contract = await contractAbi.deploy({ data: readBCStatic('MarketPlace.bin') }).send({ from: contractOwner.address, gas: 10000000 });
     await contract.methods.setEscrow(contractOwner.address, true).send({ from: contractOwner.address });
     const helpers = lib.contractHelpers(web3, contractOwner.address);
-    await helpers.methods.toggleSponsoring(contract.options.address, true).send({ from: contractOwner.address });
-    await helpers.methods.setSponsoringRateLimit(contract.options.address, 1).send({ from: contractOwner.address });
+
+    await helpers.methods.setSponsoringMode(contract.options.address, lib.SponsoringMode.Allowlisted).send({from: contractOwner.address});
+    await expect((await api.query.evmContractHelpers.sponsoringMode(contract.options.address)).toJSON()).toBe('Allowlisted');
+
+    await helpers.methods.setSponsoringRateLimit(contract.options.address, 0).send({ from: contractOwner.address });
+    await expect((await api.query.evmContractHelpers.sponsoringRateLimit(contract.options.address)).toJSON()).toBe(0);
+
     await lib.transferBalanceToEth(api, admin, contract.options.address);
 
     fs.writeFileSync(cachedPath, JSON.stringify({ contractOwnerSeed: contractOwner.privateKey, contractAddress: contract.options.address }));
