@@ -128,8 +128,11 @@ export const main = async (moduleRef, args: string[]) => {
     } else {
       success(`Contract balance is ${balanceString(balance)}`);
     }
-    if (!(await api.query.evmContractHelpers.selfSponsoring(address)).toJSON()) {
-      fail(`Contract self-sponsoring is not enabled. You should call toggleSelfSponsoring first`);
+    const sponsoring = (await uniqueHelper.api.query.evmContractHelpers.selfSponsoring(address)).toJSON();
+    const sponsoringMode = (await uniqueHelper.api.query.evmContractHelpers.sponsoringMode(address)).toJSON();
+    const allowedModes = ["Generous", "Allowlisted"];
+    if (allowedModes.indexOf(sponsoringMode) === -1 && !sponsoring) {
+      fail(`Contract self-sponsoring is not enabled. You should call setSponsoringMode first`);
     } else {
       success(`Contract self-sponsoring is enabled`);
     }
