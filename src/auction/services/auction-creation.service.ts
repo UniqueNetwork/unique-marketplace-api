@@ -18,8 +18,8 @@ type CreateAuctionArgs = {
   tokenId: string;
   ownerAddress: string;
   days: number;
-  startPrice: string;
-  priceStep: string;
+  startPrice: bigint;
+  priceStep: bigint;
   tx: string;
 };
 
@@ -69,13 +69,13 @@ export class AuctionCreationService {
       address_from: ownerAddress,
       address_to: '',
       status: ASK_STATUS.ACTIVE, // todo - add appropriate status
-      price: startPrice,
+      price: startPrice.toString(),
       currency: '',
       auction: {
         stopAt: DateHelper.addDays(days),
         status: AuctionStatus.active,
-        startPrice,
-        priceStep,
+        startPrice: startPrice.toString(),
+        priceStep: priceStep.toString(),
       },
     });
 
