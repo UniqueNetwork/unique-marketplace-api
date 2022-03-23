@@ -65,9 +65,6 @@ export class OffersService {
         paginationResult.items = filterItems;
         paginationResult.itemsCount = filterItems.length;
       }
-
-      console.dir(paginationResult, { depth: 4 });
-
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {

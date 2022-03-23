@@ -1,4 +1,5 @@
-import { BlockchainBlock, ContractAsk, SearchIndex } from '../../src/entity';
+import { BlockchainBlock, ContractAsk, SearchIndex, AuctionEntity } from '../../src/entity';
+import { v4 as uuid } from 'uuid';
 
 export const prepareSearchData = async (queryBuilder) => {
   await queryBuilder
@@ -400,6 +401,70 @@ export const prepareSearchData = async (queryBuilder) => {
         is_trait: false,
         locale: null,
       },
+
+      {
+        id: uuid(),
+        collection_id: 132,
+        token_id: 5223,
+        network: 'testnet',
+        value: 'traits',
+        is_trait: false,
+        locale: null,
+      },
+      {
+        id: uuid(),
+        collection_id: 132,
+        token_id: 5223,
+        network: 'testnet',
+        value: 'Red Left Earring',
+        is_trait: true,
+        locale: 'en',
+      },
+      {
+        id: uuid(),
+        collection_id: 132,
+        token_id: 5223,
+        network: 'testnet',
+        value: 'Oops Right',
+        is_trait: true,
+        locale: 'en',
+      },
+      {
+        id: uuid(),
+        collection_id: 132,
+        token_id: 5223,
+        network: 'testnet',
+        value: '3-day Stubble Red',
+        is_trait: true,
+        locale: 'en',
+      },
+      {
+        id: uuid(),
+        collection_id: 132,
+        token_id: 5223,
+        network: 'testnet',
+        value: 'Love Print',
+        is_trait: true,
+        locale: 'en',
+      },
+      {
+        id: uuid(),
+        collection_id: 132,
+        token_id: 5223,
+        network: 'testnet',
+        value: '3220',
+        is_trait: false,
+        locale: null,
+      },
+      {
+        id: uuid(),
+        collection_id: 132,
+        token_id: 5223,
+        network: 'testnet',
+        value: 'CHEL',
+        is_trait: false,
+        locale: null,
+      },
     ])
     .into(SearchIndex)
     .execute();
@@ -528,7 +593,39 @@ export const prepareSearchData = async (queryBuilder) => {
         block_number_cancel: null,
         block_number_buy: null,
       },
+      {
+        id: '6f7d8a50-5bc3-4591-9beb-9de8b7b89fda',
+        status: 'active',
+        collection_id: 132,
+        token_id: 5223,
+        network: 'testnet',
+        price: 100,
+        currency: '',
+        address_from: '5DcJgDMWhg6NP3QEvikFnuyjdtXc42YznBiJJWqb93SAmzqq',
+        address_to: '',
+        block_number_ask: 658944,
+        block_number_cancel: null,
+        block_number_buy: null
+      }
     ])
     .into(ContractAsk)
     .execute();
+
+    await queryBuilder
+    .insert()
+    .values([
+      {
+        id: '1b506535-3f39-44fc-be68-18c677590f43',
+        createdAt: '2022-03-24 12:03:15.519000',
+        updatedAt: '2022-03-24 12:03:15.519000',
+        priceStep: '10',
+        startPrice: '100',
+        status: 'active',
+        stopAt: '2022-03-24 14:03:15.519000',
+        contractAskId: '6f7d8a50-5bc3-4591-9beb-9de8b7b89fda'
+      }
+    ])
+    .into(AuctionEntity)
+    .execute()
+
 };
