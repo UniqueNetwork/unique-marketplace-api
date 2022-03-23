@@ -1,5 +1,16 @@
 import { ApiPromise } from '@polkadot/api';
-import { BadRequestException, Body, Controller, Delete, Headers, Inject, Post, Query, Req } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Headers,
+  Inject,
+  Post,
+  Query,
+  Req,
+  ValidationPipe
+} from '@nestjs/common';
 import { ApiHeader, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { convertAddress } from '../utils/blockchain/util';
@@ -42,7 +53,7 @@ export class AuctionController {
 
   @Post('create_auction')
   @ApiResponse({ type: OfferContractAskDto })
-  async createAuction(@Body() createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
+  async createAuction(@Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
     const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
 
     return await this.auctionCreationService.create({
