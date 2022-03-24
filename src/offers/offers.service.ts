@@ -262,10 +262,7 @@ export class OffersService {
   private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], traits?: string[]): SelectQueryBuilder<ContractAsk> {
 
     if ((collectionIds ?? []).length <= 0) {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: `Failed to parse collection id from ${JSON.stringify(collectionIds)}, unable to parse as integer.`
-      });
+      return query
     }
 
     if ((traits ?? []).length <= 0) {
