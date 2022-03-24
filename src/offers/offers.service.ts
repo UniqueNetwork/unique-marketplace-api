@@ -306,7 +306,7 @@ export class OffersService {
     let traits = [];
     try {
       traits =  await this.connection.manager.query(`
-      select si.value, count(si.id)
+      select si.value as trait, count(si.id)
       from search_index si
       left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
       where si.collection_id = $1 and locale is not null
