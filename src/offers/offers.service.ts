@@ -261,15 +261,18 @@ export class OffersService {
    */
   private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], traits?: string[]): SelectQueryBuilder<ContractAsk> {
 
-    if ((collectionIds ?? []).length <= 0) {
-      return query
-    }
-
     if ((traits ?? []).length <= 0) {
       return query
+    } else {
+      if ((collectionIds ?? []).length <= 0) {
+          throw new BadRequestException({
+            statusCode: HttpStatus.BAD_REQUEST,
+            message: 'Not found collectionIds. Please set collectionIds to offer by filter',
+          });
+      } else {
+        return query.andWhere('search_index.value in (:...traits)', { traits });
+      }
     }
-
-    return query.andWhere('search_index.value in (:...traits)', { traits });
   }
 
   /**
