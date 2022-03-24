@@ -270,7 +270,10 @@ export class OffersService {
             message: 'Not found collectionIds. Please set collectionIds to offer by filter',
           });
       } else {
-        return query.andWhere('search_index.value in (:...traits)', { traits });
+        traits.forEach(trait => {
+          query.andWhere('search_index.value = :trait', { trait });
+        });
+        return query
       }
     }
   }
@@ -303,10 +306,12 @@ export class OffersService {
     let traits = [];
     try {
       traits =  await this.connection.manager.query(`
-      select value as trait, COUNT(value) as count
-      from search_index
-      where collection_id = $1 and locale is not null
-      group by value`, [collectionId]);
+      select si.value, count(si.id)
+      from search_index si
+      left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
+      where si.collection_id = $1 and locale is not null
+      and ca.status = 'active'
+      group by si.value`, [collectionId]);
 
     } catch (e) {
       this.logger.error(e.message);
