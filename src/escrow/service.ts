@@ -7,6 +7,7 @@ import { v4 as uuid } from 'uuid';
 import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex } from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 import { CollectionToken } from 'src/auction/types';
+import { encodeAddress } from '@polkadot/util-crypto';
 
 @Injectable()
 export class EscrowService {
@@ -88,7 +89,7 @@ export class EscrowService {
       network: this.getNetwork(network),
       collection_id: data.collectionId.toString(),
       token_id: data.tokenId.toString(),
-      address_from: data.addressFrom,
+      address_from: encodeAddress(data.addressFrom),
       address_to: data.addressTo,
       status: ASK_STATUS.ACTIVE,
       price: data.price.toString(),
