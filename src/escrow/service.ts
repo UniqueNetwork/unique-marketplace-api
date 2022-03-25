@@ -11,7 +11,11 @@ import { encodeAddress } from '@polkadot/util-crypto';
 
 @Injectable()
 export class EscrowService {
-  constructor(@Inject('DATABASE_CONNECTION') private db: Connection, @Inject('CONFIG') private config, private moduleRef: ModuleRef) {}
+  constructor(
+    @Inject('DATABASE_CONNECTION') private db: Connection,
+    @Inject('CONFIG') private config,
+    private moduleRef: ModuleRef
+    ) {}
 
   getNetwork(network?: string): string {
     if (!network) return this.config.blockchain.unique.network;
@@ -39,7 +43,8 @@ export class EscrowService {
   }
 
   async isBlockScanned(blockNum: bigint | number, network?: string): Promise<boolean> {
-    return !!(await this.db.getRepository(BlockchainBlock).findOne({ block_number: `${blockNum}`, network: this.getNetwork(network) }))?.block_number;
+    return !!(await this.db.getRepository(BlockchainBlock).findOne({ block_number: `${blockNum}`, network: this.getNetwork(network) }))
+      ?.block_number;
   }
 
   async getLastScannedBlock(network?: string) {
@@ -118,7 +123,11 @@ export class EscrowService {
     );
   }
 
-  async registerTransfer(blockNum: bigint | number, data: { collectionId: number; tokenId: number; addressFrom: string; addressTo: string }, network?: string) {
+  async registerTransfer(
+    blockNum: bigint | number,
+    data: { collectionId: number; tokenId: number; addressFrom: string; addressTo: string },
+    network?: string,
+  ) {
     const repository = this.db.getRepository(NFTTransfer);
     await repository.insert({
       id: uuid(),
@@ -237,12 +246,12 @@ export class EscrowService {
     await this.buyKSM(parseInt(ask.collection_id), parseInt(ask.token_id), blockNum, network);
   }
 
-  async getSearchIndexTraits(collectionId: number, tokenId: number, network?: string) {
+  async getSearchIndexTraits( collectionId: number, tokenId: number, network?: string){
     const repository = this.db.getRepository(SearchIndex);
-    return await repository.find({ collection_id: collectionId.toString(), token_id: tokenId.toString(), network: this.getNetwork(network), is_trait: true });
+    return await repository.find({ collection_id: collectionId.toString(), token_id: tokenId.toString(), network: this.getNetwork(network) , is_trait: true })
   }
 
-  async addSearchIndexes(token: CollectionToken): Promise<void> {
+  async addSearchIndexes(token:CollectionToken): Promise<void> {
     const searchIndex = this.moduleRef.get(SearchIndexService, { strict: false });
     return searchIndex.addSearchIndexIfNotExists(token);
   }
