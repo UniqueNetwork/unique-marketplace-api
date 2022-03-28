@@ -1,4 +1,5 @@
 import { Server, Socket } from "socket.io";
+import { Emitter } from "@socket.io/postgres-emitter";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 
 export type ServerToClientEvents = {
@@ -6,7 +7,6 @@ export type ServerToClientEvents = {
   bidPlaced: (offer: OfferContractAskDto) => void;
   auctionClosed: (offer: OfferContractAskDto) => void;
 };
-
 
 export type TokenIds = { collectionId: number, tokenId: number };
 
@@ -19,5 +19,11 @@ type InterServerEvents = Record<string, never>;
 
 type SocketData = Record<string, never>;
 
-export type BroadcastIOServer = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>
-export type BroadcastIOSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>
+export type BroadcastIOEmitter = Emitter<ServerToClientEvents, InterServerEvents>;
+export type BroadcastIOServer = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
+export type BroadcastIOSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
+
+
+export const isBroadcastIOServer = (emitter: BroadcastIOServer | BroadcastIOEmitter): emitter is  BroadcastIOServer => {
+  return emitter.hasOwnProperty('on');
+}

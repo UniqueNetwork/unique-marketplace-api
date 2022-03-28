@@ -7,6 +7,9 @@ import { UniqueEscrow } from './unique';
 import { EscrowService } from './service';
 import { Escrow } from './base';
 import { AuctionClosingScheduler } from '../auction/services/closing/auction-closing.scheduler';
+import { PostgresIoAdapter } from "../broadcast/services/postgres-io.adapter";
+import { MarketConfig } from "../config/market-config";
+import { BroadcastService } from "../broadcast/services/broadcast.service";
 
 @Injectable()
 export class EscrowCommand {
@@ -40,7 +43,15 @@ export class EscrowCommand {
 
   private startAuctionManager(): void {
     setImmediate(() => {
+      const broadcastService = this.moduleRef.get<BroadcastService>(BroadcastService, { strict: false });
       const auctionClosingScheduler = this.moduleRef.get(AuctionClosingScheduler, { strict: false });
+
+      if (!broadcastService.isInitialized) {
+        const config = this.moduleRef.get<MarketConfig>('CONFIG', { strict: false });
+        const ioEmitter = PostgresIoAdapter.createIOEmitter(config);
+
+        broadcastService.init(ioEmitter);
+      }
 
       auctionClosingScheduler.startIntervals();
     });

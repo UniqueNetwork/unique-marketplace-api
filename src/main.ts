@@ -9,6 +9,7 @@ import { ignoreQueryCase, useGlobalPipes } from './utils/application';
 import * as fs from 'fs';
 import { promises } from 'fs';
 import { join } from 'path';
+import { PostgresIoAdapter } from "./broadcast/services/postgres-io.adapter";
 
 const APP_NAME_PREFIX = 'unique-marketplace-api';
 const logger = new Logger('NestApplication');
@@ -45,6 +46,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   //app.setGlobalPrefix('api');
   app.enableShutdownHooks();
+  app.useWebSocketAdapter(new PostgresIoAdapter(app));
 
   initSwagger(app, config, pkg);
   ignoreQueryCase(app);
