@@ -6,6 +6,9 @@ import { createAdapter } from '@socket.io/postgres-adapter';
 
 import { INestApplicationContext, Logger } from "@nestjs/common";
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import { Emitter } from "@socket.io/postgres-emitter";
+import { MarketConfig } from "../../config/market-config";
+import { BroadcastIOEmitter } from "../types";
 
 export class PostgresIoAdapter extends IoAdapter {
   readonly poolConfig: PoolConfig;
@@ -15,16 +18,9 @@ export class PostgresIoAdapter extends IoAdapter {
   constructor(app: INestApplicationContext) {
     super(app);
 
-    const { postgresUrl } = app.get('CONFIG');
-    const connectionOptions = parseConnectionString(postgresUrl);
+    const config = app.get<MarketConfig>('CONFIG');
 
-    this.poolConfig = {
-      user: connectionOptions.user,
-      host: connectionOptions.host,
-      database: connectionOptions.database,
-      password: connectionOptions.password,
-      port: parseInt(connectionOptions.port, 10),
-    };
+    this.poolConfig = PostgresIoAdapter.buildPoolConfig(config);
   }
 
   createIOServer(port: number, options?: ServerOptions): any {
@@ -36,6 +32,25 @@ export class PostgresIoAdapter extends IoAdapter {
     server.adapter(postgresAdapter);
 
     return server;
+  }
+
+  static buildPoolConfig({ postgresUrl } : MarketConfig): PoolConfig {
+    const connectionOptions = parseConnectionString(postgresUrl);
+
+    return {
+      user: connectionOptions.user,
+      host: connectionOptions.host,
+      database: connectionOptions.database,
+      password: connectionOptions.password,
+      port: parseInt(connectionOptions.port, 10),
+    };
+  }
+
+  static createIOEmitter(config: MarketConfig): BroadcastIOEmitter {
+    const poolConfig = PostgresIoAdapter.buildPoolConfig(config)
+    const pool = new Pool(poolConfig);
+
+    return new Emitter(pool);
   }
 }
 

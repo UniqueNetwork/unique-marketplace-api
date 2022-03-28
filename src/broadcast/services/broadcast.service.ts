@@ -1,17 +1,29 @@
 import { Injectable, Logger } from "@nestjs/common";
-
-import { BroadcastIOServer, BroadcastIOSocket, TokenIds } from "../types";
+import {
+  BroadcastIOServer,
+  BroadcastIOSocket,
+  TokenIds,
+  BroadcastIOEmitter,
+  isBroadcastIOServer
+} from "../types";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 
 @Injectable()
 export class BroadcastService {
   private readonly logger = new Logger(BroadcastService.name);
 
-  public server: BroadcastIOServer = null;
+  private server: BroadcastIOServer | BroadcastIOEmitter = null;
 
-  init(server: BroadcastIOServer): void {
-    this.server = server;
-    this.server.on('connection', this.handleSocketConnection.bind(this));
+  get isInitialized(): boolean {
+    return this.server !== null;
+  }
+
+  init(emitter: BroadcastIOServer | BroadcastIOEmitter): void {
+    if (isBroadcastIOServer(emitter)) {
+      emitter.on('connection', this.handleSocketConnection.bind(this));
+    }
+
+    this.server = emitter;
 
     this.logger.debug(`initialised`);
   }
@@ -51,7 +63,7 @@ export class BroadcastService {
   sendAuctionStarted(offer: OfferContractAskDto): void {
     this.logger.debug(`auctionStarted - ${JSON.stringify(offer)}`);
 
-    this.server.of('/').emit('auctionStarted', offer);
+    (this.server as BroadcastIOServer).of('/').emit('auctionStarted', offer);
   }
 
   sendBidPlaced(offer: OfferContractAskDto): void {
