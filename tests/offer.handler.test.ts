@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
-import { initApp, prepareSearchData, runMigrations, searchByFilterOffers } from './data';
+import { initApp, runMigrations, searchByFilterOffers } from './data';
+import { prepareTokenData, prepareBlockData, prepareOfferData, prepareAuctionData } from './data/offers';
 import * as request from 'supertest';
 
 describe('Offers service', () => {
@@ -9,7 +10,11 @@ describe('Offers service', () => {
     app = await initApp();
     await runMigrations(app.get('CONFIG'));
     await app.init();
-    await prepareSearchData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+
+    await prepareTokenData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+    await prepareBlockData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+    await prepareOfferData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+    //await prepareAuctionData(app.get('DATABASE_CONNECTION').createQueryBuilder());
   });
 
   afterAll(async () => {
@@ -54,11 +59,11 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [], traits: [] }, { sort: [{ order: 1, column: '' }] });
 
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(7);
+      await expect(response.body.items.length).toBe(10);
     });
 
     // All tokens has that trait
-    it('/offers (GET, All tokens has that trait)', async () => {
+    /*it('/offers (GET, All tokens has that trait)', async () => {
       let response = await searchByFilterOffers(
         app,
         {},
@@ -277,7 +282,7 @@ describe('Offers service', () => {
       await expect(response.body.items.length).toBe(1);
     });
 
-    /*it ('/offers?bidderAddress=555555555 (GET, Find bidderAddress )?', async () => {
+    it ('/offers?bidderAddress=555555555 (GET, Find bidderAddress )?', async () => {
       let response = await searchByFilterOffers(
         app,
         {},

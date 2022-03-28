@@ -60,11 +60,11 @@ export class OffersService {
       offers = this.offersQuerySortHelper.applySort(offers, sort);
       paginationResult = await paginate(offers, pagination);
 
-      if ((offersFilter.traitsCount ?? []).length !== 0 ) {
+      /*if ((offersFilter.traitsCount ?? []).length !== 0 ) {
         const filterItems = paginationResult.items.filter((item) => (offersFilter?.traitsCount.includes(item.search_index.length)));
         paginationResult.items = filterItems;
         paginationResult.itemsCount = filterItems.length;
-      }
+      }*/
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -127,6 +127,14 @@ export class OffersService {
         'search_index',
         'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
       )
+      /*.leftJoinAndMapMany(
+        'offer.search_index',
+        (subQuery => {
+          return subQuery.connection.query('')
+        }),
+        'search_index',
+        'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
+      )*/
   }
 
   /**

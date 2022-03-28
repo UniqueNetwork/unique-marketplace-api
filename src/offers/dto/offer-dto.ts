@@ -58,6 +58,7 @@ export class OfferContractAskDto {
   auction?: AuctionDto;
 
   static fromContractAsk(contractAsk: ContractAsk): OfferContractAskDto {
+    console.log(contractAsk.search_index);
     const plain: Record<string, any> = {
       ...contractAsk,
       collectionId: +contractAsk.collection_id,
