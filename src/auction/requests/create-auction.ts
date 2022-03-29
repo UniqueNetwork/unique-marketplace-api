@@ -3,7 +3,9 @@ import {
   IsDefined, IsNotEmpty,
   IsString, ValidateNested,
   IsInt,
-  Min, Max,
+  Min,
+  Max,
+  IsOptional,
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
@@ -17,6 +19,7 @@ export type CreateAuctionRequest = {
   priceStep: bigint;
   tx: string,
   days: number,
+  minutes: number,
 };
 
 
@@ -45,9 +48,17 @@ export class CreateAuctionRequestDto implements CreateAuctionRequest {
   @ApiProperty({ example: 1 })
   @Type(() => Number)
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(21)
   days: number;
+
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(59)
+  minutes: number;
 
   @ApiProperty({ example: tokenTransferExample })
   @IsString()
