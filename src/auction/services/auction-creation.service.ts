@@ -17,6 +17,7 @@ type CreateAuctionArgs = {
   collectionId: string;
   tokenId: string;
   ownerAddress: string;
+  minutes: number;
   days: number;
   startPrice: bigint;
   priceStep: bigint;
@@ -50,10 +51,14 @@ export class AuctionCreationService {
       tokenId,
       ownerAddress,
       days,
+      minutes,
       startPrice,
       priceStep,
       tx,
     } = createAuctionRequest;
+
+    let stopAt = DateHelper.addDays(days);
+    if (minutes) stopAt = DateHelper.addMinutes(minutes, stopAt);
 
     const block = await this.sendTransferExtrinsic(tx);
     await this.blockchainBlockRepository.save(block);
@@ -72,7 +77,7 @@ export class AuctionCreationService {
       price: startPrice.toString(),
       currency: '',
       auction: {
-        stopAt: DateHelper.addDays(days),
+        stopAt,
         status: AuctionStatus.active,
         startPrice: startPrice.toString(),
         priceStep: priceStep.toString(),
