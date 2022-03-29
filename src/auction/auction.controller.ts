@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   Req,
+  UseInterceptors,
   ValidationPipe
 } from '@nestjs/common';
 import { ApiHeader, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -29,6 +30,7 @@ import { TxDecoder } from './services/helpers/tx-decoder';
 import { SignatureVerifier } from './services/helpers/signature-verifier';
 import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidWithdrawService } from './services/bid-withdraw.service';
+import { TraceInterceptor } from "../utils/sentry";
 
 const WithSignature = ApiHeader({
   name: 'Authorization',
@@ -39,6 +41,7 @@ const WithSignature = ApiHeader({
 
 @ApiTags('Auction')
 @Controller('auction')
+@UseInterceptors(TraceInterceptor)
 export class AuctionController {
   constructor(
     private readonly auctionCreationService: AuctionCreationService,

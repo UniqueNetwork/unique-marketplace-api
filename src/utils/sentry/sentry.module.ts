@@ -25,6 +25,7 @@ export class SentryModule {
 
     static forRootAsync(options: SentryModuleAsyncOptions): DynamicModule {
         return {
+            global: true,
             module: SentryModule,
             exports: this.createAsyncProviders(options),
             providers: this.createAsyncProviders(options),

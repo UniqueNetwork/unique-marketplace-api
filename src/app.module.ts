@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { CommandModule } from 'nestjs-command';
 import { TerminusModule } from '@nestjs/terminus';
 import { HttpModule } from '@nestjs/axios';
@@ -19,6 +19,7 @@ import { HealthController, HealthService } from './utils/health';
 import { MetricsController, MetricsService } from './utils/metrics';
 import { AuctionModule } from "./auction/auction.module";
 import { BroadcastModule } from "./broadcast/broadcast.module";
+import { RequestLoggerMiddleware } from "./utils/logging/request-logger-middleware.service";
 
 @Module({
   imports: [
@@ -38,4 +39,8 @@ import { BroadcastModule } from "./broadcast/broadcast.module";
   controllers: [OffersController, TradesController, SettingsController, HealthController, MetricsController],
   providers: [OffersService, TradesService, PlaygroundCommand, SettingsService, HealthService, MetricsService, PrometheusService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): any {
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}
