@@ -122,35 +122,24 @@ export class BidPlacingService {
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
       const price = BigInt(contractAsk.price);
-      const startPrice = BigInt(contractAsk.auction.startPrice);
       const priceStep = BigInt(contractAsk.auction.priceStep);
-      const isFirstBid = price === startPrice;
-
-      if (isFirstBid) {
-        return [
-          {
-            contractPendingPrice: startPrice,
-            priceStep,
-            bidderPendingAmount: 0n,
-            minBidderAmount: startPrice,
-          },
-          contractAsk,
-        ];
-      }
-
-      const contractPendingPrice = price;
 
       const bidderPendingAmount = await databaseHelper.getUserPendingSum({
         auctionId: contractAsk.auction.id,
         bidderAddress,
       });
 
-      let minBidderAmount = contractPendingPrice - bidderPendingAmount;
-      if (minBidderAmount) minBidderAmount += priceStep;
+      let minBidderAmount = price - bidderPendingAmount;
+
+      if (minBidderAmount > 0) {
+        minBidderAmount += priceStep;
+      } else {
+        // bidder is winner at the moment
+      }
 
       return [
         {
-          contractPendingPrice,
+          contractPendingPrice: price,
           priceStep,
           bidderPendingAmount,
           minBidderAmount,
