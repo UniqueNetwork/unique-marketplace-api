@@ -19,7 +19,7 @@ export type CreateAuctionRequest = {
   priceStep: bigint;
   tx: string,
   days: number,
-  minutes: number,
+  minutes?: number,
 };
 
 
