@@ -121,7 +121,9 @@ export class BidPlacingService {
       const databaseHelper = new DatabaseHelper(entityManager);
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
+      const { auction: { id: auctionId } } = contractAsk;
       const price = BigInt(contractAsk.price);
+      const startPrice = BigInt(contractAsk.auction.startPrice);
       const priceStep = BigInt(contractAsk.auction.priceStep);
 
       const bidderPendingAmount = await databaseHelper.getUserPendingSum({
@@ -131,10 +133,13 @@ export class BidPlacingService {
 
       let minBidderAmount = price - bidderPendingAmount;
 
-      if (minBidderAmount > 0) {
+      const isFirstBid = price === startPrice && (
+        await databaseHelper.getAuctionPendingWinner({ auctionId }) === undefined);
+
+      if (minBidderAmount > 0 && !isFirstBid) {
         minBidderAmount += priceStep;
       } else {
-        // bidder is winner at the moment
+        // bidder is winner at the moment or this is first bid
       }
 
       return [
