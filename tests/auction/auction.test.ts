@@ -78,10 +78,10 @@ describe('Auction creation method', () => {
     const placedBidBadResponse = await placeBid(testEntities, collectionId, tokenId, '999');
     expect(placedBidBadResponse.status).toEqual(400);
 
-    let placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '1100');
+    let placedBidResponse = await placeBid(testEntities, collectionId, tokenId, auctionOffer.price);
     expect(placedBidResponse.status).toEqual(201);
 
-    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '199');
+    placedBidResponse = await placeBid(testEntities, collectionId, tokenId, '299');
     expect(placedBidResponse.status).toEqual(201);
 
     const offerWithBids = placedBidResponse.body as OfferContractAskDto;
@@ -89,15 +89,15 @@ describe('Auction creation method', () => {
     expect(offerWithBids.auction.bids).toEqual([
       {
         bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        amount: '199',
+        amount: '299',
         balance: '1299',
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       },
       {
         bidderAddress: testEntities.actors.buyer.kusamaAddress,
-        amount: '1100',
-        balance: '1100',
+        amount: '1000',
+        balance: '1000',
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       },
