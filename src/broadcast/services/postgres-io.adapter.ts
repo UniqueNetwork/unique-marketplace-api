@@ -1,14 +1,14 @@
-import { Pool, PoolConfig } from "pg";
+import { Pool, PoolConfig } from 'pg';
 import { parse as parseConnectionString } from 'pg-connection-string';
 
 import { ServerOptions } from 'socket.io';
 import { createAdapter } from '@socket.io/postgres-adapter';
 
-import { INestApplicationContext, Logger } from "@nestjs/common";
+import { INestApplicationContext, Logger } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import { Emitter } from "@socket.io/postgres-emitter";
-import { MarketConfig } from "../../config/market-config";
-import { BroadcastIOEmitter } from "../types";
+import { Emitter } from '@socket.io/postgres-emitter';
+import { MarketConfig } from '../../config/market-config';
+import { BroadcastIOEmitter, BroadcastIOServer } from '../types';
 
 export class PostgresIoAdapter extends IoAdapter {
   readonly poolConfig: PoolConfig;
@@ -23,18 +23,27 @@ export class PostgresIoAdapter extends IoAdapter {
     this.poolConfig = PostgresIoAdapter.buildPoolConfig(config);
   }
 
-  createIOServer(port: number, options?: ServerOptions): any {
-    const server = super.createIOServer(port, options);
+  static createIOEmitter(config: MarketConfig): BroadcastIOEmitter {
+    const poolConfig = PostgresIoAdapter.buildPoolConfig(config);
+    const pool = new Pool(poolConfig);
+    PostgresIoAdapter.checkTable(pool)
+      .then(() => new Logger(PostgresIoAdapter.name).debug('table existence checked'));
 
-    const pool = new Pool(this.poolConfig);
-    const postgresAdapter = createAdapter(pool);
-
-    server.adapter(postgresAdapter);
-
-    return server;
+    return new Emitter(pool);
   }
 
-  static buildPoolConfig({ postgresUrl } : MarketConfig): PoolConfig {
+  private static async checkTable(pool: Pool): Promise<void> {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS socket_io_attachments
+      (
+        id         bigserial UNIQUE,
+        created_at timestamptz DEFAULT NOW(),
+        payload    bytea
+      );
+    `);
+  }
+
+  private static buildPoolConfig({ postgresUrl }: MarketConfig): PoolConfig {
     const connectionOptions = parseConnectionString(postgresUrl);
 
     return {
@@ -46,11 +55,16 @@ export class PostgresIoAdapter extends IoAdapter {
     };
   }
 
-  static createIOEmitter(config: MarketConfig): BroadcastIOEmitter {
-    const poolConfig = PostgresIoAdapter.buildPoolConfig(config)
-    const pool = new Pool(poolConfig);
+  createIOServer(port: number, options?: ServerOptions): BroadcastIOServer {
+    const server = super.createIOServer(port, options);
 
-    return new Emitter(pool);
+    const pool = new Pool(this.poolConfig);
+    PostgresIoAdapter.checkTable(pool).then(() => this.logger.debug('table existence checked'));
+
+    const postgresAdapter = createAdapter(pool, { errorHandler: this.logger.error });
+
+    server.adapter(postgresAdapter);
+
+    return server;
   }
 }
-
