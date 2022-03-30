@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, EntityManager, Repository } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
+import { stringify } from '@polkadot/util';
 import { v4 as uuid } from 'uuid';
 
 import { AuctionEntity, BidEntity } from '../entities';
@@ -170,6 +171,8 @@ export class BidPlacingService {
       const [calculationInfo, contractAsk] = await this.getCalculationInfo(placeBidArgs, transactionEntityManager);
       const { minBidderAmount, bidderPendingAmount, priceStep, contractPendingPrice } = calculationInfo;
       const amount = BigInt(placeBidArgs.amount);
+
+      this.logger.debug(`${this.tryPlacePendingBid.name}: ${stringify({... placeBidArgs, ...calculationInfo })}`);
 
       if ((contractPendingPrice >= priceStep) && (amount < priceStep)) {
         throw new BadRequestException(`Min price step is ${priceStep}`);

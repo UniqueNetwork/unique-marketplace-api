@@ -75,6 +75,8 @@ describe('Bid placing method', () => {
         status: BidStatus.finished,
       },
     ] as Bid[]);
+
+    await testEntities.addSearchIndexRecord(collectionId, tokenId);
   });
 
   afterAll(async () => {

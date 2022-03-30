@@ -89,7 +89,8 @@ export class AuctionCreationService {
     const offer = OfferContractAskDto.fromContractAsk(contractAsk);
     await this.searchIndexService.addSearchIndexIfNotExists({
       collectionId: Number(collectionId),
-      tokenId: Number(tokenId) });
+      tokenId: Number(tokenId),
+    });
 
     this.broadcastService.sendAuctionStarted(offer);
 

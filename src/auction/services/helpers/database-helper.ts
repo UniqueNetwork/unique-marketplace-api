@@ -1,4 +1,5 @@
 import { EntityManager, MoreThan, LessThanOrEqual, SelectQueryBuilder, Any } from 'typeorm';
+import { Logger } from "@nestjs/common";
 import { AuctionEntity, BidEntity, ContractAsk } from '../../../entity';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { AuctionStatus, BidStatus } from '../../types';
@@ -24,6 +25,8 @@ type ContractFilter = {
 }
 
 export class DatabaseHelper {
+  private logger = new Logger(DatabaseHelper.name);
+
   constructor(private readonly entityManager: EntityManager) {}
 
   async getActiveAuctionContract(filter: ContractFilter): Promise<ContractAsk> {
@@ -111,6 +114,8 @@ export class DatabaseHelper {
     query
       .groupBy('bidder_address')
       .orderBy('1', 'DESC');
+
+    this.logger.debug(JSON.stringify(query.getQueryAndParameters()));
 
     return query;
   }

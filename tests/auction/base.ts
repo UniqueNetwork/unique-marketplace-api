@@ -15,6 +15,9 @@ import { connect as connectSocket, Socket } from 'socket.io-client';
 import { ClientToServerEvents, ServerToClientEvents } from '../../src/broadcast/types';
 import { u8aToHex } from '@polkadot/util';
 import { OfferContractAskDto} from "../../src/offers/dto/offer-dto";
+import { SearchIndex } from "../../src/entity";
+import { Connection } from "typeorm";
+import { v4 as uuid } from 'uuid';
 
 type Actor = {
   keyring: KeyringPair;
@@ -34,6 +37,7 @@ export type AuctionTestEntities = {
     anotherBuyer: Actor;
     market: Actor;
   };
+  addSearchIndexRecord: (collectionId: number | string, tokenId: number | string) => Promise<void>;
 };
 
 export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => {
@@ -84,6 +88,21 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
     clientSocket.once('connect', () => resolve());
   });
 
+  const addSearchIndexRecord = async (collectionId: number | string, tokenId: number | string): Promise<void> => {
+    const connection = app.get<Connection>('DATABASE_CONNECTION');
+    const searchIndexRepository = connection.getRepository(SearchIndex);
+
+    await searchIndexRepository.save({
+      id: uuid(),
+      collection_id: String(collectionId),
+      token_id: String(tokenId),
+      network: 'quartz',
+      locale: 'en',
+      value: `${collectionId}/${tokenId}`,
+      is_trait: false,
+    });
+  }
+
   return {
     app,
     uniqueApi,
@@ -112,6 +131,7 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
         uniqueAddress: await convertAddress(anotherBuyer.address, uniqueApi.registry.chainSS58),
       },
     },
+    addSearchIndexRecord,
   };
 };
 
@@ -119,7 +139,7 @@ export const createAuction = async (
   testEntities: AuctionTestEntities,
   collectionId: number,
   tokenId: number,
-  auction: Partial<CreateAuctionRequest> = {},
+  auction: Partial<CreateAuctionRequest> | any = {},
 ): Promise<request.Test> => {
   const {
     app,
