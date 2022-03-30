@@ -4,7 +4,6 @@ import {
   BroadcastIOSocket,
   TokenIds,
   BroadcastIOEmitter,
-  isBroadcastIOServer
 } from "../types";
 import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 
@@ -18,14 +17,19 @@ export class BroadcastService {
     return this.server !== null;
   }
 
-  init(emitter: BroadcastIOServer | BroadcastIOEmitter): void {
-    if (isBroadcastIOServer(emitter)) {
-      emitter.on('connection', this.handleSocketConnection.bind(this));
+  init(server: BroadcastIOServer | BroadcastIOEmitter, isServer = false): void {
+    if (this.isInitialized) {
+      this.logger.warn('already initialized, returning');
+      return;
     }
 
-    this.server = emitter;
+    if (isServer) {
+      (server as BroadcastIOServer).on('connection', this.handleSocketConnection.bind(this));
+    }
 
-    this.logger.debug(`initialised`);
+    this.server = server;
+
+    this.logger.debug(`initialised by ${isServer ? 'BroadcastIOServer' : 'BroadcastIOEmitter'}`);
   }
 
   private static getAuctionRoomId({ collectionId, tokenId }: TokenIds): string {
@@ -62,8 +66,7 @@ export class BroadcastService {
 
   sendAuctionStarted(offer: OfferContractAskDto): void {
     this.logger.debug(`auctionStarted - ${JSON.stringify(offer)}`);
-
-    (this.server as BroadcastIOServer).of('/').emit('auctionStarted', offer);
+    this.server.emit('auctionStarted', offer);
   }
 
   sendBidPlaced(offer: OfferContractAskDto): void {

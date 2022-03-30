@@ -2,18 +2,15 @@ import * as request from 'supertest';
 
 import * as util from '../../src/utils/blockchain/util';
 import { OfferContractAskDto } from '../../src/offers/dto/offer-dto';
-import { AuctionTestEntities, createAuction, getAuctionTestEntities, placeBid } from './base';
+import {
+  AuctionTestEntities,
+  createAuction,
+  getAuctionTestEntities,
+  placeBid,
+  getEventHook,
+} from './base';
 import { Bid } from "../../src/auction/types";
 
-const getEventHook = (): [Promise<void>, CallableFunction] => {
-  let onResolve: CallableFunction = null;
-
-  const wait = new Promise<void>((resolve) => {
-    onResolve = resolve;
-  });
-
-  return [wait, onResolve];
-};
 
 describe('Auction creation method', () => {
   const collectionId = 11;
@@ -112,19 +109,19 @@ describe('Auction creation method', () => {
     expect(auctionCreatedEvent[1]).toEqual(auctionOffer);
 
     // todo - check missing "bidPlaced" events on client socket
-    // await untilClientReceivedBid;
-    // const firstBidEvent = socketEvents[1];
-    // const secondBidEvent = socketEvents[2];
+    await untilClientReceivedBid;
+    const firstBidEvent = socketEvents[1];
+    const secondBidEvent = socketEvents[2];
 
-    // expect(firstBidEvent).toBeDefined();
-    // expect(firstBidEvent[0]).toEqual('bidPlaced');
-    // expect(firstBidEvent[1].price).toEqual('1100');
-    // expect(firstBidEvent[1].auction.bids.length).toEqual(1);
-    //
-    // expect(secondBidEvent).toBeDefined();
-    // expect(secondBidEvent[0]).toEqual('bidPlaced');
-    // expect(secondBidEvent[1].price).toEqual('1299');
-    // expect(secondBidEvent[1].auction.bids.length).toEqual(2);
+    expect(firstBidEvent).toBeDefined();
+    expect(firstBidEvent[0]).toEqual('bidPlaced');
+    expect(firstBidEvent[1].price).toEqual('1000');
+    expect(firstBidEvent[1].auction.bids.length).toEqual(1);
+
+    expect(secondBidEvent).toBeDefined();
+    expect(secondBidEvent[0]).toEqual('bidPlaced');
+    expect(secondBidEvent[1].price).toEqual('1299');
+    expect(secondBidEvent[1].auction.bids.length).toEqual(2);
   });
 
   it('bad request - unsigned tx', async () => {

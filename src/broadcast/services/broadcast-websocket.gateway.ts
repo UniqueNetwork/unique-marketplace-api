@@ -19,6 +19,6 @@ export class BroadcastWebSocketGateway implements OnGatewayInit {
   constructor(private readonly webSocketService: BroadcastService) {}
 
   afterInit(server: BroadcastIOServer): void {
-    this.webSocketService.init(server);
+    this.webSocketService.init(server, true);
   }
 }
