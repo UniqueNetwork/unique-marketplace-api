@@ -14,7 +14,7 @@ describe('Offers service', () => {
     await prepareTokenData(app.get('DATABASE_CONNECTION').createQueryBuilder());
     await prepareBlockData(app.get('DATABASE_CONNECTION').createQueryBuilder());
     await prepareOfferData(app.get('DATABASE_CONNECTION').createQueryBuilder());
-    //await prepareAuctionData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+    await prepareAuctionData(app.get('DATABASE_CONNECTION').createQueryBuilder());
   });
 
   afterAll(async () => {
@@ -63,12 +63,12 @@ describe('Offers service', () => {
     });
 
     // All tokens has that trait
-    /*it('/offers (GET, All tokens has that trait)', async () => {
+    it('/offers (GET, All tokens has that trait)', async () => {
       let response = await searchByFilterOffers(
         app,
         {},
         {
-          searchText: 'Female',
+          searchText: 'Zahar',
           collectionId: [],
           traitsCount: [],
           traits: []
@@ -77,10 +77,10 @@ describe('Offers service', () => {
       );
       await expect(response.body.items.length).toBe(1);
 
-      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([5817]);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2]);
     });
 
-    // Trait for several tokens
+    /*// Trait for several tokens
     it('/offers (GET, Trait for several tokens)', async () => {
       let response = await searchByFilterOffers(
         app,

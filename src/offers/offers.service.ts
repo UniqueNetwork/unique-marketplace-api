@@ -314,12 +314,13 @@ export class OffersService {
     let traits = [];
     try {
       traits =  await this.connection.manager.query(`
-      select si.value as trait, count(si.id)
-      from search_index si
-      left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
-      where si.collection_id = $1 and locale is not null
-      and ca.status = 'active'
-      group by si.value`, [collectionId]);
+      select trait, count(trait) from (
+        select traits as trait, collection_id, token_id from search_index, unnest(items) traits
+        where locale is not null and collection_id = $1
+    ) as si
+    left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
+    where ca.status = 'active'
+    group by trait`, [collectionId]);
 
     } catch (e) {
       this.logger.error(e.message);

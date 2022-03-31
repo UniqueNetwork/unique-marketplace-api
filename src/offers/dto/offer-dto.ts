@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ContractAsk } from '../../entity';
-import { Auction, AuctionStatus, Bid, BidStatus } from '../../auction/types';
+import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription, TypeAttributToken } from '../../auction/types';
 import { Exclude, Expose, plainToInstance, Type } from 'class-transformer';
 
 class AuctionDto implements Auction {
@@ -31,6 +31,13 @@ class BidDto implements Bid {
   @Expose() bidderAddress: string;
 }
 
+class TokenDescriptionDto implements TokenDescription {
+  @Expose() prefix: string;
+  @Expose() imageUrl?: string;
+  @Expose() attrs?: string[];
+  @Expose() traits?: string[];
+
+}
 
 export class OfferContractAskDto {
   @ApiProperty({ description: 'Collection ID' })
@@ -57,8 +64,12 @@ export class OfferContractAskDto {
   @Type(() => AuctionDto)
   auction?: AuctionDto;
 
+  @ApiProperty({ description: 'Token description' })
+  @Expose()
+  @Type(() => TokenDescriptionDto)
+  tokenDescription: TokenDescriptionDto;
+
   static fromContractAsk(contractAsk: ContractAsk): OfferContractAskDto {
-    console.log(contractAsk.search_index);
     const plain: Record<string, any> = {
       ...contractAsk,
       collectionId: +contractAsk.collection_id,
@@ -66,13 +77,31 @@ export class OfferContractAskDto {
       price: contractAsk.price.toString(),
       quoteId: +contractAsk.currency,
       seller: contractAsk.address_from,
-      creationDate: contractAsk.created_at,
+      creationDate: contractAsk.created_at
     };
 
     if (contractAsk?.auction?.bids?.length) {
       contractAsk.auction.bids = contractAsk.auction.bids.sort((a, b) => {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
+    }
+
+    if (Array.isArray(contractAsk?.search_index)) {
+      plain.tokenDescription = contractAsk?.search_index.reduce((acc, item) => {
+        if (item.type === TypeAttributToken.Prefix) {
+          acc.prefix = item.items.pop();
+        }
+        if (item.type === TypeAttributToken.ImageURL) {
+          acc.imageUrl = item.items.pop();
+        }
+        if (item.type === TypeAttributToken.String) {
+          acc.attrs = item.items;
+        }
+        if (item.type === TypeAttributToken.Enum) {
+          acc.traits = item.items;
+        }
+        return acc;
+      }, {});
     }
 
     return plainToInstance<OfferContractAskDto, Record<string, any>>(OfferContractAskDto, plain, { excludeExtraneousValues: true });

@@ -9,6 +9,8 @@ export type TokenInfo = {
   is_trait?: boolean;
   text: string;
   type: TypeAttributToken
+  key?: string;
+  items?: Array<string>;
 };
 
 export enum TypeAttributToken {
@@ -24,4 +26,11 @@ export type TypeConstSchema = {
     [propName: string]: any
   },
   offchainSchema: string;
+}
+
+export interface TokenDescription {
+  prefix?: string;
+  imageUrl?: string;
+  attrs?: Array<string>;
+  traits?: Array<string>;
 }
