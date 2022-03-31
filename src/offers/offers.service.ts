@@ -59,7 +59,6 @@ export class OffersService {
       offers = this.filter(offers, offersFilter);
       offers = this.offersQuerySortHelper.applySort(offers, sort);
       paginationResult = await paginate(offers, pagination);
-
       /*if ((offersFilter.traitsCount ?? []).length !== 0 ) {
         const filterItems = paginationResult.items.filter((item) => (offersFilter?.traitsCount.includes(item.search_index.length)));
         paginationResult.items = filterItems;
@@ -127,14 +126,25 @@ export class OffersService {
         'search_index',
         'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
       )
-      /*.leftJoinAndMapMany(
-        'offer.search_index',
+      .leftJoinAndMapMany(
+        'offer.search_filter',
         (subQuery => {
-          return subQuery.connection.query('')
+            return subQuery.select([
+              'collection_id',
+              'network',
+              'token_id',
+              'is_trait',
+              'locale',
+              'array_length(items, 1) as count_items',
+              'items',
+              'unnest(items) traits'
+            ])
+            .from(SearchIndex, 'sf')
+            .where(`sf.type not in ('ImageURL')`)
         }),
-        'search_index',
-        'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
-      )*/
+        'search_filter',
+        'offer.network = search_filter.network and offer.collection_id = search_filter.collection_id and offer.token_id = search_filter.token_id'
+      )
   }
 
   /**
@@ -205,7 +215,7 @@ export class OffersService {
     }
 
     if(!nullOrWhitespace(text)) {
-      query.andWhere(`search_index.value ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text })
+      query.andWhere(`search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text })
     }
 
     if(!nullOrWhitespace(locale)) {

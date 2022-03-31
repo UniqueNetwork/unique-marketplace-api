@@ -80,16 +80,16 @@ describe('Offers service', () => {
       await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2]);
     });
 
-    /*// Trait for several tokens
+    // Trait for several tokens
     it('/offers (GET, Trait for several tokens)', async () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: 'Black Earrings', collectionId: [], traitsCount: [], traits: [] },
+        { searchText: 'Tired Eyes', collectionId: [], traitsCount: [], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
-      await expect(response.body.items.length).toBe(1);
-      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([4017]);
+      await expect(response.body.items.length).toBe(2);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2, 3]);
     });
 
     // Trait for several tokens
@@ -100,7 +100,7 @@ describe('Offers service', () => {
     });
 
     // Only one token has that trait
-    it('/offers (GET, Only one token has that trait search: "Asian Eyes")', async () => {
+    /*it('/offers (GET, Only one token has that trait search: "Asian Eyes")', async () => {
       //
       let response = await searchByFilterOffers(
         app,
@@ -264,9 +264,9 @@ describe('Offers service', () => {
       );
       await expect(response.statusCode).toBe(200);
       await expect(response.body.items.length).toBe(1);
-    });
+    });*/
 
-    it ('/offers?isAuction=true (GET, Find isAuction )?', async () => {
+    it ('/offers?isAuction=true (GET, find isAuction )?', async () => {
       let response = await searchByFilterOffers(
         app,
         {},
@@ -279,10 +279,11 @@ describe('Offers service', () => {
         { sort: [{ order: 1, column: '' }] }
       );
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(1);
+      await expect(response.body.items.length).toBe(4);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2, 1, 2, 3]);
     });
 
-    it ('/offers?bidderAddress=555555555 (GET, Find bidderAddress )?', async () => {
+    /*it ('/offers?bidderAddress=555555555 (GET, Find bidderAddress )?', async () => {
       let response = await searchByFilterOffers(
         app,
         {},
