@@ -77,7 +77,15 @@ export class BroadcastService {
     this.server.in(roomId).emit('bidPlaced', offer);
   }
 
-  sendAuctionClose(offer: OfferContractAskDto): void {
+  sendAuctionStopped(offer: OfferContractAskDto): void {
+    const roomId = BroadcastService.getAuctionRoomId(offer);
+
+    this.logger.debug(`auctionStopped - ${roomId} - ${JSON.stringify(offer)}`);
+
+    this.server.in(roomId).emit('auctionStopped', offer);
+  }
+
+  sendAuctionClosed(offer: OfferContractAskDto): void {
     const roomId = BroadcastService.getAuctionRoomId(offer);
 
     this.logger.debug(`auctionClosed - ${roomId} - ${JSON.stringify(offer)}`);

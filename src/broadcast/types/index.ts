@@ -5,6 +5,7 @@ import { OfferContractAskDto } from "../../offers/dto/offer-dto";
 export type ServerToClientEvents = {
   auctionStarted: (offer: OfferContractAskDto) => void;
   bidPlaced: (offer: OfferContractAskDto) => void;
+  auctionStopped: (offer: OfferContractAskDto) => void;
   auctionClosed: (offer: OfferContractAskDto) => void;
 };
 

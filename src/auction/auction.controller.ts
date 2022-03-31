@@ -82,11 +82,15 @@ export class AuctionController {
   @Post('calculate')
   @ApiResponse({ type: CalculationInfoResponseDto })
   async calculate(@Body() calculationRequest: CalculationRequestDto): Promise<CalculationInfoResponseDto> {
-    const bidderAddress = await convertAddress(calculationRequest.bidderAddress, this.kusamaApi.registry.chainSS58);
+    try {
+      const bidderAddress = await convertAddress(calculationRequest.bidderAddress, this.kusamaApi.registry.chainSS58);
 
-    const [calculationInfo] = await this.bidPlacingService.getCalculationInfo({ ...calculationRequest, bidderAddress });
+      const [calculationInfo] = await this.bidPlacingService.getCalculationInfo({ ...calculationRequest, bidderAddress });
 
-    return CalculationInfoResponseDto.fromCalculationInfo(calculationInfo);
+      return CalculationInfoResponseDto.fromCalculationInfo(calculationInfo);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Delete('cancel_auction')
@@ -140,7 +144,7 @@ export class AuctionController {
 
   // todo - make custom validator?
   private static checkRequestTimestamp(timestamp: number): void {
-    const maxShiftMinutes = 1;
+    const maxShiftMinutes = 10;
 
     const shift = Math.abs(timestamp - Date.now());
 

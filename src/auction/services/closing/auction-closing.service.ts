@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Connection, Repository } from 'typeorm';
+import { Connection, Repository, In } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
 import { BroadcastService } from '../../../broadcast/services/broadcast.service';
 import { AuctionEntity } from '../../entities';
@@ -44,7 +44,22 @@ export class AuctionClosingService {
   async auctionsStoppingIntervalHandler(): Promise<void> {
     const databaseHelper = new DatabaseHelper(this.connection.manager);
 
-    await databaseHelper.updateAuctionsAsClosing();
+    const { contractIds } = await databaseHelper.updateAuctionsAsStopped();
+
+    if (contractIds.length === 0) return;
+
+    const contractAsks = await this.contractAskRepository.find({
+      where: { id: In(contractIds) },
+      relations: ['auction'],
+    });
+
+    for (const contractAsk of contractAsks) {
+      try {
+        this.broadcastService.sendAuctionStopped(OfferContractAskDto.fromContractAsk(contractAsk));
+      } catch (error) {
+        this.logger.warn(error);
+      }
+    }
   }
 
   async auctionsWithdrawingIntervalHandler(): Promise<void> {
@@ -116,7 +131,7 @@ export class AuctionClosingService {
     }
 
     contractAsk.auction = auction;
-    await this.broadcastService.sendAuctionClose(OfferContractAskDto.fromContractAsk(contractAsk));
+    await this.broadcastService.sendAuctionClosed(OfferContractAskDto.fromContractAsk(contractAsk));
   }
 
   private async sendTokenToWinner(contractAsk: ContractAsk, winnerAddress: string): Promise<void> {

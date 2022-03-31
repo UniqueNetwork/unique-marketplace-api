@@ -11,6 +11,7 @@ import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { TxDecoder } from '../../src/auction/services/helpers/tx-decoder';
 import * as request from 'supertest';
 import { DateHelper } from '../../src/utils/date-helper';
+import { BroadcastService } from "../../src/broadcast/services/broadcast.service";
 
 describe('Auction closing', () => {
   const collectionId = '223';
@@ -141,6 +142,10 @@ describe('Auction closing', () => {
   it('closes auction', async () => {
     const { seller, market, buyer, anotherBuyer } = testEntities.actors;
     const auctionClosingService = testEntities.app.get(AuctionClosingService);
+    const broadcastService = testEntities.app.get(BroadcastService);
+    broadcastService.sendAuctionStopped = jest.fn();
+    broadcastService.sendAuctionClosed = jest.fn();
+
     const connection = testEntities.app.get<Connection>('DATABASE_CONNECTION');
     const activeAuction = await connection.manager.findOne(AuctionEntity);
 
@@ -151,6 +156,10 @@ describe('Auction closing', () => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     await auctionClosingService.auctionsStoppingIntervalHandler();
+    await expect(auctionClosingService.auctionsStoppingIntervalHandler()).resolves.not.toThrowError();
+
+    expect(broadcastService.sendAuctionStopped).toHaveBeenCalledTimes(1);
+
     const stoppedAuction = await connection.manager.findOne(AuctionEntity);
     expect(stoppedAuction).toEqual({ ...activeAuction, status: AuctionStatus.stopped, stopAt: expect.any(Date) });
 
@@ -158,6 +167,8 @@ describe('Auction closing', () => {
 
     const endedAuction = await connection.manager.findOne(AuctionEntity);
     expect(endedAuction).toEqual({ ...stoppedAuction, status: AuctionStatus.ended });
+
+    expect(broadcastService.sendAuctionClosed).toHaveBeenCalledTimes(1);
 
     expect(testEntities.extrinsicSubmitter.submit).toHaveBeenCalledTimes(3);
     const lastBid = await connection.manager.findOne(BidEntity, { order: { createdAt: 'DESC' } });
