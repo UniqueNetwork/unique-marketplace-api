@@ -11,7 +11,6 @@ import { OffersFilter } from '../../src/offers/dto/offers-filter';
 import * as request from 'supertest';
 import { getConnectionOptions } from '../../src/database/connection-options';
 import { MarketConfig } from "../../src/config/market-config";
-import { PostgresIoAdapter } from "../../src/broadcast/services/postgres-io.adapter";
 
 const testConfigFactory = (extra?: Partial<MarketConfig>) => (): MarketConfig => {
     let config = getConfig();
