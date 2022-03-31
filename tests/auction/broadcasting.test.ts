@@ -10,6 +10,15 @@ import { OfferContractAskDto } from '../../src/offers/dto/offer-dto';
 import { Test } from '@nestjs/testing';
 import { BroadcastModule } from '../../src/broadcast/broadcast.module';
 
+const buildOffer = (price: string): OfferContractAskDto => ({
+  price,
+  collectionId: 1,
+  creationDate: new Date(),
+  quoteId: 2,
+  seller: '3',
+  tokenId: 4,
+})
+
 describe(`${BroadcastService.name} - emitter`, () => {
   let app: INestApplication;
   let anotherAppInstance: INestApplication;
@@ -41,16 +50,13 @@ describe(`${BroadcastService.name} - emitter`, () => {
     clientSocket = connectSocket(appUrl, { transports: ['polling'] });
 
     await new Promise<void>((resolve) => {
-      clientSocket.once('connect', () => {
-        console.log(`connected to ${appUrl}`);
-        resolve();
-      });
+      clientSocket.once('connect', resolve);
     });
   });
 
   afterAll(async () => {
     await app.close();
-    await new Promise((resolve) => emitter.pool.end(resolve));
+    await emitter.pool.end();
   });
 
   it('works', async () => {
@@ -60,31 +66,19 @@ describe(`${BroadcastService.name} - emitter`, () => {
     clientSocket.on('auctionStarted', (offer) => {
       offers.push(offer);
 
-      if (offers.length === 1) allEventsReceived();
+      if (offers.length === 3) allEventsReceived();
     });
-
-    console.log(2);
-
-    const now = Date.now();
-
-    const offer: OfferContractAskDto = {
-      collectionId: now,
-      creationDate: new Date(),
-      price: now.toFixed(),
-      quoteId: now,
-      seller: now.toFixed(),
-      tokenId: now,
-    };
 
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    emitter.emit('auctionStarted', offer);
-
-    const broadcastService = anotherAppInstance.get(BroadcastService);
-    broadcastService.sendAuctionStarted(offer);
+    emitter.emit('auctionStarted', buildOffer('foo'));
+    anotherAppInstance.get(BroadcastService).sendAuctionStarted(buildOffer('bar'));
+    app.get(BroadcastService).sendAuctionStarted(buildOffer('baz'));
 
     await untilEvent;
 
-    expect(offers[0]).toMatchObject({ ...offer, creationDate: expect.any(String) });
+
+    expect(offers.length).toBe(3);
+    expect(offers.map((o) => o.price).sort().reverse()).toMatchObject(['foo', 'baz', 'bar']);
   }, 15_000);
 });
