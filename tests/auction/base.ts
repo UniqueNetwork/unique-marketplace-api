@@ -224,3 +224,13 @@ export const fetchOffer = (
     .get(`/offer/${collectionId}/${tokenId}`)
     .then((response) => response.body as OfferContractAskDto);
 };
+
+export const getEventHook = (): [Promise<void>, CallableFunction] => {
+  let onResolve: CallableFunction = null;
+
+  const wait = new Promise<void>((resolve) => {
+    onResolve = resolve;
+  });
+
+  return [wait, onResolve];
+};

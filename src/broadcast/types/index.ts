@@ -22,8 +22,3 @@ type SocketData = Record<string, never>;
 export type BroadcastIOEmitter = Emitter<ServerToClientEvents, InterServerEvents>;
 export type BroadcastIOServer = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 export type BroadcastIOSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
-
-
-export const isBroadcastIOServer = (emitter: BroadcastIOServer | BroadcastIOEmitter): emitter is  BroadcastIOServer => {
-  return emitter.hasOwnProperty('on');
-}
