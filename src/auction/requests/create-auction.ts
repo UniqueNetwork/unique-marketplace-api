@@ -1,5 +1,6 @@
 import {
   Equals,
+  IsIn,
   IsDefined, IsNotEmpty,
   IsString, ValidateNested,
   IsInt,
@@ -68,7 +69,7 @@ export class CreateAuctionRequestDto implements CreateAuctionRequest {
 export interface TokenTransferTxInfo extends TxInfo {
   isSigned: true;
   signerAddress: string;
-  method: 'transfer',
+  method: 'transfer' | 'transferFrom',
   section: 'unique';
   args: {
     collection_id: string;
@@ -107,8 +108,8 @@ export class TokenTransferTxInfoDto implements TokenTransferTxInfo {
   @Type(() => TokenTransferTxArgsDto)
   args: TokenTransferTxArgsDto;
 
-  @Equals('transfer')
-  method: "transfer";
+  @IsIn(['transfer', 'transferFrom'])
+  method: "transfer" | 'transferFrom';
 
   @Equals('unique')
   section: "unique";
