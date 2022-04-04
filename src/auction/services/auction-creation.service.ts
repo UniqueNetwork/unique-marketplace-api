@@ -1,3 +1,4 @@
+import { encodeAddress } from '@polkadot/util-crypto';
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { AuctionStatus } from '../types';
 import { Connection, Repository } from 'typeorm';
@@ -71,7 +72,7 @@ export class AuctionCreationService {
       network: this.config.blockchain.unique.network,
       collection_id: collectionId,
       token_id: tokenId,
-      address_from: ownerAddress,
+      address_from: encodeAddress(ownerAddress),
       address_to: '',
       status: ASK_STATUS.ACTIVE, // todo - add appropriate status
       price: startPrice.toString(),
