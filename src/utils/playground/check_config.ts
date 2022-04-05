@@ -47,7 +47,7 @@ const checkCollection = async (collectionId, api, indent='  ') => {
     {
       const balance = (await api.rpc.eth.getBalance(evmAddress)).toBigInt();
       if (balance === 0n) {
-        fail(`Ethereum wallet of sponsor is empty. Transfer some funds to ${evmAddress}`, false, indent);
+        fail(`Ethereum wallet of sponsor is empty. Transfer some funds to ${evmAddress} [${address}]`, false, indent);
       } else {
         success(`Sponsor has ${balanceString(balance)} on its ethereum wallet`, indent);
       }
