@@ -51,17 +51,32 @@ export class DatabaseHelper {
     return contractAsk;
   }
 
-  async updateAuctionsAsClosing(): Promise<void> {
-    await this.entityManager.update(
-      AuctionEntity,
-      {
-        status: AuctionStatus.active,
-        stopAt: LessThanOrEqual(new Date()),
-      },
-      {
-        status: AuctionStatus.stopped,
-      },
-    );
+  async updateAuctionsAsStopped(): Promise<{ contractIds: string[] }> {
+    const contractIds: string[] = [];
+    const auctionIds: string[] = [];
+
+    const auctionsToStop = await this.entityManager.find(AuctionEntity, {
+      status: AuctionStatus.active,
+      stopAt: LessThanOrEqual(new Date()),
+    });
+
+    auctionsToStop.forEach((a) => {
+      contractIds.push(a.contractAskId);
+      auctionIds.push(a.id);
+    });
+
+    if (auctionsToStop.length === 0) return { contractIds };
+
+
+    if (auctionIds.length) {
+      await this.entityManager.update(
+        AuctionEntity,
+        auctionIds,
+        { status: AuctionStatus.stopped },
+      );
+    }
+
+    return { contractIds };
   }
 
   async findAuctionsReadyForWithdraw(): Promise<AuctionEntity[]> {
