@@ -12,6 +12,7 @@ import { DateHelper } from '../../utils/date-helper';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { MarketConfig } from '../../config/market-config';
 import { SearchIndexService } from './search-index.service';
+import { encodeAddress } from '@polkadot/util-crypto';
 
 type CreateAuctionArgs = {
   collectionId: string;
@@ -71,7 +72,7 @@ export class AuctionCreationService {
       network: this.config.blockchain.unique.network,
       collection_id: collectionId,
       token_id: tokenId,
-      address_from: ownerAddress,
+      address_from: encodeAddress(ownerAddress),
       address_to: '',
       status: ASK_STATUS.ACTIVE, // todo - add appropriate status
       price: startPrice.toString(),
