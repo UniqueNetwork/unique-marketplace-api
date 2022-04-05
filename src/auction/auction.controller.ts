@@ -140,7 +140,7 @@ export class AuctionController {
 
   // todo - make custom validator?
   private static checkRequestTimestamp(timestamp: number): void {
-    const maxShiftMinutes = 1;
+    const maxShiftMinutes = 10;
 
     const shift = Math.abs(timestamp - Date.now());
 
