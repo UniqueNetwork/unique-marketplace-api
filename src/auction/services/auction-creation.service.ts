@@ -1,3 +1,4 @@
+import { encodeAddress } from '@polkadot/util-crypto';
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { AuctionStatus } from '../types';
 import { Connection, Repository } from 'typeorm';

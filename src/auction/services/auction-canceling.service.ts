@@ -61,7 +61,6 @@ export class AuctionCancelingService {
       if (contractAsk.address_from !== encodeAddress(ownerAddress)) {
         throw new Error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`);
       }
-
       const bidsCount = await transactionEntityManager.count(BidEntity, {
         where: { auctionId: contractAsk.auction.id, status: Not(BidStatus.error) },
       });
