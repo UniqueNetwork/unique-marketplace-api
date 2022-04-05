@@ -11,7 +11,6 @@ import { ASK_STATUS } from '../../escrow/constants';
 import { DatabaseHelper } from './helpers/database-helper';
 import { BidStatus } from '../types';
 import { AuctionCredentials } from '../providers';
-import { encodeAddress } from '@polkadot/util-crypto';
 
 type AuctionCancelArgs = {
   collectionId: number;
@@ -58,7 +57,7 @@ export class AuctionCancelingService {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
-      if (contractAsk.address_from !== encodeAddress(ownerAddress)) {
+      if (contractAsk.address_from !== ownerAddress) {
         throw new Error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`);
       }
 
