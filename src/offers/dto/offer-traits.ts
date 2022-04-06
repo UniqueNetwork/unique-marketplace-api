@@ -9,6 +9,7 @@ export interface Trait {
 class TraitDto implements Trait {
   @Exclude() trait: string;
   @Exclude() count: number;
+  @Exclude() key: string;
 }
 
 export class OfferTraits {

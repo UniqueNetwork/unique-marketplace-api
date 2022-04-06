@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ContractAsk } from '../../entity';
-import { Auction, AuctionStatus, Bid, BidStatus } from '../../auction/types';
+import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription, TypeAttributToken } from '../../auction/types';
 import { Exclude, Expose, plainToInstance, Type } from 'class-transformer';
 
 class AuctionDto implements Auction {
@@ -31,6 +31,11 @@ class BidDto implements Bid {
   @Expose() bidderAddress: string;
 }
 
+class TokenDescriptionDto implements TokenDescription {
+  @Expose()  key?: string;
+  @Expose()  value: string;
+  @Expose()  type?: TypeAttributToken;
+}
 
 export class OfferContractAskDto {
   @ApiProperty({ description: 'Collection ID' })
@@ -57,6 +62,11 @@ export class OfferContractAskDto {
   @Type(() => AuctionDto)
   auction?: AuctionDto;
 
+  @ApiProperty({ description: 'Token description' })
+  @Expose()
+  @Type(() => TokenDescriptionDto)
+  tokenDescription: TokenDescriptionDto;
+
   static fromContractAsk(contractAsk: ContractAsk): OfferContractAskDto {
     const plain: Record<string, any> = {
       ...contractAsk,
@@ -65,13 +75,24 @@ export class OfferContractAskDto {
       price: contractAsk.price.toString(),
       quoteId: +contractAsk.currency,
       seller: contractAsk.address_from,
-      creationDate: contractAsk.created_at,
+      creationDate: contractAsk.created_at
     };
 
     if (contractAsk?.auction?.bids?.length) {
       contractAsk.auction.bids = contractAsk.auction.bids.sort((a, b) => {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
+    }
+
+    if (Array.isArray(contractAsk?.search_index)) {
+      plain.tokenDescription =   contractAsk?.search_index.reduce((acc, item) => {
+        acc.push({
+          key: item.key,
+          value: (item.items.length === 1) ? item.items.pop() : item.items,
+          type: item.type
+        })
+        return acc;
+      },[])
     }
 
     return plainToInstance<OfferContractAskDto, Record<string, any>>(OfferContractAskDto, plain, { excludeExtraneousValues: true });

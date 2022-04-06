@@ -59,12 +59,11 @@ export class OffersService {
       offers = this.filter(offers, offersFilter);
       offers = this.offersQuerySortHelper.applySort(offers, sort);
       paginationResult = await paginate(offers, pagination);
-
-      if ((offersFilter.traitsCount ?? []).length !== 0 ) {
+      /*if ((offersFilter.traitsCount ?? []).length !== 0 ) {
         const filterItems = paginationResult.items.filter((item) => (offersFilter?.traitsCount.includes(item.search_index.length)));
         paginationResult.items = filterItems;
         paginationResult.itemsCount = filterItems.length;
-      }
+      }*/
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -126,6 +125,25 @@ export class OffersService {
         SearchIndex,
         'search_index',
         'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
+      )
+      .leftJoinAndMapMany(
+        'offer.search_filter',
+        (subQuery => {
+            return subQuery.select([
+              'collection_id',
+              'network',
+              'token_id',
+              'is_trait',
+              'locale',
+              'array_length(items, 1) as count_items',
+              'items',
+              'unnest(items) traits'
+            ])
+            .from(SearchIndex, 'sf')
+            .where(`sf.type not in ('ImageURL')`)
+        }),
+        'search_filter',
+        'offer.network = search_filter.network and offer.collection_id = search_filter.collection_id and offer.token_id = search_filter.token_id'
       )
   }
 
@@ -193,11 +211,12 @@ export class OffersService {
     //if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
 
     if ((traitsCount ?? []).length !== 0) {
-      query.andWhere(`search_index.is_trait = true`);
+      query.andWhere('search_filter.is_trait = true');
+      query.andWhere('search_filter.count_items in (:...traitsCount)', {traitsCount});
     }
 
     if(!nullOrWhitespace(text)) {
-      query.andWhere(`search_index.value ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text })
+      query.andWhere(`search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text })
     }
 
     if(!nullOrWhitespace(locale)) {
@@ -270,9 +289,9 @@ export class OffersService {
             message: 'Not found collectionIds. Please set collectionIds to offer by filter',
           });
       } else {
-        traits.forEach(trait => {
-          query.andWhere('search_index.value = :trait', { trait });
-        });
+
+        query.andWhere('array [:...traits] <@ search_filter.items', { traits });
+
         return query
       }
     }
@@ -306,12 +325,13 @@ export class OffersService {
     let traits = [];
     try {
       traits =  await this.connection.manager.query(`
-      select si.value as trait, count(si.id)
-      from search_index si
-      left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
-      where si.collection_id = $1 and locale is not null
-      and ca.status = 'active'
-      group by si.value`, [collectionId]);
+      select key, trait, count(trait) from (
+        select traits as trait, collection_id, token_id, key from search_index, unnest(items) traits
+        where locale is not null and collection_id = $1
+    ) as si
+    left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
+    where ca.status = 'active'
+    group by key, trait`, [collectionId]);
 
     } catch (e) {
       this.logger.error(e.message);

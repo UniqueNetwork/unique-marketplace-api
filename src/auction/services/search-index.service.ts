@@ -1,3 +1,4 @@
+
 import { decodeData, decodeSchema } from './../../utils/blockchain/token';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
@@ -6,7 +7,8 @@ import { MarketConfig } from '../../config/market-config';
 import { SearchIndex } from '../../entity';
 
 import { v4 as uuid } from 'uuid';
-import { CollectionToken, TokenInfo } from '../types';
+import { CollectionToken, TokenInfo, TypeAttributToken, TypeConstSchema } from '../types';
+import { vec2str } from './../../utils/blockchain/util';
 
 
 @Injectable()
@@ -46,17 +48,66 @@ export class SearchIndexService {
       .then(Boolean);
   }
 
-  async getTokenInfoItems({ collectionId, tokenId }: CollectionToken): Promise<TokenInfo[]> {
-    const keywords = [];
+  private async schema(collectionId: number): Promise<TypeConstSchema> {
     const collection = await this.uniqueApi.query.common.collectionById(collectionId);
     const schema = decodeSchema(collection.toHuman()['constOnChainSchema']);
-    const token =  await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId);
+    return {
+      tokenPrefix: collection.toHuman()['tokenPrefix'],
+      constOnChainSchema: schema,
+      offchainSchema: collection.toHuman()['offchainSchema'],
+      name: vec2str(collection.toHuman()['name']),
+    }
+  }
+
+  private reduceAcc(acc: TokenInfo[], item): TokenInfo[] {
+    if (item.type === 'Enum') {
+      const findIndex = acc.findIndex((i) => i.key === item.key);
+      if (findIndex !== -1) {
+        acc[findIndex].items = [...acc[findIndex].items, ...item.items];
+      } else {
+        acc.push({ ...item, items: [...item.items] });
+      }
+    } else {
+      acc.push({ ...item });
+    }
+    return acc;
+  }
+
+  async getTokenInfoItems({ collectionId, tokenId }: CollectionToken): Promise<TokenInfo[]> {
+    const keywords = [];
+    const collection = await this.schema(collectionId);
+    const schema = collection.constOnChainSchema;
+    const token = await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId);
     const constData = token.toHuman()['constData'] || null;
-    // todo implement something like in src/escrow/unique.ts @ getSearchIndexes
+
     keywords.push({
       locale: null,
-      text: collection.toHuman()['tokenPrefix']
-    })
+      items: [collection.tokenPrefix],
+      key: 'prefix',
+      type: TypeAttributToken.Prefix
+    });
+    keywords.push({
+      locale: null,
+      items: [collection.name],
+      key: 'collectionName',
+      type: TypeAttributToken.String
+    });
+    keywords.push({
+      locale: null,
+      items: [`${tokenId}`],
+      key: 'tokenId',
+      type: TypeAttributToken.Number
+    });
+
+    if (collection.offchainSchema.length !== 0) {
+      keywords.push({
+        locale: null,
+        key: 'image',
+        items: [collection.offchainSchema.replace('{id}', String(tokenId))],
+        type: TypeAttributToken.ImageURL
+      })
+    }
+
     if (constData) {
       const tokenData = decodeData(constData, schema);
       try {
@@ -67,38 +118,57 @@ export class SearchIndexService {
         this.logger.debug(`Unable to get search indexes for token #${tokenId} from collection #${collectionId}`);
       }
     }
-    keywords.push({
-      locale: null,
-      text: tokenId.toString()
-    });
-    return keywords.filter((x) => typeof x.text === 'string' && x.text.trim() !== '');
+    return keywords.reduce(this.reduceAcc, []);
   }
 
   *getKeywords(protoSchema, dataObj) {
     for (const key of Object.keys(dataObj)) {
-      if (this.BLOCKED_SCHEMA_KEYS.indexOf(key) > -1) continue;
-      const isTrait = (key === 'traits' || key === 'Traits');
-      yield { locale: null, text: key , is_trait: false};
-      if (protoSchema.fields[key].resolvedType && protoSchema.fields[key].resolvedType.constructor.name.toString() === 'Enum') {
+
+      const resolvedType = protoSchema.fields[key].resolvedType;
+
+      if (this.BLOCKED_SCHEMA_KEYS.includes(key)) {
+        yield {
+          locale: null,
+          key: 'Image',
+          items: [JSON.parse(dataObj[key]).ipfs],
+          type: TypeAttributToken.ImageURL
+        }
+        continue;
+      }
+      if (resolvedType && resolvedType.constructor.name.toString() === 'Enum') {
         if (Array.isArray(dataObj[key])) {
           for (let i = 0; i < dataObj[key].length; i++) {
-            yield* this.convertEnumToString(dataObj[key][i], key, protoSchema, isTrait);
+            yield* this.convertEnumToString(dataObj[key][i], key, protoSchema);
           }
         } else {
-          yield* this.convertEnumToString(dataObj[key], key, protoSchema, isTrait);
+          yield* this.convertEnumToString(dataObj[key], key, protoSchema);
         }
       } else {
-        yield { locale: null, text: dataObj[key] , is_trait: false };
+        yield {
+          locale: null,
+          key,
+          items: [dataObj[key]],
+          type: TypeAttributToken.String
+        };
       }
     }
   }
 
-  *convertEnumToString(value, key, protoSchema, isTrait) {
+  *convertEnumToString(value, key, protoSchema) {
     try {
+
+      const typeFieldString = protoSchema.fields[key].resolvedType.constructor.name.toString();
+
       const valueJsonComment = protoSchema.fields[key].resolvedType.options[value];
       const translationObject = JSON.parse(valueJsonComment);
       if (translationObject) {
-        yield* Object.keys(translationObject).map((k) => ({ locale: k, text: translationObject[k] , is_trait: isTrait }));
+        yield* Object.keys(translationObject).map((k) => ({
+          locale: k,
+          is_trait: (typeFieldString === 'Enum' ? true : false),
+          key,
+          items: [translationObject[k]],
+          type: (typeFieldString === 'Enum' ? TypeAttributToken.Enum : TypeAttributToken.String),
+        }));
       }
     } catch (e) {
       this.logger.error(`Error parsing schema when trying to convert enum to string`);
@@ -112,8 +182,10 @@ export class SearchIndexService {
         token_id: String(collectionToken.tokenId),
         network: collectionToken?.network || this.network,
         locale: item.locale,
-        value: item.text,
+        items: item.items,
+        key: item.key,
         is_trait: item.is_trait,
+        type: item.type
       }));
 
     await this.repository.save(searchIndexItems);

@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
-import { initApp, prepareSearchData, runMigrations, searchByFilterOffers } from './data';
+import { initApp, runMigrations, searchByFilterOffers } from './data';
+import { prepareTokenData, prepareBlockData, prepareOfferData, prepareAuctionData } from './data/offers';
 import * as request from 'supertest';
 
 describe('Offers service', () => {
@@ -9,7 +10,11 @@ describe('Offers service', () => {
     app = await initApp();
     await runMigrations(app.get('CONFIG'));
     await app.init();
-    await prepareSearchData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+
+    await prepareTokenData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+    await prepareBlockData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+    await prepareOfferData(app.get('DATABASE_CONNECTION').createQueryBuilder());
+    await prepareAuctionData(app.get('DATABASE_CONNECTION').createQueryBuilder());
   });
 
   afterAll(async () => {
@@ -54,7 +59,7 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [], traits: [] }, { sort: [{ order: 1, column: '' }] });
 
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(7);
+      await expect(response.body.items.length).toBe(10);
     });
 
     // All tokens has that trait
@@ -63,7 +68,7 @@ describe('Offers service', () => {
         app,
         {},
         {
-          searchText: 'Female',
+          searchText: 'Zahar',
           collectionId: [],
           traitsCount: [],
           traits: []
@@ -72,7 +77,7 @@ describe('Offers service', () => {
       );
       await expect(response.body.items.length).toBe(1);
 
-      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([5817]);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2]);
     });
 
     // Trait for several tokens
@@ -80,55 +85,55 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: 'Black Earrings', collectionId: [], traitsCount: [], traits: [] },
+        { searchText: 'Tired Eyes', collectionId: [], traitsCount: [], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
-      await expect(response.body.items.length).toBe(1);
-      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([4017]);
+      await expect(response.body.items.length).toBe(2);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2, 3]);
     });
 
     // Trait for several tokens
     it('/offers (GET, Trait count sort price)', async () => {
-      let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [4, 5], traits: [] }, { sort: [{ order: 1, column: 'Price' }] });
-      await expect(response.body.items.length).toBe(6);
-      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([5221, 3221, 4017, 5425, 3220, 5223]);
+      let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [2, 3, 4], traits: [] }, { sort: [{ order: 1, column: 'Price' }] });
+      await expect(response.body.items.length).toBe(2);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([1, 2]);
     });
 
     // Only one token has that trait
-    it('/offers (GET, Only one token has that trait search: "Asian Eyes")', async () => {
+    it('/offers (GET, Only one token has that trait search: "Nose Ring")', async () => {
       //
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: 'Asian Eyes', collectionId: [], traitsCount: [1], traits: [] },
+        { searchText: 'Nose Ring', collectionId: [], traitsCount: [2,3,4], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.statusCode).toBe(200);
       await expect(response.body.items.length).toBe(1);
-      await expect(response.body.items[0].tokenId).toBe(5817);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2]);
     });
 
     // Only one token has that trait
-    it('/offers (GET, Only one token has that trait search: "asian eyes" LowerCase)', async () => {
+    it('/offers (GET, Only one token has that trait search: "nose ring" LowerCase)', async () => {
       //
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: 'asian eyes', collectionId: [], traitsCount: [1], traits: [] },
+        { searchText: 'nose ring', collectionId: [], traitsCount: [2,3], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.statusCode).toBe(200);
       await expect(response.body.items.length).toBe(1);
-      await expect(response.body.items[0].tokenId).toBe(5817);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2]);
     });
 
     // Search by tokenId (120 contains 12)
-    it('/offers (GET, Search by tokenId (5817))', async () => {
+    it('/offers (GET, Search by tokenId (3))', async () => {
       let response = await searchByFilterOffers(
         app,
         {},
         {
-          searchText: '5817',
+          searchText: '3',
           collectionId: [],
           traitsCount: [],
           traits: []
@@ -136,8 +141,8 @@ describe('Offers service', () => {
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(1);
-      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([5817]);
+      await expect(response.body.items.length).toBe(2);
+      await expect(response.body.items.map((x) => x.collectionId)).toStrictEqual([124, 1782]);
     });
 
     // Search by unique tokenId
@@ -145,11 +150,11 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: '3-day Stubble Red', collectionId: [], traitsCount: [], traits: [] },
+        { searchText: 'Aleksandr Aleksandrov', collectionId: [], traitsCount: [], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(2);
+      await expect(response.body.items.length).toBe(1);
     });
 
     // Search by not exists tokenId
@@ -169,12 +174,12 @@ describe('Offers service', () => {
       await expect(response.body.items.length).toBe(0);
     });
 
-    // Find collection 23
-    it('/offers?collectionId=23 (GET, Find collection 23 )', async () => {
+    // Find collection 562
+    it('/offers?collectionId=562 (GET, Find collection 562 )', async () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { collectionId: [23], traitsCount: [], traits: [] },
+        { collectionId: [562], traitsCount: [], traits: [] },
         {
           sort: [
             {
@@ -185,10 +190,9 @@ describe('Offers service', () => {
         },
       );
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(1);
+      await expect(response.body.items.length).toBe(2);
     });
 
-    // Find collection 23
     it('/offers (GET, sort Price DESC)', async () => {
       let response = await searchByFilterOffers(
         app,
@@ -204,17 +208,16 @@ describe('Offers service', () => {
         },
       );
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(7);
-      await expect(response.body.items[0].price).toBe('27050000000000');
+      await expect(response.body.items[0].price).toBe('901329162');
     });
 
-    // Find collection 23
+
     it('/offers (GET, sort Price ASC)', async () => {
-      const mockCollection = ['132:5223','23:5817', '25:4017', '28:5425', '33:3220', '2:3221', '133:5221'];
+      const mockCollection = ['124:1','124:6','124:4','124:5','124:2','124:3'];
       let response = await searchByFilterOffers(
         app,
         {},
-        { collectionId: [], traitsCount: [], traits: [] },
+        { collectionId: [124], traitsCount: [], traits: [] },
         {
           sort: [
             {
@@ -246,14 +249,30 @@ describe('Offers service', () => {
       await expect(response.body.items.length).toBe(2);
     });
 
-    it ('/offers?collectionId=2traits=Oops%20Right (GET, Find collection 2 and traits by field Oops Right  )?', async () => {
+    it ('/offers?collectionId=562traits=Up%20Hair (GET, Find collection 2 and traits by field Up Hair  )?', async () => {
       let response = await searchByFilterOffers(
         app,
         {},
         {
-          collectionId: [2],
+          collectionId: [562],
           traitsCount: [],
-          traits: ['Oops%20Right'],
+          traits: ['Up%20Hair'],
+        },
+        { sort: [{ order: 1, column: '' }] }
+      );
+      await expect(response.statusCode).toBe(200);
+      await expect(response.body.items.length).toBe(2);
+    });
+
+
+    it ('/offers?collectionId=562traits=Up%20Hair&traits=Teeth%20Smile (GET, Find collection 2 and traits by field Up Hair  )?', async () => {
+      let response = await searchByFilterOffers(
+        app,
+        {},
+        {
+          collectionId: [562],
+          traitsCount: [],
+          traits: ['Up%20Hair', 'Teeth%20Smile'],
         },
         { sort: [{ order: 1, column: '' }] }
       );
@@ -261,7 +280,7 @@ describe('Offers service', () => {
       await expect(response.body.items.length).toBe(1);
     });
 
-    it ('/offers?isAuction=true (GET, Find isAuction )?', async () => {
+    it ('/offers?isAuction=true (GET, find isAuction )?', async () => {
       let response = await searchByFilterOffers(
         app,
         {},
@@ -274,22 +293,9 @@ describe('Offers service', () => {
         { sort: [{ order: 1, column: '' }] }
       );
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(1);
+      await expect(response.body.items.length).toBe(4);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2, 1, 2, 3]);
     });
-
-    /*it ('/offers?bidderAddress=555555555 (GET, Find bidderAddress )?', async () => {
-      let response = await searchByFilterOffers(
-        app,
-        {},
-        {
-
-        },
-        {}
-      );
-      await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(0);
-    });*/
-
   });
   // Bad request
 });
