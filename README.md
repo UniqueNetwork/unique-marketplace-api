@@ -52,7 +52,7 @@
 - Full stack engineers
 - IT administrators
 
-> In this tutorial we will install the marketplace backend locally on a computer or in a virtual machine with Ubuntu OS.
+> This is a tutorial about how to perform an install of the marketplace backend locally on a computer or in a virtual machine with Ubuntu OS.
 
 ## Prerequisites
 
@@ -71,9 +71,9 @@ two auxiliary workers `marketplace-escrow-unique` and `marketplace-escrow-kusama
 ### Run the application using Docker Compose
 
 The main folder of this repository contains a functional [`docker-compose.example.yml`](https://github.com/UniqueNetwork/unique-marketplace-api/blob/release/v1.0/docker-compose.example.yml) file.
-All settings based on env variables and listed in `docker-compose.example.yml` file. You can create your own `docker-compose.yml` file based on example, change settings and run service.
+All settings based on env variables and listed in `docker-compose.example.yml` file. To setup the initial docker-compose config file, make a copy of the example file renaming it to `docker-compose.yml`. Tweak the settings and run the service.
 
-Run the application using it as shown below:
+Run the application using using these commands:
 
 ```shell
 $ git clone https://github.com/UniqueNetwork/unique-marketplace-api.git
@@ -81,7 +81,7 @@ $ cd unique-marketplace-api
 ```
 ### Using the Docker Command Line
 
-If you want to run the application manually instead of using `docker-compose`, these are the basic steps you need to run:
+The application can be also run manually instead of using `docker-compose`. To do so follow these steps:
 
 ### Step 1: Setup the environment
 
@@ -98,8 +98,8 @@ or
 $ nano docker-compose.yml
 ```
 
- - Edit the `docker-compose.yml` file and specify all settings for the environment, except for the two items `CONTRACT_ETH_OWNER_SEED` and `CONTRACT_ADDRESS` - we will get this data in step 4.
- - Change ESCROW_SEED to the 12-word admin mnemonic seed phrase that you have saved when you created the admin address in Polkadot{.js} extension.
+ - Edit the `docker-compose.yml` file and specify all settings for the environment, except for the two items `CONTRACT_ETH_OWNER_SEED` and `CONTRACT_ADDRESS` - this data will become available in step 4.
+ - Change ESCROW_SEED to the 12-word admin mnemonic seed phrase of the market admin account address from the Polkadot{.js} browser wallet extension.
  - Carefully review all settings for the environment and follow the instructions.
 
 
@@ -120,7 +120,7 @@ $ docker exec marketplace-api node dist/cli.js playground migrate_db
 ```shell
 $ docker exec marketplace-api node dist/cli.js playground deploy_contract
 ```
-In a few minutes you will see in the terminal something like that:
+After a short span of time you will see a terminal output similar to the example below:
 
 ```shell
 ...
@@ -163,7 +163,7 @@ $ docker-compose up -d marketplace-api
 ```
 ### Step 7: Сheck installation
 
-You can check your installation by running:
+An installation check can be performed by running:
 
 ```shell
 $ docker exec marketplace-api node dist/cli.js playground check_config
@@ -187,7 +187,7 @@ Collection #3
   [v] Transfer timeout is zero blocks
   [v] Approve timeout is zero blocks
 ```
-Now you're almost done.
+At this point, the setup is almost done.
 
 
 ### Step 8: Start all containers
@@ -246,12 +246,12 @@ Response JSON:
 
 ### Environment variables
 
-When you start the UniqueNetwork Marketplace Backend container, you can adjust the configuration of the instance by passing one or more environment variables either on the docker-compose file or on the `docker run` command line.
-If you want to add a new environment variable:
+When an UniqueNetwork Marketplace Backend container is started, the configuration of the instance can be adjusted by passing one or more environment variables either on the docker-compose file or on the `docker run` command line.
+Should there arise a need to add a new environment variable:
 
 ### Running database migrations
 
-Migrations can start automatically by setting AUTO_DB_MIGRATIONS env to true, or you can run npm run playground migrate_db to start migrations manually (highly recommended)
+Migrations can start automatically by setting AUTO_DB_MIGRATIONS env to true, or manually by executing 'npm run playground migrate_db' (highly recommended).
 
 - For docker-compose add the variable name and value under the application section in the [`docker-compose.yml`](https://github.com/UniqueNetwork/unique-marketplace-api/blob/master/docker-compose.hub.yml) file present in this repository:
 
@@ -328,13 +328,13 @@ The recommended way to get the UniqueNetwork Marketplace Backend Docker Image is
 ```shell
 $ docker pull uniquenetwork/marketplace-backend:latest
 ```
-To use a specific version, you can pull a versioned tag. You can view the [list of available versions](https://hub.docker.com/r/uniquenetwork/marketplace-backend/tags/) in the Docker Hub Registry.
+To use a specific version, pull a versioned tag. You can view the [list of available versions](https://hub.docker.com/r/uniquenetwork/marketplace-backend/tags/) in the Docker Hub Registry.
 
 ```shell
 $ docker pull uniquenetwork/marketplace-backend:[TAG]
 ```
 
-If you wish, you can also build the image yourself.
+An image can be built by issung the following command:
 
 ```shell
 $ docker build -t uniquenetwork/marketplace-backend:latest 'https://github.com/UniqueNetwork/unique-marketplace-api.git'
@@ -345,21 +345,21 @@ Marketplace Backend requires access to a PostgreSQL database to store informatio
 
 ### Run the application using Docker Compose
 
-The main folder of this repository contains a functional [`docker-compose.hub.yml`](https://raw.githubusercontent.com/UniqueNetwork/unique-marketplace-api/master/docker-compose.hub.yml) file.
-All settings based on env variables and listed in `docker-compose.hub.yml` file. You can create your own `docker-compose.yml` file based on example, change settings and run service.
+The main folder of this repository contains a functional [`docker-compose.example.yml`](https://github.com/UniqueNetwork/unique-marketplace-api/blob/release/v1.0/docker-compose.example.yml) file.
+All settings based on env variables and listed in `docker-compose.example.yml` file. To setup the initial docker-compose config file, make a copy of the example file renaming it to `docker-compose.yml`. Tweak the settings and run the service.
 
-Run the application using it as shown below:
+Run the application using using these commands:
 
 ```shell
 $ curl -sSL https://raw.githubusercontent.com/UniqueNetwork/unique-marketplace-api/master/docker-compose.hub.yml > docker-compose.yml
 ```
 ### Using the Docker Command Line
 
-If you want to run the application manually instead of using `docker-compose`, these are the basic steps you need to run:
+The application can be also run manually instead of using `docker-compose`. To do so follow these steps:
 
 #### Step One: Setup the environment
-- Edit the `docker-compose.yml` file and specify all settings for the environment, except for the two items `CONTRACT_ETH_OWNER_SEED` and `CONTRACT_ADDRESS` - we will get this data in step 4.
-- Change ESCROW_SEED to the 12-word admin mnemonic seed phrase that you have saved when you created the admin address in Polkadot{.js} extension.
+- Edit the `docker-compose.yml` file and specify all settings for the environment, except for the two items `CONTRACT_ETH_OWNER_SEED` and `CONTRACT_ADDRESS` - this data will become available in step 4.
+- Change ESCROW_SEED to the 12-word admin mnemonic seed phrase of the market admin account address from the Polkadot{.js} browser wallet extension.
 
 #### Step Two: Use the settings step 2
 
@@ -399,7 +399,7 @@ In case you configured it via Nginx
 
 ### Using the expression browser
 Let us try looking at some data that Prometheus has collected about itself. To use Prometheus's built-in expression browser, navigate to http://localhost:9090/graph and choose the "Table" view within the "Graph" tab.
-As you can gather from http://localhost:9090/metrics, one metric that Prometheus exports about itself is called promhttp_metric_handler_requests_total (the total number of /metrics requests the Prometheus server has served). Go ahead and enter this into the expression console:
+As one can gather from http://localhost:9090/metrics, one of the metric data that Prometheus exports about itself is called promhttp_metric_handler_requests_total (the total number of /metrics requests the Prometheus server has served). Go ahead and enter this into the expression console:
 
 </details>
 
