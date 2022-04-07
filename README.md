@@ -386,7 +386,7 @@ $ curl -sSL https://raw.githubusercontent.com/UniqueNetwork/unique-marketplace-a
 $ docker-compose -f docker-compose.prometheus.yml up -d
 ```
 
-#### Step 3: Открыть в браузере
+#### Step 3: Open in browser
 
 Local configuration
 
