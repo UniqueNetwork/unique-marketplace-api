@@ -10,6 +10,7 @@ import { BidStatus } from '../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { v4 as uuid } from 'uuid';
 import { AuctionCredentials } from '../providers';
+import { encodeAddress } from '@polkadot/util-crypto';
 
 type BidWithdrawArgs = {
   collectionId: number;
@@ -58,7 +59,7 @@ export class BidWithdrawService {
     const withdrawingBid = this.connection.manager.create(BidEntity, {
       id: uuid(),
       status: BidStatus.minting,
-      bidderAddress,
+      bidderAddress: encodeAddress(bidderAddress),
       amount: (-1n * amount).toString(),
       balance: '0',
       auctionId: auction.id,
@@ -133,7 +134,7 @@ export class BidWithdrawService {
       const withdrawingBid = transactionEntityManager.create(BidEntity, {
         id: uuid(),
         status: BidStatus.minting,
-        bidderAddress,
+        bidderAddress: encodeAddress(bidderAddress),
         amount: (-1n * bidderActualSum).toString(),
         balance: (bidderPendingSum - bidderActualSum).toString(),
         auctionId: contractAsk.auction.id,

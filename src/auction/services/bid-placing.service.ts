@@ -12,6 +12,7 @@ import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs } from '../types';
 import { DatabaseHelper } from './helpers/database-helper';
+import { encodeAddress } from '@polkadot/util-crypto';
 
 @Injectable()
 export class BidPlacingService {
@@ -185,7 +186,7 @@ export class BidPlacingService {
       const nextUserBid = transactionEntityManager.create(BidEntity, {
         id: uuid(),
         status: BidStatus.minting,
-        bidderAddress,
+        bidderAddress: encodeAddress(bidderAddress),
         amount: amount.toString(),
         balance: userNextPendingAmount.toString(),
         auctionId: contractAsk.auction.id,
