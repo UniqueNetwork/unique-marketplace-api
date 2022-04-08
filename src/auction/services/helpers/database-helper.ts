@@ -4,6 +4,7 @@ import { AuctionEntity, BidEntity, ContractAsk } from '../../../entity';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { AuctionStatus, BidStatus } from '../../types';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
+import { encodeAddress } from '@polkadot/util-crypto';
 
 type AggregatedBid = { bidderAddress: string; totalAmount: bigint };
 type AggregatedBidDb = { bidderAddress: string; totalAmount: string };
@@ -124,7 +125,7 @@ export class DatabaseHelper {
       .where('auction_bid.auction_id = :auctionId', { auctionId });
 
     if (bidStatuses) query.andWhere('auction_bid.status = ANY (:bidStatuses)', { bidStatuses });
-    if (bidderAddress) query.andWhere('auction_bid.bidder_address = :bidderAddress', { bidderAddress });
+    if (bidderAddress) query.andWhere('auction_bid.bidder_address = :bidderAddress', { bidderAddress: encodeAddress(bidderAddress) });
 
     query
       .groupBy('bidder_address')
