@@ -17,15 +17,21 @@ import { OffersController, OffersService } from './offers';
 import { TradesController, TradesService } from './trades';
 import { HealthController, HealthService } from './utils/health';
 import { MetricsController, MetricsService } from './utils/metrics';
-import { AuctionModule } from "./auction/auction.module";
-import { BroadcastModule } from "./broadcast/broadcast.module";
-import { RequestLoggerMiddleware } from "./utils/logging/request-logger-middleware.service";
+import { AuctionModule } from './auction/auction.module';
+import { BroadcastModule } from './broadcast/broadcast.module';
+import { RequestLoggerMiddleware } from './utils/logging/request-logger-middleware.service';
+import { JwtModule } from '@nestjs/jwt';
+import { getConfig } from './config';
+import { AdminController } from './admin/admin.controller';
+import { AdminService } from './admin/admin.service';
+const config = getConfig();
 
 @Module({
   imports: [
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'blockchain'),
     }),
+    JwtModule.register({ secret: config.blockchain.escrowSeed }),
     SentryLoggerService(),
     DatabaseModule,
     HttpModule,
@@ -36,8 +42,8 @@ import { RequestLoggerMiddleware } from "./utils/logging/request-logger-middlewa
     AuctionModule,
     BroadcastModule,
   ],
-  controllers: [OffersController, TradesController, SettingsController, HealthController, MetricsController],
-  providers: [OffersService, TradesService, PlaygroundCommand, SettingsService, HealthService, MetricsService, PrometheusService],
+  controllers: [OffersController, TradesController, SettingsController, AdminController, HealthController, MetricsController],
+  providers: [OffersService, TradesService, PlaygroundCommand, SettingsService, AdminService, HealthService, MetricsService, PrometheusService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): any {

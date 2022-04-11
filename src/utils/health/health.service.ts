@@ -5,6 +5,8 @@ import { HealthIndicator } from './interfaces/health-indicator.interface';
 import { AppHealthIndicator } from './indicators/app-health.indicator';
 import { OffersHealthIndicator, OffersService } from '../../offers';
 import { TradesHealthIndicator, TradesService } from '../../trades';
+import { AdminHealthIndicator } from '../../admin/admin.health';
+import { AdminService } from '../../admin/admin.service';
 
 @Injectable()
 export class HealthService {
@@ -18,11 +20,13 @@ export class HealthService {
     private promClientService: PrometheusService,
     private offersService: OffersService,
     private tradesService: TradesService,
+    private adminService: AdminService,
   ) {
     this.listOfThingsToMonitor = [
       new AppHealthIndicator(this.http, 'http://localhost:' + this.config.listenPort, this.promClientService),
       new OffersHealthIndicator(this.offersService, this.promClientService),
       new TradesHealthIndicator(this.tradesService, this.promClientService),
+      new AdminHealthIndicator(this.adminService, this.promClientService),
     ];
   }
 
