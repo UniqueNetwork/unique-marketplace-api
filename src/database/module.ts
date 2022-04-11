@@ -1,4 +1,4 @@
-import { FactoryProvider, Module } from '@nestjs/common';
+import {FactoryProvider, Global, Module} from '@nestjs/common';
 import { ConfigModule } from '../config/module';
 import { getConnectionOptions } from './connection-options';
 import { Connection, createConnection } from 'typeorm';
@@ -12,6 +12,7 @@ const databaseProvider: FactoryProvider<Promise<Connection>> = {
     inject: ['CONFIG'],
 };
 
+@Global()
 @Module({
     imports: [ConfigModule],
     providers: [databaseProvider],

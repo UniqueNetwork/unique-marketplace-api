@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class SettingBlockchainUnique {
+class SettingBlockchainUnique {
     @ApiProperty({})
     wsEndpoint: string;
 
@@ -11,7 +11,7 @@ export class SettingBlockchainUnique {
     contractAddress: string;
 }
 
-export class SettingBlockchainKusama {
+class SettingBlockchainKusama {
     @ApiProperty({})
     wsEndpoint: string;
 
@@ -19,12 +19,7 @@ export class SettingBlockchainKusama {
     marketCommission: string;
 }
 
-export class SettingBlockchainEscrow {
-    @ApiProperty({})
-    adress: string;
-}
-
-export class SettingBlockchain {
+class SettingBlockchain {
     @ApiProperty({})
     escrowAddress: string;
 
@@ -35,7 +30,18 @@ export class SettingBlockchain {
     kusama: SettingBlockchainKusama;
 }
 
+class Auction {
+  @ApiProperty()
+  address: string;
+
+  @ApiProperty()
+  commission: number;
+}
+
 export class SettingsDto {
     @ApiProperty({})
     blockchain: SettingBlockchain;
+
+    @ApiProperty({ required: false })
+    auction?: Auction;
 }

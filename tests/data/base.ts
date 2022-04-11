@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { createConnection } from 'typeorm';
 
 import { getConfig } from '../../src/config';
@@ -10,29 +10,38 @@ import { PaginationRequest } from '../../src/utils/pagination/pagination-request
 import { OffersFilter } from '../../src/offers/dto/offers-filter';
 import * as request from 'supertest';
 import { getConnectionOptions } from '../../src/database/connection-options';
+import { MarketConfig } from "../../src/config/market-config";
 
-const testConfigFactory = (extra?) => () => {
+const testConfigFactory = (extra?: Partial<MarketConfig>) => (): MarketConfig => {
     let config = getConfig();
     config.postgresUrl = config.testingPostgresUrl;
     config = { ...config, ...(extra || {}) };
     return config;
 };
 
-export const initApp = async (config?): Promise<INestApplication> => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+type OverrideProviders = (builder: TestingModuleBuilder) => void;
+
+export const initApp = async (config?: Partial<MarketConfig>, overrideProviders?: OverrideProviders): Promise<INestApplication> => {
+    const testingModuleBuilder = await Test.createTestingModule({
         imports: [AppModule],
-    })
-        .overrideProvider('CONFIG')
-        .useFactory({ factory: testConfigFactory(config) })
-        .compile();
+    });
+
+    testingModuleBuilder
+      .overrideProvider('CONFIG')
+      .useFactory({ factory: testConfigFactory(config) })
+
+    if (overrideProviders) overrideProviders(testingModuleBuilder);
+
+    const moduleFixture = await testingModuleBuilder.compile();
 
     const app = moduleFixture.createNestApplication();
     ignoreQueryCase(app);
     useGlobalPipes(app);
+
     return app;
 };
 
-export const getMigrationsConnection = async (config, logging: boolean = false) => {
+export const getMigrationsConnection = async (config, logging = false) => {
     const connectionOptions = getConnectionOptions(config, true, logging);
     return await createConnection({ ...connectionOptions, name: 'migrations' });
 };
@@ -74,25 +83,52 @@ export const sortToString = (sortFilter: OfferSortingRequest) => {
  * @param {OfferSortingRequest} sort - { sort: [{ order: 1, column: 'Price' }] } === desc(Price)
  */
 export const searchByFilterOffers = async (app: INestApplication, pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest) => {
-    let filterRequest: string = '/offers?';
-    let { page, pageSize } = pagination;
-    let { collectionId, searchText, searchLocale, minPrice, maxPrice, seller, traitsCount } = offersFilter;
-    page !== undefined ? (filterRequest += `page=${page}`) : filterRequest;
-    pageSize !== undefined ? (filterRequest += `&pageSize=${pageSize}`) : filterRequest;
-    collectionId.length !== 0 ? collectionId.forEach((cid) => (filterRequest += `&collectionId=${cid}`)) : filterRequest;
-    traitsCount.length !== 0 ? traitsCount.forEach((tid) => (filterRequest += `&traitsCount=${tid}`)) : filterRequest;
-    searchLocale ? (filterRequest += `&searchLocale=${searchLocale}`) : filterRequest;
 
-    if (searchText) {
-        searchText = searchText.split(' ').join('%20');
-        filterRequest += `&searchText=${searchText}`;
-    }
-    minPrice !== undefined ? (filterRequest += `&minPrice=${minPrice}`) : filterRequest;
-    maxPrice !== undefined ? (filterRequest += `&maxPrice=${maxPrice}`) : filterRequest;
-    seller !== undefined ? (filterRequest += `&seller=${seller}`) : filterRequest;
+  let filterRequest: string = '/offers?';
 
-    // Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate).
-    filterRequest += sortToString(sort);
+  let { page, pageSize } = pagination;
 
-    return request(app.getHttpServer()).get(filterRequest);
+  let {
+    collectionId,
+    searchText,
+    searchLocale,
+    minPrice,
+    maxPrice,
+    seller,
+    traitsCount,
+    traits,
+    isAuction,
+    bidderAddress } = offersFilter;
+
+  page !== undefined ? (filterRequest += `page=${page}`) : filterRequest;
+
+  pageSize !== undefined ? (filterRequest += `&pageSize=${pageSize}`) : filterRequest;
+
+  collectionId.length !== 0 ? collectionId.forEach((cid) => (filterRequest += `&collectionId=${cid}`)) : filterRequest;
+
+  traitsCount.length !== 0 ? traitsCount.forEach((tid) => (filterRequest += `&traitsCount=${tid}`)) : filterRequest;
+
+  searchLocale ? (filterRequest += `&searchLocale=${searchLocale}`) : filterRequest;
+
+  traits.length !== 0 ? traits.forEach(
+    (trait) => (filterRequest += `&traits=${trait.split(' ').join('%20')}`)
+  ) : filterRequest;
+
+  isAuction  ? (filterRequest += `&isAuction=${isAuction}`) : filterRequest;
+
+  bidderAddress ? (filterRequest += `&bidderAddress=${bidderAddress}`) : filterRequest;
+
+
+  if (searchText) {
+    searchText = searchText.split(' ').join('%20');
+    filterRequest += `&searchText=${searchText}`;
+  }
+  minPrice !== undefined ? (filterRequest += `&minPrice=${minPrice}`) : filterRequest;
+  maxPrice !== undefined ? (filterRequest += `&maxPrice=${maxPrice}`) : filterRequest;
+  seller !== undefined ? (filterRequest += `&seller=${seller}`) : filterRequest;
+
+  // Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate).
+  filterRequest += sortToString(sort);
+
+  return request(app.getHttpServer()).get(filterRequest);
 };

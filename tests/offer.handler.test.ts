@@ -18,12 +18,12 @@ describe('Offers service', () => {
 
   describe('GET /offers HttpStatus', () => {
     it('should return response status 200)', async () => {
-      let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [] }, { sort: [{ order: 1, column: '' }] });
+      let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [], traits: [] }, { sort: [{ order: 1, column: '' }] });
       await expect(response.statusCode).toBe(200);
     });
     it('should return response status 400 (Bad Request) set page=0', async () => {
       // выполняем поиск по фильтру в Offers
-      let response = await searchByFilterOffers(app, { page: 0, pageSize: 0 }, { collectionId: [], traitsCount: [] }, { sort: [{ order: 0, column: '' }] });
+      let response = await searchByFilterOffers(app, { page: 0, pageSize: 0 }, { collectionId: [], traitsCount: [], traits: [] }, { sort: [{ order: 0, column: '' }] });
       await expect(response.statusCode).toBe(400);
       await expect(response.text).toBe('{"statusCode":400,"message":"Parameter page must be a positive integer, value: 0","error":"Bad Request"}');
     });
@@ -43,18 +43,18 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: 'Not exists trait', collectionId: [], traitsCount: [] },
+        { searchText: 'Not exists trait', collectionId: [], traitsCount: [], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.statusCode).toBe(200);
       await expect(response.body.items.length).toBe(0);
     });
 
-    it('/offers (GET, list of six offers)', async () => {
-      let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [] }, { sort: [{ order: 1, column: '' }] });
+    it('/offers (GET, list of seven offers)', async () => {
+      let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [], traits: [] }, { sort: [{ order: 1, column: '' }] });
 
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(6);
+      await expect(response.body.items.length).toBe(7);
     });
 
     // All tokens has that trait
@@ -66,6 +66,7 @@ describe('Offers service', () => {
           searchText: 'Female',
           collectionId: [],
           traitsCount: [],
+          traits: []
         },
         { sort: [{ order: 1, column: '' }] },
       );
@@ -79,7 +80,7 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: 'Black Earrings', collectionId: [], traitsCount: [] },
+        { searchText: 'Black Earrings', collectionId: [], traitsCount: [], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.body.items.length).toBe(1);
@@ -88,9 +89,9 @@ describe('Offers service', () => {
 
     // Trait for several tokens
     it('/offers (GET, Trait count sort price)', async () => {
-      let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [4, 5] }, { sort: [{ order: 1, column: 'Price' }] });
-      await expect(response.body.items.length).toBe(5);
-      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([5221, 3221, 4017, 5425, 3220]);
+      let response = await searchByFilterOffers(app, {}, { collectionId: [], traitsCount: [4, 5], traits: [] }, { sort: [{ order: 1, column: 'Price' }] });
+      await expect(response.body.items.length).toBe(6);
+      await expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([5221, 3221, 4017, 5425, 3220, 5223]);
     });
 
     // Only one token has that trait
@@ -99,7 +100,7 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: 'Asian Eyes', collectionId: [], traitsCount: [1] },
+        { searchText: 'Asian Eyes', collectionId: [], traitsCount: [1], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.statusCode).toBe(200);
@@ -113,7 +114,7 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: 'asian eyes', collectionId: [], traitsCount: [1] },
+        { searchText: 'asian eyes', collectionId: [], traitsCount: [1], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.statusCode).toBe(200);
@@ -130,6 +131,7 @@ describe('Offers service', () => {
           searchText: '5817',
           collectionId: [],
           traitsCount: [],
+          traits: []
         },
         { sort: [{ order: 1, column: '' }] },
       );
@@ -143,11 +145,11 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { searchText: '3-day Stubble Red', collectionId: [], traitsCount: [] },
+        { searchText: '3-day Stubble Red', collectionId: [], traitsCount: [], traits: [] },
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(1);
+      await expect(response.body.items.length).toBe(2);
     });
 
     // Search by not exists tokenId
@@ -159,6 +161,7 @@ describe('Offers service', () => {
           searchText: '3221',
           collectionId: [],
           traitsCount: [],
+          traits: []
         },
         { sort: [{ order: 1, column: '' }] },
       );
@@ -171,7 +174,7 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { collectionId: [23], traitsCount: [] },
+        { collectionId: [23], traitsCount: [], traits: [] },
         {
           sort: [
             {
@@ -190,7 +193,7 @@ describe('Offers service', () => {
       let response = await searchByFilterOffers(
         app,
         {},
-        { collectionId: [], traitsCount: [] },
+        { collectionId: [], traitsCount: [], traits: [] },
         {
           sort: [
             {
@@ -201,17 +204,17 @@ describe('Offers service', () => {
         },
       );
       await expect(response.statusCode).toBe(200);
-      await expect(response.body.items.length).toBe(6);
+      await expect(response.body.items.length).toBe(7);
       await expect(response.body.items[0].price).toBe('27050000000000');
     });
 
     // Find collection 23
     it('/offers (GET, sort Price ASC)', async () => {
-      const mockCollection = ['23:5817', '25:4017', '28:5425', '33:3220', '2:3221', '133:5221'];
+      const mockCollection = ['132:5223','23:5817', '25:4017', '28:5425', '33:3220', '2:3221', '133:5221'];
       let response = await searchByFilterOffers(
         app,
         {},
-        { collectionId: [], traitsCount: [] },
+        { collectionId: [], traitsCount: [], traits: [] },
         {
           sort: [
             {
@@ -235,12 +238,58 @@ describe('Offers service', () => {
         {
           collectionId: [],
           traitsCount: [],
+          traits: [],
         },
         { sort: [{ order: 1, column: '' }] },
       );
       await expect(response.statusCode).toBe(200);
       await expect(response.body.items.length).toBe(2);
     });
+
+    it ('/offers?collectionId=2traits=Oops%20Right (GET, Find collection 2 and traits by field Oops Right  )?', async () => {
+      let response = await searchByFilterOffers(
+        app,
+        {},
+        {
+          collectionId: [2],
+          traitsCount: [],
+          traits: ['Oops%20Right'],
+        },
+        { sort: [{ order: 1, column: '' }] }
+      );
+      await expect(response.statusCode).toBe(200);
+      await expect(response.body.items.length).toBe(1);
+    });
+
+    it ('/offers?isAuction=true (GET, Find isAuction )?', async () => {
+      let response = await searchByFilterOffers(
+        app,
+        {},
+        {
+          collectionId: [],
+          traitsCount: [],
+          traits: [],
+          isAuction: 'true'
+        },
+        { sort: [{ order: 1, column: '' }] }
+      );
+      await expect(response.statusCode).toBe(200);
+      await expect(response.body.items.length).toBe(1);
+    });
+
+    /*it ('/offers?bidderAddress=555555555 (GET, Find bidderAddress )?', async () => {
+      let response = await searchByFilterOffers(
+        app,
+        {},
+        {
+
+        },
+        {}
+      );
+      await expect(response.statusCode).toBe(200);
+      await expect(response.body.items.length).toBe(0);
+    });*/
+
   });
   // Bad request
 });

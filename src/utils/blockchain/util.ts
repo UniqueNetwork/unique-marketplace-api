@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { ApiPromise, Keyring } from '@polkadot/api';
-import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { cryptoWaitReady, decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { IKeyringPair } from '@polkadot/types/types';
 
 import { signTransaction, transactionStatus } from './polka';
@@ -131,7 +131,17 @@ class UniqueExplorer {
 }
 
 
-const normalizeAccountId = input => {
+type AnyAccountFormat = string
+  | { address: string }
+  | { Ethereum: string }
+  | { ethereum: string }
+  | { Substrate: string }
+  | { substrate: string }
+  | Object;
+
+type NormalizedAccountFormat = { Ethereum: string } | { Substrate: string } | any;
+
+const normalizeAccountId = (input: AnyAccountFormat): NormalizedAccountFormat => {
   if (typeof input === 'string') {
     if (input.length === 48 || input.length === 47) {
       return {Substrate: input};
@@ -156,7 +166,7 @@ const normalizeAccountId = input => {
     };
   } else if ('Substrate' in input) {
     return input;
-  }else if ('substrate' in input) {
+  } else if ('substrate' in input) {
     return {
       Substrate: (input as any).substrate,
     };
@@ -189,8 +199,13 @@ const seedToAddress = async (seed: string): Promise<string> => {
   return keyring.addFromUri(seed).address;
 }
 
+const convertAddress = async (address: string, ss58Format?: number): Promise<string> => {
+  await cryptoWaitReady();
+
+  return encodeAddress(decodeAddress(address), ss58Format);
+};
 
 export {
   vec2str, str2vec, UniqueExplorer, normalizeAccountId, privateKey, extractCollectionIdFromAddress,
-  blockchainStaticFile, seedToAddress
+  blockchainStaticFile, seedToAddress, convertAddress,
 }
