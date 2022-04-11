@@ -44,7 +44,7 @@ async function bootstrap() {
   );
 
   app.useGlobalPipes(new ValidationPipe());
-  //app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api');
   app.enableShutdownHooks();
   app.useWebSocketAdapter(new PostgresIoAdapter(app));
 
