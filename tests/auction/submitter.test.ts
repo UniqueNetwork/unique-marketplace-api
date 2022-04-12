@@ -1,4 +1,4 @@
-import { Test } from '@nestjs/testing';
+import { Logger, ConsoleLogger } from '@nestjs/common';
 import { ExtrinsicSubmitter } from '../../src/auction/services/helpers/extrinsic-submitter';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
@@ -7,7 +7,7 @@ import { stringify } from '@polkadot/util';
 
 const senderSeed = '//Alice';
 const recipientSeed = 'cute quantum six actress hill rebel symptom guitar learn blush advice gadget';
-const wsEndpoint = 'ws://127.0.0.1:9944/';
+const wsEndpoint = 'ws://localhost:9944';
 const keyringType = 'sr25519';
 
 const isPassTest = true;
@@ -39,11 +39,17 @@ describe(ExtrinsicSubmitter.name, () => {
   let api: ApiPromise;
   let extrinsicSubmitter: ExtrinsicSubmitter;
 
-  let existentialDeposit: bigint;
+  let minAmount: bigint;
 
   beforeAll(async () => {
-    const testingModule = await Test.createTestingModule({ providers: [ExtrinsicSubmitter] }).compile();
-    extrinsicSubmitter = testingModule.get(ExtrinsicSubmitter);
+    Logger.overrideLogger(
+      new ConsoleLogger(
+        'jest',
+        { logLevels: ['log', 'error', 'warn', 'debug', 'verbose'] }
+      )
+    );
+
+    extrinsicSubmitter = new ExtrinsicSubmitter();
 
     const provider = new WsProvider(wsEndpoint);
     api = await ApiPromise.create({ provider });
@@ -52,7 +58,17 @@ describe(ExtrinsicSubmitter.name, () => {
     sender = new Keyring({ type: keyringType, ss58Format }).addFromUri(senderSeed);
     recipient = new Keyring({ type: keyringType, ss58Format }).addFromUri(recipientSeed);
 
-    existentialDeposit = api.consts.balances.existentialDeposit.toBigInt();
+    console.log(`sender - ${sender.address}`);
+    console.log(`recipient - ${recipient.address}`);
+
+    minAmount = api.consts.balances.existentialDeposit.toBigInt();
+    if (!minAmount) {
+      minAmount = await getBalance(api, sender) / 1000n;
+    }
+  });
+
+  afterAll(async () => {
+    await api.disconnect();
   });
 
   it(`Balance transfers by ${ExtrinsicSubmitter.name} pass and fails as expected`, async () => {
@@ -62,8 +78,8 @@ describe(ExtrinsicSubmitter.name, () => {
     }
 
     let recipientBalance = await getBalance(api, recipient);
-    if (recipientBalance > existentialDeposit) {
-      console.warn(`for test case recipient balance should be less then ED (${existentialDeposit}), returning`);
+    if (recipientBalance > minAmount) {
+      console.warn(`for test case recipient balance should be less then ED (${minAmount}), returning`);
 
       return;
     }
@@ -71,22 +87,22 @@ describe(ExtrinsicSubmitter.name, () => {
     const senderStartBalance = await getBalance(api, sender);
     const makeTransfer = buildTransferMaker(api, extrinsicSubmitter);
 
-    const toRecipientResult = makeTransfer(sender, recipient, existentialDeposit * 10n, true);
+    const toRecipientResult = makeTransfer(sender, recipient, minAmount * 10n, true);
     await expect(toRecipientResult).resolves.toMatchObject({ isSucceed: true, blockNumber: expect.any(BigInt) });
-    console.log(`sender => ${existentialDeposit * 10n} => recipient: ${stringify(await toRecipientResult)}`);
+    console.log(`sender => ${minAmount * 10n} => recipient: ${stringify(await toRecipientResult)}`);
 
     recipientBalance = await getBalance(api, recipient);
-    const failNotEnoughPromise = makeTransfer(recipient, sender, recipientBalance + 1n, false);
+    const failNotEnoughPromise = makeTransfer(recipient, sender, recipientBalance * 2n, false);
     await expect(failNotEnoughPromise).rejects.toThrowError();
     console.log(`sender => ${recipientBalance + 1n} => recipient: failed as expected`);
 
-    const failKeepAlivePromise = makeTransfer(recipient, sender, recipientBalance - existentialDeposit + 1n, true);
-    await expect(failKeepAlivePromise).rejects.toThrowError(/Failed at block/);
-    console.log(`sender => ${recipientBalance - existentialDeposit + 1n} => recipient: failed as expected`);
+    const failKeepAlivePromise = makeTransfer(recipient, sender, recipientBalance * 2n, true);
+    await expect(failKeepAlivePromise).rejects.toThrowError();
+    console.log(`sender => ${recipientBalance - minAmount + 1n} => recipient: failed as expected`);
 
-    const transferPartResult = makeTransfer(recipient, sender, existentialDeposit, true);
+    const transferPartResult = makeTransfer(recipient, sender, minAmount, true);
     await expect(transferPartResult).resolves.toMatchObject({ isSucceed: true, blockNumber: expect.any(BigInt) });
-    console.log(`recipient => ${existentialDeposit} => sender: ${stringify(await transferPartResult)}`);
+    console.log(`recipient => ${minAmount} => sender: ${stringify(await transferPartResult)}`);
 
     const txTransferAll = await api.tx.balances
       .transferAll(sender.address, false)
@@ -101,5 +117,5 @@ describe(ExtrinsicSubmitter.name, () => {
     const senderEndBalance = await getBalance(api, sender);
 
     console.log(`This test run costs you ${senderStartBalance - senderEndBalance}`);
-  }, 180_000);
+  }, 200_000);
 });

@@ -4,7 +4,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import * as fs from 'fs';
 
 @ApiTags('Prometheus Metrics')
-@Controller('api/system/metrics')
+@Controller('system/metrics')
 export class MetricsController {
   constructor(private metricsService: MetricsService) {}
 

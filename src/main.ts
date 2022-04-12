@@ -27,7 +27,7 @@ const initSwagger = (app: INestApplication, config, pkg) => {
 let app: INestApplication;
 
 async function bootstrap() {
-  app = await NestFactory.create(AppModule);
+  app = await NestFactory.create(AppModule,{logger: ['log', 'error', 'warn']});
   const config = app.get('CONFIG');
   const pkg = JSON.parse(
     await promises.readFile(join('.', 'package.json'), 'utf8'),
@@ -44,7 +44,7 @@ async function bootstrap() {
   );
 
   app.useGlobalPipes(new ValidationPipe());
-  //app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api');
   app.enableShutdownHooks();
   app.useWebSocketAdapter(new PostgresIoAdapter(app));
 
