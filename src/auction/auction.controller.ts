@@ -4,6 +4,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Headers,
   Inject,
   Post,
@@ -13,7 +14,7 @@ import {
   ValidationPipe
 } from '@nestjs/common';
 import { ApiHeader, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import { query, Request } from 'express';
 import { convertAddress } from '../utils/blockchain/util';
 import { AuctionCreationService } from './services/auction-creation.service';
 import { BidPlacingService } from './services/bid-placing.service';
@@ -22,7 +23,9 @@ import {
   CalculationRequestDto,
   CancelAuctionQueryDto,
   CreateAuctionRequestDto,
+  OwnerWithdrawBidQueryDto,
   PlaceBidRequestDto,
+  WithdrawBidChosenQueryDto,
   WithdrawBidQueryDto,
 } from './requests';
 import { OfferContractAskDto } from '../offers/dto/offer-dto';
@@ -140,6 +143,16 @@ export class AuctionController {
       tokenId: query.tokenId,
       bidderAddress,
     });
+  }
+
+  @Get('token_withdraw_bid')
+  async getTokenWithdrawBid(@Query() query: OwnerWithdrawBidQueryDto): Promise<any> {
+    return {};
+  }
+
+  @Delete('withdraw_choose_bid')
+  @WithSignature
+  async withdrawChooseBid(@Query() query: WithdrawBidChosenQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<void> {
   }
 
   // todo - make custom validator?
