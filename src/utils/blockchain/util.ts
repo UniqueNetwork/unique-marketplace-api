@@ -69,8 +69,28 @@ class UniqueExplorer {
     return collectionData;
   }
 
+  /**
+   * Get token data
+   * @description Returns token data with encrypted collection data and owner substrate and owner ethereum address
+   * @param collectionId
+   * @param tokenId
+   * @return Promise({constData: string, variableData: string, owner: { substrate?: string, ethereum?: string }})
+   */
+  async tokenData(collectionId: bigint, tokenId: bigint) {
+    return (await this.api.query.nonfungible.tokenData(collectionId, tokenId)).toJSON()
+  }
+
+  /**
+   * Get token owner
+   * @description Returns ethereum or substrate address
+   * @deprecated  use {getTokenOwnerData}
+   * @param collectionId
+   * @param tokenId
+   * @return Promise({ substrate?: string, ethereum?: string })
+   */
   async getTokenOwner(collectionId: bigint, tokenId: bigint) {
-    return (await this.api.rpc.unique.tokenOwner(collectionId, tokenId)).toJSON();
+    const owner = (await this.api.query.nonfungible.tokenData(collectionId, tokenId)).toJSON()
+    return owner.owner
   }
 
   async createCollection(options: CollectionParams, label='new collection') {

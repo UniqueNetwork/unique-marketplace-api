@@ -281,7 +281,6 @@ describe('Escrow test', () => {
     await escrow.destroy();
 
     const searchTraits = await service.getSearchIndexTraits(collectionId, tokenId, config.blockchain.testing.unique.network)
-    await expect(searchTraits.map(x => x.value === 'Teeth Smile' || x.value === 'Up Hair')).toEqual([true,true]);
     await expect(searchTraits.length).toBe(2);
 
   });

@@ -13,7 +13,6 @@ import { DateHelper } from '../../utils/date-helper';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { MarketConfig } from '../../config/market-config';
 import { SearchIndexService } from './search-index.service';
-import { encodeAddress } from '@polkadot/util-crypto';
 
 type CreateAuctionArgs = {
   collectionId: string;
@@ -49,17 +48,7 @@ export class AuctionCreationService {
   }
 
   async create(createAuctionRequest: CreateAuctionArgs): Promise<OfferContractAskDto> {
-    const {
-      collectionId,
-      tokenId,
-      ownerAddress,
-      days,
-      minutes,
-      startPrice,
-      tokenOwner,
-      priceStep,
-      tx,
-    } = createAuctionRequest;
+    const { collectionId, tokenId, ownerAddress, days, minutes, startPrice, tokenOwner, priceStep, tx } = createAuctionRequest;
 
     let stopAt = DateHelper.addDays(days);
     if (minutes) stopAt = DateHelper.addMinutes(minutes, stopAt);
