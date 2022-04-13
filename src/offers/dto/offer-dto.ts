@@ -31,10 +31,11 @@ class BidDto implements Bid {
   @Expose() bidderAddress: string;
 }
 
-class TokenDescriptionDto implements TokenDescription {
-  @Expose()  key?: string;
-  @Expose()  value: string;
-  @Expose()  type?: TypeAttributToken;
+class TokenDescriptionDto {
+  @Expose() collectionName: string;
+  @Expose() image: string;
+  @Expose() prefix: string;
+  @Expose() attributes: Array<TokenDescription>
 }
 
 export class OfferContractAskDto {
@@ -83,16 +84,45 @@ export class OfferContractAskDto {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
     }
-
+    /**
+     * tokenDescription: {
+  attributes: [{ key, type, value }]// как есть остальное,
+  collectionName: string,
+  image: string // url
+  prefix: string
+}
+     */
     if (Array.isArray(contractAsk?.search_index)) {
-      plain.tokenDescription =   contractAsk?.search_index.reduce((acc, item) => {
-        acc.push({
-          key: item.key,
-          value: (item.items.length === 1) ? item.items.pop() : item.items,
-          type: item.type
-        })
+      plain.tokenDescription = contractAsk?.search_index.reduce((acc, item) => {
+        if (item.type === TypeAttributToken.Prefix) {
+          acc.prefix = item.items.pop();
+        }
+
+        if (item.type === TypeAttributToken.String && item.key === 'collectionName') {
+          acc.collectionName = item.items.pop();
+        }
+
+        if (item.type === TypeAttributToken.ImageURL) {
+          const image = String(item.items.pop());
+          if ( image.search('ipfs-gateway.usetech.com') !== -1) {
+            acc.image = image;
+          } else {
+            acc.image = `http://ipfs-gateway.usetech.com/ipfs/${image}`;
+          }
+
+        }
+
+        if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && item.key !== 'collectionName' ) {
+          acc.attributes.push({
+            key: item.key,
+            value: (item.items.length === 1) ? item.items.pop() : item.items,
+            type: item.type
+          })
+        }
         return acc;
-      },[])
+      },{
+        attributes: []
+      })
     }
 
     return plainToInstance<OfferContractAskDto, Record<string, any>>(OfferContractAskDto, plain, { excludeExtraneousValues: true });
