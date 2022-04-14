@@ -157,7 +157,8 @@ export class BidWithdrawService {
     try {
       results = await this.connection.manager.query(
         `
-        select contract_ask_id, auction_id, amount, collection_id, token_id from (
+        select contract_ask_id as "contractAskId", auction_id as "auctionId",
+        amount, collection_id as "collectionId", token_id as "tokenId" from (
           select a.contract_ask_id, b.auction_id, b.amount, cont.collection_id, cont.token_id,
                           rank() over (partition by b.auction_id order by b.amount desc) rank
           from bids b

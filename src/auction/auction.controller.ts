@@ -154,6 +154,18 @@ export class AuctionController {
   @Delete('withdraw_choose_bid')
   @WithSignature
   async withdrawChooseBid(@Query() query: WithdrawBidChosenQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<void> {
+    AuctionController.checkRequestTimestamp(query.timestamp);
+    const [signerAddress = '', signature = ''] = authorization.split(':');
+    const queryString = req.originalUrl.split('?')[1];
+
+    await this.signatureVerifier.verify({
+      payload: queryString,
+      signature,
+      signerAddress,
+    });
+
+    const bidderAddress = await convertAddress(signerAddress, this.kusamaApi.registry.chainSS58);
+
     return null;
   }
 

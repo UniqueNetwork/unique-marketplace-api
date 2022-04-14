@@ -5,12 +5,13 @@ import { Type } from 'class-transformer';
 
 export type WithdrawBidQuery = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & { timestamp: number };
 
-export type ItemCollectionToken = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'>;
+export type ItemCollectionToken = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & {
+  auctionId: string
+};
 
 export type WithdrawBidChosen = {
   timestamp: number;
-  sumWithdraw: number;
-  withdrawBids: Array<ItemCollectionToken>
+  bids: Array<ItemCollectionToken>
 }
 
 export type OwnerWithdrawBids = {
@@ -45,17 +46,11 @@ export class WithdrawBidChosenQueryDto implements WithdrawBidChosen {
   @Min(1)
   timestamp: number;
 
-  @ApiProperty({ example: 500000000 })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  sumWithdraw: number;
-
   @ApiProperty({ example: [{collectionId: 1, tokenId: 2}] })
   @IsArray()
   @ValidateNested({each: true})
   @ArrayMinSize(1)
-  withdrawBids: Array<ItemCollectionToken>
+  bids: Array<ItemCollectionToken>
 }
 
 export class OwnerWithdrawBidQueryDto implements OwnerWithdrawBids {
