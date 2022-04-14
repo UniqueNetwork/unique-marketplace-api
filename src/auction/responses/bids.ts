@@ -10,6 +10,8 @@ export type BidsWitdrawByOwner = Pick<OfferContractAskDto, 'collectionId' | 'tok
   auctionId: string;
 
   amount: string;
+
+  contractAskId: string;
 }
 
 export class BidsWitdrawByOwnerDto implements BidsWitdrawByOwner {
@@ -28,4 +30,8 @@ export class BidsWitdrawByOwnerDto implements BidsWitdrawByOwner {
   @ApiProperty({ description: 'Amount' })
   @IsString()
   amount: string;
+
+  @ApiProperty({ description: 'Contract Id' })
+  @IsString()
+  contractAskId: string;
 }
