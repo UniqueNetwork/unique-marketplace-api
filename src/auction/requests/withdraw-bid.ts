@@ -5,13 +5,13 @@ import { Type } from 'class-transformer';
 
 export type WithdrawBidQuery = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & { timestamp: number };
 
-export type ItemCollectionToken = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & {
+export type ItemAuctionId = {
   auctionId: string
 };
 
 export type WithdrawBidChosen = {
   timestamp: number;
-  bids: Array<ItemCollectionToken>
+  auctionId: Array<ItemAuctionId>
 }
 
 export type OwnerWithdrawBids = {
@@ -39,18 +39,34 @@ export class WithdrawBidQueryDto implements WithdrawBidQuery {
   timestamp: number;
 }
 
-export class WithdrawBidChosenQueryDto implements WithdrawBidChosen {
+export class ItemCollectionTokenDto implements ItemAuctionId {
+  @IsString()
+  @Type(() => String)
+  auctionId: string;
+}
+
+export class WithdrawBidChosenQueryDto {
   @ApiProperty({ example: 1645449222954 })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   timestamp: number;
 
-  @ApiProperty({ example: [{collectionId: 1, tokenId: 2}] })
+  @ApiProperty({
+    name: 'auctionId',
+    items: {
+      type: 'string',
+      default: ''
+    },
+    minItems: 1,
+    required: true,
+    type: 'array',
+    isArray: true
+  })
   @IsArray()
-  @ValidateNested({each: true})
+  //@ValidateNested({each: true})
   @ArrayMinSize(1)
-  bids: Array<ItemCollectionToken>
+  auctionId: Array<string>
 }
 
 export class OwnerWithdrawBidQueryDto implements OwnerWithdrawBids {

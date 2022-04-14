@@ -21,6 +21,11 @@ type BidWithdrawArgs = {
   bidderAddress: string;
 };
 
+type BidsWirthdrawArgs = {
+  bidderAddress: string;
+  auctionIds: Array<string>
+}
+
 @Injectable()
 export class BidWithdrawService {
   private readonly logger = new Logger(BidWithdrawService.name);
@@ -198,5 +203,25 @@ export class BidWithdrawService {
       })
     }
     return results;
+  }
+
+  async withdrawBidsByBidder(args: BidsWirthdrawArgs): Promise<void> {
+    const query = this.connection.createQueryBuilder(ContractAsk, 'contract_ask')
+      .select(['collection_id', 'token_id'])
+      .distinct()
+      .innerJoin(
+        (subQuery => {
+          return subQuery.from(AuctionEntity, 'auc')
+          .where('auc.id in (:...auctionIds)', {auctionIds: args.auctionIds})
+        })
+        , 'auc', 'auc.contract_ask_id = contract_ask.id');
+
+    for (const item of await query.execute()) {
+      await this.withdrawBidByBidder({
+        bidderAddress: args.bidderAddress,
+        collectionId: item.collection_id,
+        tokenId: item.token_id
+      })
+    }
   }
 }

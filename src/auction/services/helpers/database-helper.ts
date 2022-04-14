@@ -5,6 +5,7 @@ import { ASK_STATUS } from '../../../escrow/constants';
 import { AuctionStatus, BidStatus } from '../../types';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
 import { encodeAddress } from '@polkadot/util-crypto';
+import { BidsWitdrawByOwner } from 'src/auction/responses';
 
 type AggregatedBid = { bidderAddress: string; totalAmount: bigint };
 type AggregatedBidDb = { bidderAddress: string; totalAmount: string };
@@ -131,7 +132,7 @@ export class DatabaseHelper {
       .groupBy('bidder_address')
       .orderBy('1', 'DESC');
 
-    this.logger.debug(JSON.stringify(query.getQueryAndParameters()));
+    //this.logger.debug(JSON.stringify(query.getQueryAndParameters()));
 
     return query;
   }
