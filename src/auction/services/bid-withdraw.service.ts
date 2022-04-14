@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
 import { AuctionEntity, BidEntity } from '../entities';
 import { ContractAsk } from '../../entity';
@@ -11,6 +11,9 @@ import { DatabaseHelper } from './helpers/database-helper';
 import { v4 as uuid } from 'uuid';
 import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
+import { BidsWitdrawByOwner } from '../responses';
+import { OwnerWithdrawBids } from '../requests/withdraw-bid';
+import { InjectSentry, SentryService } from 'src/utils/sentry';
 
 type BidWithdrawArgs = {
   collectionId: number;
@@ -33,6 +36,7 @@ export class BidWithdrawService {
     @Inject('CONFIG') private config: MarketConfig,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
+    @InjectSentry() private readonly sentryService: SentryService,
   ) {
     this.bidRepository = connection.manager.getRepository(BidEntity);
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
@@ -146,5 +150,52 @@ export class BidWithdrawService {
 
       return withdrawingBid;
     });
+  }
+
+  async getBidsForWithdraw(owner: string): Promise<Array<BidsWitdrawByOwner>> {
+    let results = [];
+    try {
+      results = await this.connection.manager.query(
+        `
+        select contract_ask_id, auction_id, amount, collection_id, token_id from (
+          select a.contract_ask_id, b.auction_id, b.amount, cont.collection_id, cont.token_id,
+                          rank() over (partition by b.auction_id order by b.amount desc) rank
+          from bids b
+          inner join (
+            select auction_id from (
+              select b.auction_id, sum(amount) over (partition by b.auction_id) total
+          from bids b inner join ( select auction_id
+                                  from (
+                                        select b.auction_id, bidder_address, rank() over (partition by b.auction_id order by amount desc) rank
+                                        from bids b
+                                        left join ( select auction_id from bids
+                                                      where bidder_address = $1
+                                                      group by auction_id
+                                                  ) a on a.auction_id = b.auction_id
+                                          where a.auction_id is not null
+                                       ) list
+                                       where rank = 1 and bidder_address <> $1
+                  ) n on n.auction_id = b.auction_id
+          where b.bidder_address = $1
+            and b.status = 'finished' ) as _my_bids where total <> 0
+              ) my_bids on my_bids.auction_id = b.auction_id
+          left join auctions a on b.auction_id = a.id
+          left join contract_ask cont on cont.id = a.contract_ask_id
+          where b.bidder_address = $1) as withdraw
+          where rank = 1;
+        `, [owner]
+      )
+    } catch (e) {
+      this.logger.error(e);
+      this.sentryService.instance().captureException(new BadRequestException(e), {
+        tags: { section: 'get_bids_withdraw' }
+      });
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Bad query',
+        error: e.message
+      })
+    }
+    return results;
   }
 }
