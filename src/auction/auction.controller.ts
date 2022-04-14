@@ -34,6 +34,7 @@ import { SignatureVerifier } from './services/helpers/signature-verifier';
 import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidWithdrawService } from './services/bid-withdraw.service';
 import { TraceInterceptor } from "../utils/sentry";
+import { BidsWitdrawByOwnerDto } from './responses';
 
 const WithSignature = ApiHeader({
   name: 'Authorization',
@@ -145,14 +146,15 @@ export class AuctionController {
     });
   }
 
-  @Get('token_withdraw_bid')
-  async getTokenWithdrawBid(@Query() query: OwnerWithdrawBidQueryDto): Promise<any> {
-    return {};
+  @Get('withdraw_bids')
+  async getTokenWithdrawBid(@Query() query: OwnerWithdrawBidQueryDto): Promise<Array<BidsWitdrawByOwnerDto>> {
+    return this.bidWithdrawService.getBidsForWithdraw(query.owner);
   }
 
   @Delete('withdraw_choose_bid')
   @WithSignature
   async withdrawChooseBid(@Query() query: WithdrawBidChosenQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<void> {
+    return null;
   }
 
   // todo - make custom validator?
