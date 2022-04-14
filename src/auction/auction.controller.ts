@@ -166,7 +166,10 @@ export class AuctionController {
 
     const bidderAddress = await convertAddress(signerAddress, this.kusamaApi.registry.chainSS58);
 
-    return null;
+    await this.bidWithdrawService.withdrawBidsByBidder({
+      bidderAddress,
+      auctionIds: query.auctionId
+    });
   }
 
   // todo - make custom validator?
