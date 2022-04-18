@@ -12,8 +12,7 @@ import { v4 as uuid } from 'uuid';
 import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { BidsWitdrawByOwner } from '../responses';
-import { OwnerWithdrawBids } from '../requests/withdraw-bid';
-import { InjectSentry, SentryService } from 'src/utils/sentry';
+import { InjectSentry, SentryService } from '../../utils/sentry';
 
 type BidWithdrawArgs = {
   collectionId: number;
