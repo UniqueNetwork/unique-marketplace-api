@@ -14,6 +14,7 @@ import { encodeAddress } from '@polkadot/util-crypto';
 import { BidsWitdrawByOwner } from '../responses';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 
+
 type BidWithdrawArgs = {
   collectionId: number;
   tokenId: number;
