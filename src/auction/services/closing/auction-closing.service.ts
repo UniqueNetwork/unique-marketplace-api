@@ -14,6 +14,7 @@ import { MarketConfig } from '../../../config/market-config';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { OfferContractAskDto } from '../../../offers/dto/offer-dto';
 import { AuctionCredentials } from "../../providers";
+import { InjectSentry,  SentryService } from '../../../utils/sentry';
 
 @Injectable()
 export class AuctionClosingService {
@@ -34,6 +35,7 @@ export class AuctionClosingService {
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @Inject('CONFIG') private config: MarketConfig,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
+    @InjectSentry() private readonly sentryService: SentryService
   ) {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
     this.contractAskRepository = connection.manager.getRepository(ContractAsk);
@@ -67,11 +69,19 @@ export class AuctionClosingService {
 
     const auctions = await databaseHelper.findAuctionsReadyForWithdraw();
 
-    const withdrawsPromises = auctions.map(async (auction) => {
+    /*const withdrawsPromises = auctions.map(async (auction) => {
       await this.processAuctionWithdraws(auction);
-    });
+    });*/
 
-    await Promise.all(withdrawsPromises);
+    try {
+      for (const auction of auctions) {
+        await this.processAuctionWithdraws(auction);
+      }
+    } catch (error) {
+      this.logger.error(error);
+      this.sentryService.instance().captureException(error);
+    }
+    //await Promise.all(withdrawsPromises);
   }
 
   async processAuctionWithdraws(auction: AuctionEntity): Promise<void> {
@@ -86,8 +96,25 @@ export class AuctionClosingService {
     const contractAsk = await this.contractAskRepository.findOne(auction.contractAskId);
     const { address_from } = contractAsk;
 
+    for (const bidder of othersBidders) {
+      try {
+        const { bidderAddress, totalAmount } = bidder;
+        const message = AuctionClosingService.getIdentityMessage(contractAsk, bidderAddress, totalAmount);
+
+        if (totalAmount > 0) {
+          this.logger.log(message + ` is not a winner, going to withdraw`);
+
+          await this.bidWithdrawService.withdrawByMarket(auction, bidderAddress, totalAmount);
+        }
+        this.logger.log(message + ' nothing to withdraw');
+      } catch (error) {
+        this.logger.error(error);
+        this.sentryService.instance().captureException(error);
+      }
+    }
+
     // force withdraw bids for all except winner
-    await Promise.all(
+    /* await Promise.all(
       othersBidders.map(({ bidderAddress, totalAmount }) => {
         const message = AuctionClosingService.getIdentityMessage(contractAsk, bidderAddress, totalAmount);
 
@@ -99,7 +126,7 @@ export class AuctionClosingService {
 
         this.logger.log(message + ' nothing to withdraw');
       }),
-    );
+    ); */
 
     if (winner) {
       const { bidderAddress: winnerAddress, totalAmount: finalPrice } = winner;
