@@ -4,6 +4,7 @@ import { Hash } from '@polkadot/types/interfaces';
 import { IExtrinsic } from '@polkadot/types/types';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { stringify } from '@polkadot/util';
+import '@polkadot/api-augment/polkadot'
 
 export type SubmitResult = {
   isSucceed: boolean;
@@ -77,17 +78,15 @@ export class ExtrinsicSubmitter {
   }
 
   private async checkIsSucceed(api: ApiPromise, extrinsicHash: Hash, blockHash: Hash): Promise<SubmitResult> {
-    const signedBlock = await api.rpc.chain.getBlock(blockHash);
-    const eventsAtBlock = await api.query.system.events.at(blockHash);
-    //const [signedBlock, eventsAt1Block] = await Promise.all([api.rpc.chain.getBlock(blockHash), api.query.system.events.at(blockHash)]);
+    const [signedBlock, eventsAtBlock] = await Promise.all([api.rpc.chain.getBlock(blockHash), api.query.system.events.at(blockHash)]);
 
     const finalizedExtrinsicIndex = signedBlock.block.extrinsics.findIndex((ex) => ex.hash.eq(extrinsicHash));
 
-     // const finalizedExtrinsicEvents = eventsAtBlock.filter((event) => {
-     //    return event.phase.isApplyExtrinsic && event.phase.asApplyExtrinsic.eq(finalizedExtrinsicIndex);
-     // });
+    const finalizedExtrinsicEvents = eventsAtBlock.filter((event) => {
+      return event.phase.isApplyExtrinsic && event.phase.asApplyExtrinsic.eq(finalizedExtrinsicIndex);
+    });
 
-    const isSucceed = true //finalizedExtrinsicEvents.some((event) => api.events.system.ExtrinsicSuccess.is(event.event));
+    const isSucceed = finalizedExtrinsicEvents.some((event) => api.events.system.ExtrinsicSuccess.is(event.event));
 
     return {
       isSucceed,

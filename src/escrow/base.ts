@@ -88,11 +88,6 @@ export class Escrow {
     const signedBlock = await this.api.rpc.chain.getBlock(blockHash);
     const allRecords = await this.api.query.system.events.at(blockHash);
 
-    const [signedBlock2, eventsAtBlock] = await Promise.all([this.api.rpc.chain.getBlock(blockHash), this.api.query.system.events.at(blockHash)]);
-   // console.log(eventsAtBlock);
-
-
-
     let timestamp = null;
 
     for (let [extrinsicIndex, ex] of signedBlock.block.extrinsics.entries()) {
@@ -101,12 +96,6 @@ export class Escrow {
         timestamp = ex.method.toJSON().args.now;
         continue;
       }
-      const finalizedExtrinsicEvents = eventsAtBlock.filter((event) => {
-        return event.phase.isApplyExtrinsic && event.phase.asApplyExtrinsic.eq(extrinsicIndex);
-      });
-
-      const isSucceed = finalizedExtrinsicEvents.some((event) => this.api.events.system.ExtrinsicSuccess.is(event.event));
-      console.log(finalizedExtrinsicEvents,isSucceed);
 
       let extrinsicEvents = allRecords
         .filter(({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(extrinsicIndex))
