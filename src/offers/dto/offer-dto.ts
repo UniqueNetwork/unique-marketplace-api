@@ -35,6 +35,8 @@ class TokenDescriptionDto {
   @Expose() collectionName: string;
   @Expose() image: string;
   @Expose() prefix: string;
+  @Expose() description: string;
+  @Expose() collectionCover: string;
   @Expose() attributes: Array<TokenDescription>
 }
 
@@ -97,22 +99,29 @@ export class OfferContractAskDto {
         if (item.type === TypeAttributToken.Prefix) {
           acc.prefix = item.items.pop();
         }
-
-        if (item.type === TypeAttributToken.String && item.key === 'collectionName') {
+        //TODO: Переделать сборку токена
+        if (item.key === 'collectionName') {
           acc.collectionName = item.items.pop();
+        }
+
+        if (item.key === 'description') {
+          acc.description = item.items.pop();
         }
 
         if (item.type === TypeAttributToken.ImageURL) {
           const image = String(item.items.pop());
           if ( image.search('ipfs-gateway.usetech.com') !== -1) {
-            acc.image = image;
+            acc[`${item.key}`] = image;
           } else {
-            acc.image = `http://ipfs-gateway.usetech.com/ipfs/${image}`;
+            if (image) {
+              acc[`${item.key}`] = `http://ipfs-gateway.usetech.com/ipfs/${image}`;
+            } else {
+              acc[`${item.key}`] = null;
+            }
           }
-
         }
 
-        if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && item.key !== 'collectionName' ) {
+        if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key) ) {
           acc.attributes.push({
             key: item.key,
             value: (item.items.length === 1) ? item.items.pop() : item.items,

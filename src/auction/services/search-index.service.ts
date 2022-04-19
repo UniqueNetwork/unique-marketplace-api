@@ -1,4 +1,3 @@
-
 import { decodeData, decodeSchema } from './../../utils/blockchain/token';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
@@ -56,6 +55,8 @@ export class SearchIndexService {
       constOnChainSchema: schema,
       offchainSchema: collection.toHuman()['offchainSchema'],
       name: vec2str(collection.toHuman()['name']),
+      description: vec2str(collection.toHuman()['description']),
+      collectionCover: collection.toHuman()['variableOnChainSchema']
     }
   }
 
@@ -73,6 +74,13 @@ export class SearchIndexService {
     return acc;
   }
 
+  private getCollectionCover(collection: TypeConstSchema): string {
+    if (collection?.collectionCover) {
+      return JSON.parse(collection?.collectionCover)?.collectionCover
+    }
+    return '';
+  }
+
   async getTokenInfoItems({ collectionId, tokenId }: CollectionToken): Promise<TokenInfo[]> {
     const keywords = [];
     const collection = await this.schema(collectionId);
@@ -82,9 +90,22 @@ export class SearchIndexService {
 
     keywords.push({
       locale: null,
+      items: [this.getCollectionCover(collection)],
+      key: 'collectionCover',
+      type: TypeAttributToken.ImageURL
+    });
+
+    keywords.push({
+      locale: null,
       items: [collection.tokenPrefix],
       key: 'prefix',
       type: TypeAttributToken.Prefix
+    });
+    keywords.push({
+      locale: null,
+      items: [collection.description],
+      key: 'description',
+      type: TypeAttributToken.String
     });
     keywords.push({
       locale: null,
@@ -129,7 +150,7 @@ export class SearchIndexService {
       if (this.BLOCKED_SCHEMA_KEYS.includes(key)) {
         yield {
           locale: null,
-          key: 'Image',
+          key: 'image',
           items: [JSON.parse(dataObj[key]).ipfs],
           type: TypeAttributToken.ImageURL
         }
