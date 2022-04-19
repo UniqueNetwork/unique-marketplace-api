@@ -28,6 +28,8 @@ export type TypeConstSchema = {
   },
   name: string,
   offchainSchema: string;
+  description: string;
+  collectionCover: string;
 }
 
 export interface TokenDescription {

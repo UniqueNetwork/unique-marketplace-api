@@ -162,33 +162,22 @@ export class BidWithdrawService {
     try {
       results = await this.connection.manager.query(
         `
-        select contract_ask_id as "contractAskId", auction_id as "auctionId",
-        amount, collection_id as "collectionId", token_id as "tokenId" from (
-          select a.contract_ask_id, b.auction_id, b.amount, cont.collection_id, cont.token_id,
-                          rank() over (partition by b.auction_id order by b.amount desc) rank
-          from bids b
-          inner join (
-            select auction_id from (
-              select b.auction_id, sum(amount) over (partition by b.auction_id) total
-          from bids b inner join ( select auction_id
-                                  from (
-                                        select b.auction_id, bidder_address, rank() over (partition by b.auction_id order by amount desc) rank
-                                        from bids b
-                                        left join ( select auction_id from bids
-                                                      where bidder_address = $1
-                                                      group by auction_id
-                                                  ) a on a.auction_id = b.auction_id
-                                          where a.auction_id is not null
-                                       ) list
-                                       where rank = 1 and bidder_address <> $1
-                  ) n on n.auction_id = b.auction_id
-          where b.bidder_address = $1
-            and b.status = 'finished' ) as _my_bids where total <> 0
-              ) my_bids on my_bids.auction_id = b.auction_id
-          left join auctions a on b.auction_id = a.id
-          left join contract_ask cont on cont.id = a.contract_ask_id
-          where b.bidder_address = $1) as withdraw
-          where rank = 1;
+        with my_list_auction as (
+          select auction_id from bids where bidder_address = $1
+          group by auction_id
+      ),
+      sum_amount_auctions as (
+          select distinct b.auction_id, bidder_address, sum(amount) over (partition by bidder_address, b.auction_id) sum_amount
+          from bids b inner join  my_list_auction my on my.auction_id = b.auction_id
+      ),
+      my_withdraws as (
+          select auction_id, bidder_address, sum_amount amount, rank() over (partition by auction_id order by sum_amount desc ) rank
+          from sum_amount_auctions
+      )
+      select distinct  auction_id "auctionId", amount, contract_ask_id "contractAskId", collection_id "collectionId", token_id "tokenId" from my_withdraws
+      inner join auctions auc on auc.id = auction_id
+      inner join contract_ask ca on ca.id = auc.contract_ask_id
+      where rank <> 1 and amount > 0 and bidder_address = $1
         `, [owner]
       )
     } catch (e) {
