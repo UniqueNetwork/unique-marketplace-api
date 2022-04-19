@@ -4,6 +4,7 @@ import { Hash } from '@polkadot/types/interfaces';
 import { IExtrinsic } from '@polkadot/types/types';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { stringify } from '@polkadot/util';
+import '@polkadot/api-augment/polkadot'
 
 export type SubmitResult = {
   isSucceed: boolean;
