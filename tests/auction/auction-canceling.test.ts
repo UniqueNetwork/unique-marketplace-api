@@ -3,7 +3,7 @@ import { AuctionTestEntities, getAuctionTestEntities } from './base';
 import { Connection, Repository } from 'typeorm';
 import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk } from '../../src/entity';
 import { ASK_STATUS } from '../../src/escrow/constants';
-
+import '@polkadot/api-augment/polkadot';
 import { v4 as uuid } from 'uuid';
 import { AuctionStatus } from '../../src/auction/types';
 import { AuctionClosingService } from '../../src/auction/services/closing/auction-closing.service';

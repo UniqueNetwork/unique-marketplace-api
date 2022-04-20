@@ -26,6 +26,7 @@ describe('Auction validation', () => {
     const transferFromSubstrateTx = await uniqueApi.tx.unique.transfer({ Substrate: market.uniqueAddress }, '1', '1', 1).signAsync(seller.keyring);
 
     const transferFromSubstrate = await request(testEntities.app.getHttpServer()).post('/auction/create_auction').send({
+      tokenOwner: seller.keyring.address,
       startPrice: '1000',
       priceStep: '10',
       days: 7,
@@ -37,6 +38,7 @@ describe('Auction validation', () => {
       .signAsync(seller.keyring);
 
     const transferFromEthereum = await request(testEntities.app.getHttpServer()).post('/auction/create_auction').send({
+      tokenOwner: seller.keyring.address,
       startPrice: '1000',
       priceStep: '10',
       days: 7,

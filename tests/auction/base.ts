@@ -150,10 +150,10 @@ export const createAuction = async (
   const marketAddress = util.normalizeAccountId({ Substrate: market.uniqueAddress });
 
   const signedExtrinsic = await uniqueApi.tx.unique.transfer(marketAddress, collectionId, tokenId, 1).signAsync(seller.keyring);
-
   return request(app.getHttpServer())
     .post('/auction/create_auction')
     .send({
+      tokenOwner: seller.keyring.address,
       startPrice: '1000',
       priceStep: '10',
       days: 7,

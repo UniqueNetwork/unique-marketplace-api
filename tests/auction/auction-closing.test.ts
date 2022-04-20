@@ -12,6 +12,7 @@ import { TxDecoder } from '../../src/auction/services/helpers/tx-decoder';
 import * as request from 'supertest';
 import { DateHelper } from '../../src/utils/date-helper';
 import { BroadcastService } from "../../src/broadcast/services/broadcast.service";
+import { encodeAddress } from '@polkadot/util-crypto';
 
 describe('Auction closing', () => {
   const collectionId = '223';
@@ -173,7 +174,7 @@ describe('Auction closing', () => {
     expect(testEntities.extrinsicSubmitter.submit).toHaveBeenCalledTimes(3);
     const lastBid = await connection.manager.findOne(BidEntity, { order: { createdAt: 'DESC' } });
     expect(lastBid).toMatchObject({
-      bidderAddress: anotherBuyer.kusamaAddress,
+      bidderAddress: encodeAddress(anotherBuyer.kusamaAddress),
       amount: '-110',
     } as Partial<BidEntity>);
 

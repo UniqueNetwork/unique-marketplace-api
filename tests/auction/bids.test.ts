@@ -98,7 +98,7 @@ describe('Bid placing method', () => {
     let offer = await fetchOffer(testEntities, collectionId, tokenId);
 
     let calculationResponse = await calculate(testEntities, collectionId, tokenId, buyer.kusamaAddress);
-    expect(calculationResponse.body).toMatchObject({ minBidderAmount: '20' });
+    expect(calculationResponse.body).toMatchObject({ minBidderAmount: '120' });
 
     let amount: bigint;
 
