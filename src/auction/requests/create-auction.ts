@@ -20,8 +20,7 @@ export type CreateAuctionRequest = {
   priceStep: bigint;
   tx: string,
   days: number,
-  minutes?: number,
-  tokenOwner: string,
+  minutes?: number
 };
 
 
@@ -41,11 +40,6 @@ export class CreateAuctionRequestDto implements CreateAuctionRequest {
   @BigIntGte(1n)
   startPrice: bigint;
 
-  @ApiProperty({example: '5DcJgDMWhg6NP3QEvikFnuyjdtXc42YznBiJJWqb93SAmzqq'})
-  @Type(() => String)
-  @IsString()
-  @IsNotEmpty()
-  tokenOwner: string;
 
   @ApiProperty({ example: '10' })
   @ToBigInt
