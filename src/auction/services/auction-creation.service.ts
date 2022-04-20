@@ -18,7 +18,6 @@ type CreateAuctionArgs = {
   collectionId: string;
   tokenId: string;
   ownerAddress: string;
-  tokenOwner: string;
   minutes: number;
   days: number;
   startPrice: bigint;
@@ -48,14 +47,14 @@ export class AuctionCreationService {
   }
 
   async create(createAuctionRequest: CreateAuctionArgs): Promise<OfferContractAskDto> {
-    const { collectionId, tokenId, ownerAddress, days, minutes, startPrice, tokenOwner, priceStep, tx } = createAuctionRequest;
+    const { collectionId, tokenId, ownerAddress, days, minutes, startPrice, priceStep, tx } = createAuctionRequest;
 
     let stopAt = DateHelper.addDays(days);
     if (minutes) stopAt = DateHelper.addMinutes(minutes, stopAt);
 
-    if (encodeAddress(ownerAddress) !== encodeAddress(tokenOwner)) {
+    /*if (encodeAddress(ownerAddress) !== encodeAddress(tokenOwner)) {
       throw new Error(`This token is had other owner. You don't have the right to use the token. Unfortunately`);
-    }
+    }*/
 
     const block = await this.sendTransferExtrinsic(tx);
     await this.blockchainBlockRepository.save(block);
