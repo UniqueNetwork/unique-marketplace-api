@@ -63,9 +63,7 @@ export class WithdrawBidChosenQueryDto {
     type: 'array',
     isArray: true
   })
-  @IsArray()
   //@ValidateNested({each: true})
-  @ArrayMinSize(1)
   auctionId: Array<string>
 }
 

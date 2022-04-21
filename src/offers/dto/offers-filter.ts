@@ -6,7 +6,10 @@ import { Type } from 'class-transformer';
 import { IsOptional } from 'class-validator';
 
 export class OffersFilter {
-    @ApiProperty({ name: 'collectionId', items: { type: 'integer', default: '' }, required: false, type: 'array', isArray: true })
+    @ApiProperty({ name: 'collectionId',
+    items: { type: 'integer', default: '' },
+    required: false, type: 'array', isArray: true
+  })
     public collectionId?: number[];
 
     @ApiProperty({ required: false, type: String })

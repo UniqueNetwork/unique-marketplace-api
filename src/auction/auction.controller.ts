@@ -168,7 +168,7 @@ export class AuctionController {
 
     await this.bidWithdrawService.withdrawBidsByBidder({
       bidderAddress,
-      auctionIds: query.auctionId
+      auctionIds: Array.isArray(query.auctionId) ? query.auctionId : [query.auctionId]
     });
   }
 
