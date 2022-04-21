@@ -5,12 +5,12 @@ import { queryArray } from '../utils/decorators/query-array.decorator';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResult } from '../utils/pagination/pagination-result';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
-import { QueryParamArray } from '../utils/query-param-array';
 import { MarketTradeDto, ResponseMarketTradeDto } from './dto/trade-dto';
 import { TradesService } from './trades.service';
 import * as fs from 'fs';
-import { parseCollectionIdRequest } from '../utils/parsers';
 import { TraceInterceptor } from '../utils/sentry';
+import { TradesFilter } from './dto';
+import { ParseTradesFilterPipe } from './pipes';
 
 @ApiTags('Trades')
 @Controller('trades')
@@ -28,9 +28,9 @@ export class TradesController {
     get(
         @Query() pagination: PaginationRequest,
         @Query() sort: TradeSortingRequest,
-        @Query('collectionId') collectionId?: QueryParamArray,
+        @Query(ParseTradesFilterPipe) tradesFilter: TradesFilter,
     ): Promise<PaginationResult<MarketTradeDto>> {
-        return this.tradesService.get(parseCollectionIdRequest(collectionId), undefined, pagination, sort);
+        return this.tradesService.get(tradesFilter, undefined, pagination, sort);
     }
 
     @Get('/:accountId')
@@ -44,8 +44,8 @@ export class TradesController {
         @Param('accountId') accountId: string,
         @Query() sort: TradeSortingRequest,
         @Query() pagination: PaginationRequest,
-        @Query('collectionId') collectionId?: QueryParamArray,
+        @Query(ParseTradesFilterPipe) tradesFilter: TradesFilter,
     ): Promise<PaginationResult<MarketTradeDto>> {
-        return this.tradesService.get(parseCollectionIdRequest(collectionId), accountId, pagination, sort);
+        return this.tradesService.get(tradesFilter, accountId, pagination, sort);
     }
 }

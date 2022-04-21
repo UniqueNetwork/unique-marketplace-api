@@ -1,3 +1,4 @@
+import { TradesFilter } from './dto/trade-filter';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 
@@ -9,7 +10,7 @@ import { SortingOrder } from '../utils/sorting/sorting-order';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
 import { paginate } from '../utils/pagination/paginate';
 import { MarketTradeDto } from './dto/trade-dto';
-import { MarketTrade } from '../entity';
+import { MarketTrade, SearchIndex } from '../entity';
 import { IMarketTrade } from './interfaces/trade.interface';
 import { InjectSentry, SentryService } from '../utils/sentry';
 
@@ -37,7 +38,7 @@ export class TradesService {
    * @return ({Promise<PaginationResult<MarketTradeDto>>})
    */
   async get(
-    collectionIds: number[] | undefined,
+    tradesFilter: TradesFilter,
     accountId: string | undefined,
     paginationRequest: PaginationRequest,
     sort: TradeSortingRequest,
@@ -46,7 +47,10 @@ export class TradesService {
     let paginationResult;
     try {
       tradesQuery = this.connection.manager.createQueryBuilder(MarketTrade, 'trade');
-      tradesQuery = this.filterByCollectionIds(tradesQuery, collectionIds);
+      this.addRelations(tradesQuery);
+
+      tradesQuery = this.filterByCollectionIds(tradesQuery, tradesFilter.collectionId);
+      tradesQuery = this.filterByTokenIds(tradesQuery, tradesFilter.tokenId);
       tradesQuery = this.filterByAccountId(tradesQuery, accountId);
       tradesQuery = this.applySort(tradesQuery, sort);
       paginationResult = await paginate(tradesQuery, paginationRequest);
@@ -179,5 +183,50 @@ export class TradesService {
   }
   public get isConnected(): boolean {
     return true;
+  }
+
+  private filterByTokenIds(
+    query: SelectQueryBuilder<IMarketTrade>,
+    tokenIds: number[] | undefined,
+  ): SelectQueryBuilder<IMarketTrade> {
+    if (tokenIds === null || tokenIds.length <= 0) {
+      return query;
+    }
+    return query.andWhere('trade.token_id in (:...tokenIds)', { tokenIds });
+  }
+
+  private addRelations(
+    queryBuilder: SelectQueryBuilder<IMarketTrade>
+  ): void {
+    queryBuilder
+    .leftJoinAndMapMany(
+      'trade.search_index',
+      SearchIndex,
+      'search_index',
+      'trade.network = search_index.network and trade.collection_id = search_index.collection_id and trades.token_id = search_index.token_id'
+    )
+    .leftJoinAndMapMany(
+      'trade.search_filter',
+      (subQuery => {
+          return subQuery.select([
+            'collection_id',
+            'network',
+            'token_id',
+            'is_trait',
+            'locale',
+            'array_length(items, 1) as count_items',
+            'items',
+            'unnest(items) traits'
+          ])
+          .from(SearchIndex, 'sf')
+          .where(`sf.type not in ('ImageURL')`)
+      }),
+      'search_filter',
+      'trade.network = search_filter.network and trade.collection_id = search_filter.collection_id and trade.token_id = search_filter.token_id'
+    )
+  }
+
+  private filterBySearchText(query: SelectQueryBuilder<IMarketTrade>, text?: string): SelectQueryBuilder<IMarketTrade> {
+    return query;
   }
 }
