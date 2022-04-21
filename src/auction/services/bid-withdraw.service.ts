@@ -11,7 +11,7 @@ import { DatabaseHelper } from './helpers/database-helper';
 import { v4 as uuid } from 'uuid';
 import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { BidsWitdrawByOwner } from '../responses';
+import { BidsWitdrawByOwner, BidsWithdraw } from '../responses';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 
 
@@ -157,29 +157,42 @@ export class BidWithdrawService {
     });
   }
 
-  async getBidsForWithdraw(owner: string): Promise<Array<BidsWitdrawByOwner>> {
-    let results = [];
+  private async _getBidsForWithdraw(owner: string): Promise<Array<BidsWitdrawByOwner>> {
+    const results = await this.connection.manager.query(
+      `
+      with my_list_auction as (
+        select auction_id from bids where bidder_address = $1
+        group by auction_id
+    ),
+    sum_amount_auctions as (
+        select distinct b.auction_id, bidder_address, sum(amount) over (partition by bidder_address, b.auction_id) sum_amount
+        from bids b inner join  my_list_auction my on my.auction_id = b.auction_id
+    ),
+    my_withdraws as (
+        select auction_id, bidder_address, sum_amount amount, rank() over (partition by auction_id order by sum_amount desc ) rank
+        from sum_amount_auctions
+    )
+    select distinct  auction_id "auctionId", amount, contract_ask_id "contractAskId", collection_id "collectionId", token_id "tokenId" from my_withdraws
+    inner join auctions auc on auc.id = auction_id
+    inner join contract_ask ca on ca.id = auc.contract_ask_id
+    where rank <> 1 and amount > 0 and bidder_address = $1
+      `, [owner]
+    );
+    return results;
+  }
+
+  private async _getLeaderBids(owner: string): Promise<Array<BidsWitdrawByOwner>> {
+    const results = await this.connection.manager.query(``, [owner]);
+    return results;
+  }
+
+  async getBidsForWithdraw(owner: string): Promise<BidsWithdraw> {
+    let bidsWithdraw = [];
+    let leaderBids = [];
+
     try {
-      results = await this.connection.manager.query(
-        `
-        with my_list_auction as (
-          select auction_id from bids where bidder_address = $1
-          group by auction_id
-      ),
-      sum_amount_auctions as (
-          select distinct b.auction_id, bidder_address, sum(amount) over (partition by bidder_address, b.auction_id) sum_amount
-          from bids b inner join  my_list_auction my on my.auction_id = b.auction_id
-      ),
-      my_withdraws as (
-          select auction_id, bidder_address, sum_amount amount, rank() over (partition by auction_id order by sum_amount desc ) rank
-          from sum_amount_auctions
-      )
-      select distinct  auction_id "auctionId", amount, contract_ask_id "contractAskId", collection_id "collectionId", token_id "tokenId" from my_withdraws
-      inner join auctions auc on auc.id = auction_id
-      inner join contract_ask ca on ca.id = auc.contract_ask_id
-      where rank <> 1 and amount > 0 and bidder_address = $1
-        `, [owner]
-      )
+      bidsWithdraw = await this._getBidsForWithdraw(owner);
+      leaderBids = await this._getLeaderBids(owner);
     } catch (e) {
       this.logger.error(e);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -191,7 +204,10 @@ export class BidWithdrawService {
         error: e.message
       })
     }
-    return results;
+    return {
+      leader: leaderBids,
+      withdraw: bidsWithdraw
+    };
   }
 
   async withdrawBidsByBidder(args: BidsWirthdrawArgs): Promise<void> {
