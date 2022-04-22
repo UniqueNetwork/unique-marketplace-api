@@ -182,7 +182,31 @@ export class BidWithdrawService {
   }
 
   private async _getLeaderBids(owner: string): Promise<Array<BidsWitdrawByOwner>> {
-    const results = await this.connection.manager.query(``, [owner]);
+    const results = await this.connection.manager.query(`
+    with auctions as (
+      select *, rank() over (partition by auction_id order by sum_amount desc) rank
+      from (
+               select distinct auction_id,
+                               bidder_address,
+                               contract_ask_id,
+                               collection_id,
+                               token_id,
+                               sum(amount) over (partition by bidder_address, auction_id) sum_amount
+               from bids
+                        left join auctions a on bids.auction_id = a.id
+                        left join contract_ask ca on a.contract_ask_id = ca.id
+               where a.status in ('active', 'created')
+           ) temp
+  )
+  select auction_id      "auctionId",
+         sum_amount      amount,
+         contract_ask_id "contractAskId",
+         collection_id   "collectionId",
+         token_id        "tokenId"
+  from auctions
+  where rank = 1
+    and bidder_address = $1
+    `, [owner]);
     return results;
   }
 
