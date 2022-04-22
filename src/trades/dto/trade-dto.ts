@@ -1,43 +1,66 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Expose, Type } from 'class-transformer';
 import { IsArray } from 'class-validator';
+import { TokenDescriptionDto } from 'src/offers/dto';
 
 /** DTO for Trades */
 export class MarketTradeDto {
-    @ApiProperty({})
-    collectionId: number;
+  @ApiProperty({ description: 'Collection ID' })
+  @Expose()
+  @Type(() => Number)
+  collectionId: number;
 
-    @ApiProperty({})
-    price: string;
+  @ApiProperty({ description: 'Price' })
+  @Expose()
+  @Type(() => String)
+  price: string;
 
-    @ApiProperty({})
-    seller: string;
+  @ApiProperty({ description: 'Seller' })
+  @Expose()
+  @Type(() => String)
+  seller: string;
 
-    @ApiProperty({})
-    buyer: string;
+  @ApiProperty({ description: 'Buyer' })
+  @Expose()
+  @Type(() => String)
+  buyer: string;
 
-    @ApiProperty({})
-    quoteId: number;
 
-    @ApiProperty({})
-    tokenId: number;
+  @ApiProperty({ description: 'Quote ID' })
+  @Expose()
+  @Type(() => Number)
+  quoteId: number;
 
-    @ApiProperty({})
-    creationDate: Date;
+  @ApiProperty({ description: 'Token ID' })
+  @Expose()
+  @Type(() => Number)
+  tokenId: number;
 
-    @ApiProperty({})
-    tradeDate: Date;
+  @ApiProperty({})
+  @Expose()
+  @Type(() => Date)
+  creationDate: Date;
+
+  @ApiProperty({})
+  @Expose()
+  tradeDate: Date;
+
+  @ApiProperty({ description: 'Token description' })
+  @Expose()
+  @Type(() => TokenDescriptionDto)
+  tokenDescription: TokenDescriptionDto;
 }
 
 export class ResponseMarketTradeDto {
-    @ApiProperty({})
-    page: number;
+  @ApiProperty({})
+  page: number;
 
-    @ApiProperty({})
-    pageSize: number;
+  @ApiProperty({})
+  pageSize: number;
 
-    @ApiProperty({})
-    itemsCount: number;
+  @ApiProperty({})
+  itemsCount: number;
 
-    @ApiProperty({ type: [MarketTradeDto], format: 'array' })
-    items: [MarketTradeDto];
+  @ApiProperty({ type: [MarketTradeDto], format: 'array' })
+  items: [MarketTradeDto];
 }

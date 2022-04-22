@@ -52,6 +52,8 @@ export class TradesService {
       tradesQuery = this.filterByCollectionIds(tradesQuery, tradesFilter.collectionId);
       tradesQuery = this.filterByTokenIds(tradesQuery, tradesFilter.tokenId);
       tradesQuery = this.filterByAccountId(tradesQuery, accountId);
+      tradesQuery = this.filterBySearchText(tradesQuery, tradesFilter.searchText);
+      tradesQuery = this.filterByTraits(tradesQuery, tradesFilter.traits, tradesFilter.collectionId);
       tradesQuery = this.applySort(tradesQuery, sort);
 
       this.logger.log(tradesQuery.getQueryAndParameters());
@@ -202,15 +204,15 @@ export class TradesService {
     queryBuilder: SelectQueryBuilder<IMarketTrade>
   ): void {
     queryBuilder
-    .leftJoinAndMapMany(
-      'trade.search_index',
-      SearchIndex,
-      'search_index',
-      'trade.network = search_index.network and trade.collection_id = search_index.collection_id and trade.token_id = search_index.token_id'
-    )
-    .leftJoinAndMapMany(
-      'trade.search_filter',
-      (subQuery => {
+      .leftJoinAndMapMany(
+        'trade.search_index',
+        SearchIndex,
+        'search_index',
+        'trade.network = search_index.network and trade.collection_id = search_index.collection_id and trade.token_id = search_index.token_id'
+      )
+      .leftJoinAndMapMany(
+        'trade.search_filter',
+        (subQuery => {
           return subQuery.select([
             'collection_id',
             'network',
@@ -221,15 +223,36 @@ export class TradesService {
             'items',
             'unnest(items) traits'
           ])
-          .from(SearchIndex, 'sf')
-          .where(`sf.type not in ('ImageURL')`)
-      }),
-      'search_filter',
-      'trade.network = search_filter.network and trade.collection_id = search_filter.collection_id and trade.token_id = search_filter.token_id'
-    )
+            .from(SearchIndex, 'sf')
+            .where(`sf.type not in ('ImageURL')`)
+        }),
+        'search_filter',
+        'trade.network = search_filter.network and trade.collection_id = search_filter.collection_id and trade.token_id = search_filter.token_id'
+      )
   }
 
   private filterBySearchText(query: SelectQueryBuilder<IMarketTrade>, text?: string): SelectQueryBuilder<IMarketTrade> {
+    if (!nullOrWhitespace(text)) {
+      query.andWhere(`search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text })
+    }
     return query;
+  }
+
+  private filterByTraits(query: SelectQueryBuilder<IMarketTrade>, traits?: string[], collectionId?: number[]): SelectQueryBuilder<IMarketTrade> {
+    if ((traits ?? []).length <= 0) {
+      return query
+    } else {
+      if ((collectionId ?? []).length <= 0) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Not found collectionIds. Please set collectionIds to offer by filter',
+        });
+      } else {
+
+        query.andWhere('array [:...traits] <@ search_filter.items', { traits });
+
+        return query
+      }
+    }
   }
 }
