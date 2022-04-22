@@ -53,6 +53,9 @@ export class TradesService {
       tradesQuery = this.filterByTokenIds(tradesQuery, tradesFilter.tokenId);
       tradesQuery = this.filterByAccountId(tradesQuery, accountId);
       tradesQuery = this.applySort(tradesQuery, sort);
+
+      this.logger.log(tradesQuery.getQueryAndParameters());
+
       paginationResult = await paginate(tradesQuery, paginationRequest);
     } catch (e) {
       this.logger.error(e);
@@ -203,7 +206,7 @@ export class TradesService {
       'trade.search_index',
       SearchIndex,
       'search_index',
-      'trade.network = search_index.network and trade.collection_id = search_index.collection_id and trades.token_id = search_index.token_id'
+      'trade.network = search_index.network and trade.collection_id = search_index.collection_id and trade.token_id = search_index.token_id'
     )
     .leftJoinAndMapMany(
       'trade.search_filter',
