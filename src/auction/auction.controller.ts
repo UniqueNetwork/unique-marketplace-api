@@ -147,7 +147,7 @@ export class AuctionController {
   }
 
   @Get('withdraw_bids')
-  async getTokenWithdrawBid(@Query() query: OwnerWithdrawBidQueryDto): Promise<Array<BidsWitdrawByOwnerDto>> {
+  async getTokenWithdrawBid(@Query() query: OwnerWithdrawBidQueryDto): Promise<BidsWitdrawByOwnerDto> {
     return this.bidWithdrawService.getBidsForWithdraw(query.owner);
   }
 

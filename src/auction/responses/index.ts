@@ -1,1 +1,1 @@
-export { BidsWitdrawByOwner, BidsWitdrawByOwnerDto } from './bids';
+export { BidsWitdrawByOwner, BidsWitdrawByOwnerDto, BidsWithdraw } from './bids';
