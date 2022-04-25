@@ -78,7 +78,7 @@ export class SearchIndexService {
     if (collection?.collectionCover) {
       return JSON.parse(collection?.collectionCover)?.collectionCover
     }
-    return '';
+    return collection.offchainSchema.replace('{id}', '1');
   }
 
   async getTokenInfoItems({ collectionId, tokenId }: CollectionToken): Promise<TokenInfo[]> {
@@ -210,5 +210,24 @@ export class SearchIndexService {
       }));
 
     await this.repository.save(searchIndexItems);
+  }
+
+  async updateSearchIndex(): Promise<void> {
+    for (const index of await this.repository.query(`select collection_id, token_id from search_index
+    group by collection_id, token_id`)) {
+      console.log(JSON.stringify(index));
+
+      await this.repository.createQueryBuilder()
+        .delete()
+        .from(SearchIndex)
+        .where('collection_id = :collection_id', { collection_id: index.collection_id })
+        .andWhere('token_id = :token_id', { token_id: index.token_id })
+        .execute();
+
+      await this.addSearchIndexIfNotExists({
+        collectionId: index?.collection_id,
+        tokenId: index?.token_id
+      });
+    }
   }
 }
