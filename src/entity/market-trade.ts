@@ -1,4 +1,5 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, OneToOne } from 'typeorm';
+import { SearchIndex } from './search-index';
 
 @Entity('market_trade', { schema: 'public' })
 export class MarketTrade {
@@ -37,4 +38,7 @@ export class MarketTrade {
 
     @Column('bigint', { name: 'block_number_buy', nullable: true })
     block_number_buy: string;
+
+    @OneToOne((type) => SearchIndex)
+    search_index: SearchIndex;
 }
