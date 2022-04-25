@@ -4,7 +4,7 @@ import { Connection, SelectQueryBuilder } from 'typeorm';
 
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResult } from '../utils/pagination/pagination-result';
+import { PaginationResult, PaginationResultDto } from '../utils/pagination/pagination-result';
 import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
@@ -56,8 +56,6 @@ export class TradesService {
       tradesQuery = this.filterByTraits(tradesQuery, tradesFilter.traits, tradesFilter.collectionId);
       tradesQuery = this.applySort(tradesQuery, sort);
 
-      this.logger.log(tradesQuery.getQueryAndParameters());
-
       paginationResult = await paginate(tradesQuery, paginationRequest);
     } catch (e) {
       this.logger.error(e);
@@ -82,31 +80,10 @@ export class TradesService {
       });
     }
 
-    return {
+    return new PaginationResultDto(MarketTradeDto, {
       ...paginationResult,
-      items: paginationResult.items.map((t) => this.serializeTradeToDto(t)),
-    };
-  }
-
-  /**
-   * Conversion of data from MarketTrade to JSON
-   * @example: items: MarketTradeDto[]
-   * @param {MarketTrade} trade - entity MarketTrade model
-   * @private
-   * @see TradesService.get
-   * @return ({MarketTradeDto})
-   */
-  private serializeTradeToDto(trade: IMarketTrade): MarketTradeDto {
-    return {
-      buyer: trade.address_buyer,
-      seller: trade.address_seller,
-      collectionId: +trade.collection_id,
-      creationDate: trade.ask_created_at,
-      price: trade.price,
-      quoteId: +trade.currency,
-      tokenId: +trade.token_id,
-      tradeDate: trade.buy_created_at,
-    };
+      items: paginationResult.items.map(MarketTradeDto.fromTrade),
+    })
   }
 
   /**
