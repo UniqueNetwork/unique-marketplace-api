@@ -78,7 +78,7 @@ export class SearchIndexService {
     if (collection?.collectionCover) {
       return JSON.parse(collection?.collectionCover)?.collectionCover
     }
-    return '';
+    return collection.offchainSchema.replace('{id}', '1');
   }
 
   async getTokenInfoItems({ collectionId, tokenId }: CollectionToken): Promise<TokenInfo[]> {
