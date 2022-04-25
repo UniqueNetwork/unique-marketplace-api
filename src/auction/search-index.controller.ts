@@ -1,10 +1,9 @@
-import { ApiPromise } from '@polkadot/api';
-import { Controller, Get, Inject, Param, ParseIntPipe } from "@nestjs/common";
+import { Controller, Get, Inject, Param, ParseIntPipe, Post } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { SearchIndexService } from './services/search-index.service';
 
-@ApiTags('Auction')
-@Controller('auction')
+@ApiTags('Search Index')
+@Controller('search_index')
 export class SearchIndexController {
   constructor(
     private readonly searchIndex: SearchIndexService
@@ -19,5 +18,10 @@ export class SearchIndexController {
       collectionId, tokenId
     });
     return this.searchIndex.getTokenInfoItems({collectionId, tokenId});
+  }
+
+  @Post('update')
+  async updateSearchIndex(): Promise<void> {
+    await this.searchIndex.updateSearchIndex();
   }
 }
