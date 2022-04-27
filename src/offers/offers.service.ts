@@ -269,7 +269,7 @@ export class OffersService {
 
 
     if(!nullOrWhitespace(bidderAddress)) {
-      query.andWhere('(_bids.bidder_address = :bidderAddress)', { bidderAddress });
+      query.andWhere('(bi.bidder_address = :bidderAddress)', { bidderAddress });
     }
 
     return query;
