@@ -114,7 +114,7 @@ export class OfferContractAskDto {
             acc[`${item.key}`] = image;
           } else {
             if (image) {
-              acc[`${item.key}`] = `http://ipfs-gateway.usetech.com/ipfs/${image}`;
+              acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
             } else {
               acc[`${item.key}`] = null;
             }
