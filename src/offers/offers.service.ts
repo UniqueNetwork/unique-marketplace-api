@@ -126,7 +126,7 @@ export class OffersService {
         'search_index',
         'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
       )
-      .leftJoinAndMapMany(
+      .leftJoinAndMapOne(
         'offer.search_filter',
         (subQuery => {
             return subQuery.select([
@@ -145,11 +145,11 @@ export class OffersService {
         'search_filter',
         'offer.network = search_filter.network and offer.collection_id = search_filter.collection_id and offer.token_id = search_filter.token_id'
       )
-      .leftJoinAndMapMany(
+      /*.leftJoinAndMapMany(
         'auction._bids',
         BidEntity,
         '_bids',
-        '_bids.auction_id = auction.id and _bids.amount > 0')
+        '_bids.auction_id = auction.id and _bids.amount > 0')*/
   }
 
   /**
@@ -269,7 +269,7 @@ export class OffersService {
 
 
     if(!nullOrWhitespace(bidderAddress)) {
-      query.andWhere('(_bids.bidder_address = :bidderAddress)', { bidderAddress });
+      query.andWhere('(bid.bidder_address = :bidderAddress)', { bidderAddress });
     }
 
     return query;
