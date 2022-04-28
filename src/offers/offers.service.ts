@@ -1,3 +1,4 @@
+import { Bid } from './../auction/types/bid';
 import { OfferTraits } from './dto/offer-traits';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
@@ -28,6 +29,7 @@ type OfferPaginationResult = {
   page: number;
   pageSize: number;
 }
+
 
 @Injectable()
 export class OffersService {
@@ -90,6 +92,33 @@ export class OffersService {
     })
   }
 
+  private getAuctionIds(items: Array<any>): Array<number> {
+    return items.filter(item => item?.auction !== null)
+      .map(item => item.auction.id)
+      .filter(id => id !== null);
+  }
+
+  private  async getBids(auctionIds: Array<number>): Promise<Array<Partial<Bid>>> {
+    const queryBuilder = this.connection.manager.createQueryBuilder(BidEntity, 'bid')
+    .select(['created_at', 'updated_at', 'amount', 'auction_id', 'bidder_address', 'balance'])
+    .where('bid.amount > 0')
+    .andWhere('bid.auction_id in (:...auctionIds)', {auctionIds})
+
+    const source = await queryBuilder.execute();
+
+    return source.map((item) => {
+      return {
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        auctionId: item.auction_id,
+        balance: item.balance,
+        amount: item.amount,
+        bidderAddress: item.bidder_address
+      }
+    })
+  }
+
+
   async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest): Promise<OfferPaginationResult> {
     const page = paramenter.page ?? 1;
     const pageSize = paramenter.pageSize ?? 10;
@@ -98,14 +127,24 @@ export class OffersService {
     query.skip(offset);
     query.take(pageSize);
 
-    const items = await query.getMany();
+    const source = await query.getMany();
     const itemsCount = await query.getCount();
+
+    const bids = await this.getBids(
+      this.getAuctionIds(source)
+    );
 
     return {
       page,
       pageSize,
       itemsCount,
-      items
+      items: source.reduce((acc, item) => {
+        if (item.auction !== null) {
+          item.auction.bids = bids.filter(bid => bid.auctionId === item.auction.id) as any as BidEntity[];
+        }
+        acc.push(item);
+        return acc;
+      }, [])
     };
   }
 

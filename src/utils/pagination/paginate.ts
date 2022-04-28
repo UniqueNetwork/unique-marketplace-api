@@ -8,9 +8,6 @@ export async function paginate<T>(query: SelectQueryBuilder<T>, parameter: Pagin
   const pageSize = parameter.pageSize ?? 10;
   const offset = (page - 1) * pageSize;
 
-  /*query.limit(pageSize)
-  query.offset(offset);*/
-
   query.skip(offset);
   query.take(pageSize);
 
