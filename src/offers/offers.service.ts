@@ -4,7 +4,7 @@ import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResultDto } from '../utils/pagination/pagination-result';
+import { PaginationResult, PaginationResultDto } from '../utils/pagination/pagination-result';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 
@@ -20,6 +20,14 @@ import {
 } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersQuerySortHelper } from "./offers-query-sort-helper";
+
+
+type OfferPaginationResult = {
+  items: ContractAsk[]
+  itemsCount: number;
+  page: number;
+  pageSize: number;
+}
 
 @Injectable()
 export class OffersService {
@@ -58,7 +66,7 @@ export class OffersService {
 
       offers = this.filter(offers, offersFilter);
       offers = this.offersQuerySortHelper.applySort(offers, sort);
-      paginationResult = await paginate(offers, pagination);
+      paginationResult = await this.setPagination(offers, pagination);
       /*if ((offersFilter.traitsCount ?? []).length !== 0 ) {
         const filterItems = paginationResult.items.filter((item) => (offersFilter?.traitsCount.includes(item.search_index.length)));
         paginationResult.items = filterItems;
@@ -80,6 +88,25 @@ export class OffersService {
       ...paginationResult,
       items: paginationResult.items.map(OfferContractAskDto.fromContractAsk),
     })
+  }
+
+  async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest): Promise<OfferPaginationResult> {
+    const page = paramenter.page ?? 1;
+    const pageSize = paramenter.pageSize ?? 10;
+    const offset = (page - 1) * pageSize;
+
+    query.skip(offset);
+    query.take(pageSize);
+
+    const items = await query.getMany();
+    const itemsCount = await query.getCount();
+
+    return {
+      page,
+      pageSize,
+      itemsCount,
+      items
+    };
   }
 
   async getOne(filter: { collectionId: number, tokenId: number }): Promise<OfferContractAskDto | null> {
@@ -109,25 +136,24 @@ export class OffersService {
         'auction',
         'auction.contract_ask_id = offer.id'
       )
-      .leftJoinAndMapMany(
+      /*.leftJoinAndMapMany(
         'auction.bids',
         BidEntity,
         'bid',
-        'bid.auction_id = auction.id and bid.amount > 0')
+        'bid.auction_id = auction.id and bid.amount > 0')*/
       .leftJoinAndMapOne(
         'offer.block',
         BlockchainBlock,
         'block',
-        'offer.network = block.network and block.block_number = offer.block_number_ask',
+        'offer.network = block.network and block.block_number = offer.block_number_ask'
       )
-      .leftJoinAndMapMany(
+      /*.leftJoinAndMapMany(
         'offer.search_index',
         SearchIndex,
         'search_index',
         'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
-      )
-      .leftJoinAndMapMany(
-        'offer.search_filter',
+      )*/
+      .leftJoinAndSelect(
         (subQuery => {
             return subQuery.select([
               'collection_id',
@@ -143,13 +169,18 @@ export class OffersService {
             .where(`sf.type not in ('ImageURL')`)
         }),
         'search_filter',
-        'offer.network = search_filter.network and offer.collection_id = search_filter.collection_id and offer.token_id = search_filter.token_id'
-      )
-      .leftJoinAndMapMany(
-        'auction._bids',
-        BidEntity,
+        'offer.network = search_filter.network and offer.collection_id = search_filter.collection_id and offer.token_id = search_filter.token_id')
+      .leftJoinAndSelect(
+        (subQuery => {
+          return subQuery.select([
+            'auction_id',
+            'bidder_address'
+          ])
+          .from(BidEntity, '_bids')
+          .where('_bids.amount > 0')
+        }),
         '_bids',
-        '_bids.auction_id = auction.id and _bids.amount > 0')
+        '_bids.auction_id = auction.id')
   }
 
   /**
