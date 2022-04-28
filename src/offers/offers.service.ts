@@ -21,6 +21,7 @@ import {
 } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersQuerySortHelper } from "./offers-query-sort-helper";
+import { TypeAttributToken } from 'src/auction/types';
 
 
 type OfferPaginationResult = {
@@ -118,6 +119,28 @@ export class OffersService {
     })
   }
 
+  private _getBread(items: Array<any>): string {
+    const values = items.map(item => {
+      return `(${Number(item.collection_id)}, ${Number(item.token_id)})`;
+    }).join(',');
+    return `select * from (values ${values}) as t (collection_id, token_id)`
+  }
+
+  private async getSearchIndex(sqlValues: string): Promise<Array<Partial<SearchIndex>>> {
+    const result = await this.connection.manager.query(
+      `select
+          si.collection_id,
+          si.token_id,
+          items,
+          type,
+          key
+      from search_index si  inner join (${sqlValues}) t on
+      t.collection_id = si.collection_id and
+      t.token_id = si.token_id;`
+    );
+      return result as Array<Partial<SearchIndex>>;
+  }
+
 
   async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest): Promise<OfferPaginationResult> {
     const page = paramenter.page ?? 1;
@@ -134,6 +157,11 @@ export class OffersService {
       this.getAuctionIds(source)
     );
 
+    const searchIndex = await this.getSearchIndex(
+      this._getBread(source)
+    );
+
+
     return {
       page,
       pageSize,
@@ -142,6 +170,48 @@ export class OffersService {
         if (item.auction !== null) {
           item.auction.bids = bids.filter(bid => bid.auctionId === item.auction.id) as any as BidEntity[];
         }
+
+        item['tokenDescription'] = searchIndex.filter(
+            index => index.collection_id === item.collection_id && index.token_id === item.token_id
+          ).reduce((acc, item) => {
+            if (item.type === TypeAttributToken.Prefix) {
+              acc['prefix'] = item.items.pop();
+            }
+
+            if (item.key === 'collectionName') {
+              acc['collectionName'] = item.items.pop();
+            }
+
+            if (item.key === 'description') {
+              acc['description'] = item.items.pop();
+            }
+
+            if (item.type === TypeAttributToken.ImageURL) {
+              const image = String(item.items.pop());
+              if ( image.search('ipfs.unique.network') !== -1) {
+                acc[`${item.key}`] = image;
+              } else {
+                if (image) {
+                  acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+                } else {
+                  acc[`${item.key}`] = null;
+                }
+              }
+            }
+
+            if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key) ) {
+              acc.attributes.push({
+                key: item.key,
+                value: (item.items.length === 1) ? item.items.pop() : item.items,
+                type: item.type
+              })
+            }
+
+            return acc;
+          }, {
+            attributes: []
+          });
+
         acc.push(item);
         return acc;
       }, [])
