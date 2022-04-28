@@ -4,7 +4,7 @@ import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
-import { PaginationResultDto } from '../utils/pagination/pagination-result';
+import { PaginationResult, PaginationResultDto } from '../utils/pagination/pagination-result';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 
@@ -20,6 +20,14 @@ import {
 } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersQuerySortHelper } from "./offers-query-sort-helper";
+
+
+type OfferPaginationResult = {
+  items: ContractAsk[]
+  itemsCount: number;
+  page: number;
+  pageSize: number;
+}
 
 @Injectable()
 export class OffersService {
@@ -58,7 +66,7 @@ export class OffersService {
 
       offers = this.filter(offers, offersFilter);
       offers = this.offersQuerySortHelper.applySort(offers, sort);
-      paginationResult = await paginate(offers, pagination);
+      paginationResult = await this.setPagination(offers, pagination);
       /*if ((offersFilter.traitsCount ?? []).length !== 0 ) {
         const filterItems = paginationResult.items.filter((item) => (offersFilter?.traitsCount.includes(item.search_index.length)));
         paginationResult.items = filterItems;
@@ -80,6 +88,25 @@ export class OffersService {
       ...paginationResult,
       items: paginationResult.items.map(OfferContractAskDto.fromContractAsk),
     })
+  }
+
+  async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest): Promise<OfferPaginationResult> {
+    const page = paramenter.page ?? 1;
+    const pageSize = paramenter.pageSize ?? 10;
+    const offset = (page - 1) * pageSize;
+
+    query.skip(offset);
+    query.take(pageSize);
+
+    const items = await query.getMany();
+    const itemsCount = await query.getCount();
+
+    return {
+      page,
+      pageSize,
+      itemsCount,
+      items
+    };
   }
 
   async getOne(filter: { collectionId: number, tokenId: number }): Promise<OfferContractAskDto | null> {
