@@ -110,7 +110,7 @@ export class OfferContractAskDto {
 
         if (item.type === TypeAttributToken.ImageURL) {
           const image = String(item.items.pop());
-          if ( image.search('ipfs-gateway.usetech.com') !== -1) {
+          if ( image.search('ipfs.unique.network') !== -1) {
             acc[`${item.key}`] = image;
           } else {
             if (image) {
