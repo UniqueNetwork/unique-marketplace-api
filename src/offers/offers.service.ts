@@ -109,25 +109,24 @@ export class OffersService {
         'auction',
         'auction.contract_ask_id = offer.id'
       )
-      .leftJoinAndMapMany(
+      /*.leftJoinAndMapMany(
         'auction.bids',
         BidEntity,
         'bid',
-        'bid.auction_id = auction.id and bid.amount > 0')
+        'bid.auction_id = auction.id and bid.amount > 0')*/
       .leftJoinAndMapOne(
         'offer.block',
         BlockchainBlock,
         'block',
-        'offer.network = block.network and block.block_number = offer.block_number_ask',
+        'offer.network = block.network and block.block_number = offer.block_number_ask'
       )
-      .leftJoinAndMapMany(
+      /*.leftJoinAndMapMany(
         'offer.search_index',
         SearchIndex,
         'search_index',
         'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
-      )
-      .leftJoinAndMapMany(
-        'offer.search_filter',
+      )*/
+      .leftJoinAndSelect(
         (subQuery => {
             return subQuery.select([
               'collection_id',
@@ -143,13 +142,18 @@ export class OffersService {
             .where(`sf.type not in ('ImageURL')`)
         }),
         'search_filter',
-        'offer.network = search_filter.network and offer.collection_id = search_filter.collection_id and offer.token_id = search_filter.token_id'
-      )
-      .leftJoinAndMapMany(
-        'auction._bids',
-        BidEntity,
+        'offer.network = search_filter.network and offer.collection_id = search_filter.collection_id and offer.token_id = search_filter.token_id')
+      .leftJoinAndSelect(
+        (subQuery => {
+          return subQuery.select([
+            'auction_id',
+            'bidder_address'
+          ])
+          .from(BidEntity, '_bids')
+          .where('_bids.amount > 0')
+        }),
         '_bids',
-        '_bids.auction_id = auction.id and _bids.amount > 0')
+        '_bids.auction_id = auction.id')
   }
 
   /**
