@@ -103,7 +103,10 @@ export class OffersService {
     const queryBuilder = this.connection.manager.createQueryBuilder(BidEntity, 'bid')
     .select(['created_at', 'updated_at', 'amount', 'auction_id', 'bidder_address', 'balance'])
     .where('bid.amount > 0')
-    .andWhere('bid.auction_id in (:...auctionIds)', {auctionIds})
+
+    if (Array.isArray(auctionIds) && auctionIds?.length > 0) {
+      queryBuilder.andWhere('bid.auction_id in (:...auctionIds)', {auctionIds});
+    }
 
     const source = await queryBuilder.execute();
 
@@ -119,48 +122,154 @@ export class OffersService {
     })
   }
 
-  private _getBread(items: Array<any>): string {
+  private sqlCollectionIdTokenId(items: Array<any>): string | null {
     const values = items.map(item => {
       return `(${Number(item.collection_id)}, ${Number(item.token_id)})`;
-    }).join(',');
-    return `select * from (values ${values}) as t (collection_id, token_id)`
+    })
+    if (values.length > 0) {
+      return `select * from (values ${values.join(',')}) as t (collection_id, token_id)`
+    }
+    return null;
   }
 
   private async getSearchIndex(sqlValues: string): Promise<Array<Partial<SearchIndex>>> {
-    const result = await this.connection.manager.query(
-      `select
-          si.collection_id,
-          si.token_id,
-          items,
-          type,
-          key
-      from search_index si  inner join (${sqlValues}) t on
-      t.collection_id = si.collection_id and
-      t.token_id = si.token_id;`
-    );
-      return result as Array<Partial<SearchIndex>>;
+    if (sqlValues) {
+      const result = await this.connection.manager.query(
+        `select
+            si.collection_id,
+            si.token_id,
+            items,
+            type,
+            key
+        from search_index si  inner join (${sqlValues}) t on
+        t.collection_id = si.collection_id and
+        t.token_id = si.token_id;`
+      );
+        return result as Array<Partial<SearchIndex>>;
+    }
+    return [];
   }
 
 
   async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest): Promise<OfferPaginationResult> {
+    function parseSearchIndex(): (previousValue: { attributes: any[]; }, currentValue: Partial<SearchIndex>, currentIndex: number, array: Partial<SearchIndex>[]) => { attributes: any[]; } {
+      return (acc, item) => {
+        if (item.type === TypeAttributToken.Prefix) {
+          acc['prefix'] = item.items.pop();
+        }
+
+        if (item.key === 'collectionName') {
+          acc['collectionName'] = item.items.pop();
+        }
+
+        if (item.key === 'description') {
+          acc['description'] = item.items.pop();
+        }
+
+        if (item.type === TypeAttributToken.ImageURL) {
+          const image = String(item.items.pop());
+          if (image.search('ipfs.unique.network') !== -1) {
+            acc[`${item.key}`] = image;
+          } else {
+            if (image) {
+              acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+            } else {
+              acc[`${item.key}`] = null;
+            }
+          }
+        }
+
+        if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key)) {
+          acc.attributes.push({
+            key: item.key,
+            value: (item.items.length === 1) ? item.items.pop() : item.items,
+            type: item.type
+          });
+        }
+
+        return acc;
+      };
+    }
+
+    function convertorFlatToObject(): (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => any {
+      return (acc, item) => {
+        const obj = {
+          collection_id: item.offer_collection_id,
+          token_id: item.offer_token_id,
+          price: item.offer_price,
+          currency: +item.offer_currency,
+          address_from: item.offer_address_from,
+          created_at: item.block_created_at,
+          auction: null,
+          tokenDescription: {}
+        };
+
+        if (item.auction_id) {
+          obj.auction = Object.assign({}, {
+            id: item.auction_id,
+            createdAt: item.auction_created_at,
+            updatedAt: item.auction_updated_at,
+            priceStep: item.auction_price_step,
+            startPrice: item.auction_start_price,
+            status: item.auction_status,
+            stopAt: item.auction_stop_at,
+            bids: []
+          });
+        }
+
+        acc.push(obj);
+        return acc;
+      };
+    }
+
     const page = paramenter.page ?? 1;
     const pageSize = paramenter.pageSize ?? 10;
     const offset = (page - 1) * pageSize;
 
-    query.skip(offset);
-    query.take(pageSize);
+    const substitutionQuery = this.connection.createQueryBuilder()
+      .select([
+        "offer_id",
+        "offer_status",
+        "offer_collection_id",
+        "offer_token_id",
+        "offer_network",
+        "offer_price",
+        "offer_currency",
+        "offer_address_from",
+        "offer_address_to",
+        "offer_block_number_ask",
+        "offer_block_number_cancel",
+        "offer_block_number_buy",
+        "auction_id",
+        "auction_created_at",
+        "auction_updated_at",
+        "auction_price_step",
+        "auction_start_price",
+        "auction_status",
+        "auction_stop_at",
+        "auction_contract_ask_id",
+        "block_block_number",
+        "block_created_at"
+      ])
+      .distinct()
+      .from(`(${query.getQuery()})`,'_t')
+      .setParameters(query.getParameters())
+      .limit(pageSize)
+      .offset(offset);
 
-    const source = await query.getMany();
+    const substitution = await substitutionQuery.getRawMany();
+    //const source = await query.getMany();
     const itemsCount = await query.getCount();
+
+    const source = substitution.reduce(convertorFlatToObject(), [])
 
     const bids = await this.getBids(
       this.getAuctionIds(source)
     );
 
     const searchIndex = await this.getSearchIndex(
-      this._getBread(source)
+      this.sqlCollectionIdTokenId(source)
     );
-
 
     return {
       page,
@@ -170,45 +279,9 @@ export class OffersService {
         if (item.auction !== null) {
           item.auction.bids = bids.filter(bid => bid.auctionId === item.auction.id) as any as BidEntity[];
         }
-
         item['tokenDescription'] = searchIndex.filter(
             index => index.collection_id === item.collection_id && index.token_id === item.token_id
-          ).reduce((acc, item) => {
-            if (item.type === TypeAttributToken.Prefix) {
-              acc['prefix'] = item.items.pop();
-            }
-
-            if (item.key === 'collectionName') {
-              acc['collectionName'] = item.items.pop();
-            }
-
-            if (item.key === 'description') {
-              acc['description'] = item.items.pop();
-            }
-
-            if (item.type === TypeAttributToken.ImageURL) {
-              const image = String(item.items.pop());
-              if ( image.search('ipfs.unique.network') !== -1) {
-                acc[`${item.key}`] = image;
-              } else {
-                if (image) {
-                  acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
-                } else {
-                  acc[`${item.key}`] = null;
-                }
-              }
-            }
-
-            if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key) ) {
-              acc.attributes.push({
-                key: item.key,
-                value: (item.items.length === 1) ? item.items.pop() : item.items,
-                type: item.type
-              })
-            }
-
-            return acc;
-          }, {
+          ).reduce(parseSearchIndex(), {
             attributes: []
           });
 
@@ -245,23 +318,12 @@ export class OffersService {
         'auction',
         'auction.contract_ask_id = offer.id'
       )
-      /*.leftJoinAndMapMany(
-        'auction.bids',
-        BidEntity,
-        'bid',
-        'bid.auction_id = auction.id and bid.amount > 0')*/
       .leftJoinAndMapOne(
         'offer.block',
         BlockchainBlock,
         'block',
         'offer.network = block.network and block.block_number = offer.block_number_ask'
       )
-      /*.leftJoinAndMapMany(
-        'offer.search_index',
-        SearchIndex,
-        'search_index',
-        'offer.network = search_index.network and offer.collection_id = search_index.collection_id and offer.token_id = search_index.token_id'
-      )*/
       .leftJoinAndSelect(
         (subQuery => {
             return subQuery.select([
@@ -282,14 +344,14 @@ export class OffersService {
       .leftJoinAndSelect(
         (subQuery => {
           return subQuery.select([
-            'auction_id',
+            'auction_id as auc_id',
             'bidder_address'
           ])
           .from(BidEntity, '_bids')
           .where('_bids.amount > 0')
         }),
         '_bids',
-        '_bids.auction_id = auction.id')
+        '_bids.auc_id = auction.id')
   }
 
   /**
@@ -365,7 +427,7 @@ export class OffersService {
     }
 
     if(!nullOrWhitespace(locale)) {
-      query.andWhere('(search_index.locale is null OR search_index.locale = :locale)', { locale: locale, })
+      query.andWhere('(search_filter.locale is null OR search_filter.locale = :locale)', { locale: locale, })
     }
 
     return query
