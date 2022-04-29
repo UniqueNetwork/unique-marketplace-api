@@ -68,8 +68,7 @@ export class OffersService {
       this.addRelations(offers);
 
       offers = this.filter(offers, offersFilter);
-      offers = this.offersQuerySortHelper.applySort(offers, sort);
-      paginationResult = await this.setPagination(offers, pagination);
+      paginationResult = await this.setPagination(offers, pagination, sort);
       /*if ((offersFilter.traitsCount ?? []).length !== 0 ) {
         const filterItems = paginationResult.items.filter((item) => (offersFilter?.traitsCount.includes(item.search_index.length)));
         paginationResult.items = filterItems;
@@ -150,46 +149,46 @@ export class OffersService {
     return [];
   }
 
+  private parseSearchIndex(): (previousValue: { attributes: any[]; }, currentValue: Partial<SearchIndex>, currentIndex: number, array: Partial<SearchIndex>[]) => { attributes: any[]; } {
+    return (acc, item) => {
+      if (item.type === TypeAttributToken.Prefix) {
+        acc['prefix'] = item.items.pop();
+      }
 
-  async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest): Promise<OfferPaginationResult> {
-    function parseSearchIndex(): (previousValue: { attributes: any[]; }, currentValue: Partial<SearchIndex>, currentIndex: number, array: Partial<SearchIndex>[]) => { attributes: any[]; } {
-      return (acc, item) => {
-        if (item.type === TypeAttributToken.Prefix) {
-          acc['prefix'] = item.items.pop();
-        }
+      if (item.key === 'collectionName') {
+        acc['collectionName'] = item.items.pop();
+      }
 
-        if (item.key === 'collectionName') {
-          acc['collectionName'] = item.items.pop();
-        }
+      if (item.key === 'description') {
+        acc['description'] = item.items.pop();
+      }
 
-        if (item.key === 'description') {
-          acc['description'] = item.items.pop();
-        }
-
-        if (item.type === TypeAttributToken.ImageURL) {
-          const image = String(item.items.pop());
-          if (image.search('ipfs.unique.network') !== -1) {
-            acc[`${item.key}`] = image;
+      if (item.type === TypeAttributToken.ImageURL) {
+        const image = String(item.items.pop());
+        if (image.search('ipfs.unique.network') !== -1) {
+          acc[`${item.key}`] = image;
+        } else {
+          if (image) {
+            acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
           } else {
-            if (image) {
-              acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
-            } else {
-              acc[`${item.key}`] = null;
-            }
+            acc[`${item.key}`] = null;
           }
         }
+      }
 
-        if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key)) {
-          acc.attributes.push({
-            key: item.key,
-            value: (item.items.length === 1) ? item.items.pop() : item.items,
-            type: item.type
-          });
-        }
+      if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key)) {
+        acc.attributes.push({
+          key: item.key,
+          value: (item.items.length === 1) ? item.items.pop() : item.items,
+          type: item.type
+        });
+      }
 
-        return acc;
-      };
-    }
+      return acc;
+    };
+  }
+
+  async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest, sort: OfferSortingRequest ): Promise<OfferPaginationResult> {
 
     function convertorFlatToObject(): (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => any {
       return (acc, item) => {
@@ -226,7 +225,7 @@ export class OffersService {
     const pageSize = paramenter.pageSize ?? 10;
     const offset = (page - 1) * pageSize;
 
-    const substitutionQuery = this.connection.createQueryBuilder()
+    let substitutionQuery = this.connection.createQueryBuilder()
       .select([
         "offer_id",
         "offer_status",
@@ -252,10 +251,12 @@ export class OffersService {
         "block_created_at"
       ])
       .distinct()
-      .from(`(${query.getQuery()})`,'_t')
+      .from(`(${query.getQuery()})`,'_p')
       .setParameters(query.getParameters())
       .limit(pageSize)
       .offset(offset);
+
+    substitutionQuery = this.offersQuerySortHelper.applyFlatSort(substitutionQuery, sort);
 
     const substitution = await substitutionQuery.getRawMany();
     //const source = await query.getMany();
@@ -275,20 +276,24 @@ export class OffersService {
       page,
       pageSize,
       itemsCount,
-      items: source.reduce((acc, item) => {
-        if (item.auction !== null) {
-          item.auction.bids = bids.filter(bid => bid.auctionId === item.auction.id) as any as BidEntity[];
-        }
-        item['tokenDescription'] = searchIndex.filter(
-            index => index.collection_id === item.collection_id && index.token_id === item.token_id
-          ).reduce(parseSearchIndex(), {
-            attributes: []
-          });
-
-        acc.push(item);
-        return acc;
-      }, [])
+      items: this.parseOffers(source, bids, searchIndex)
     };
+  }
+
+  private parseOffers(source: any, bids: Partial<Bid>[], searchIndex: Partial<SearchIndex>[]): ContractAsk[] {
+    return source.reduce((acc, item) => {
+      if (item.auction !== null) {
+        item.auction.bids = bids.filter(bid => bid.auctionId === item.auction.id) as any as BidEntity[];
+      }
+      item['tokenDescription'] = searchIndex.filter(
+        index => index.collection_id === item.collection_id && index.token_id === item.token_id
+      ).reduce(this.parseSearchIndex(), {
+        attributes: []
+      });
+
+      acc.push(item);
+      return acc;
+    }, []);
   }
 
   async getOne(filter: { collectionId: number, tokenId: number }): Promise<OfferContractAskDto | null> {
@@ -302,7 +307,16 @@ export class OffersService {
 
     this.addRelations(queryBuilder);
 
-    const contractAsk = await queryBuilder.getOne();
+    const source = await queryBuilder.getMany();
+    const bids = await this.getBids(
+      this.getAuctionIds(source)
+    );
+
+    const searchIndex = await this.getSearchIndex(
+      this.sqlCollectionIdTokenId(source)
+    );
+
+    const contractAsk = this.parseOffers(source, bids, searchIndex).pop();
 
     return contractAsk && OfferContractAskDto.fromContractAsk(contractAsk)
   }
