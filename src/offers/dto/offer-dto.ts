@@ -94,7 +94,7 @@ export class OfferContractAskDto {
   prefix: string
 }
      */
-    if (Array.isArray(contractAsk?.search_index)) {
+/*     if (Array.isArray(contractAsk?.search_index)) {
       plain.tokenDescription = contractAsk?.search_index.reduce((acc, item) => {
         if (item.type === TypeAttributToken.Prefix) {
           acc.prefix = item.items.pop();
@@ -110,7 +110,7 @@ export class OfferContractAskDto {
 
         if (item.type === TypeAttributToken.ImageURL) {
           const image = String(item.items.pop());
-          if ( image.search('ipfs-gateway.usetech.com') !== -1) {
+          if ( image.search('ipfs.unique.network') !== -1) {
             acc[`${item.key}`] = image;
           } else {
             if (image) {
@@ -132,7 +132,7 @@ export class OfferContractAskDto {
       },{
         attributes: []
       })
-    }
+    } */
 
     return plainToInstance<OfferContractAskDto, Record<string, any>>(OfferContractAskDto, plain, { excludeExtraneousValues: true });
   }

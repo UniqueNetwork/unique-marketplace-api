@@ -31,6 +31,7 @@ export const main = async(moduleRef, args: string[]) => {
     }
     web3conn.provider.connection.close()
     await api.disconnect();
+    process.exit(0);
   }
 
   const getBalance = async address => {

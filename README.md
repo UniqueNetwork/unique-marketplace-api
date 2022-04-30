@@ -285,6 +285,7 @@ Available environment variables:
 - `API_PORT`: '5000'
 - `DISABLE_SECURITY`: 'false'
 - `ESCROW_SEED`: '//Alice'
+- `AUCTION_SEED`: '//Bob'
 - `UNIQUE_WS_ENDPOINT`: 'wss://opal.unique.network'
 - `UNIQUE_NETWORK`: 'opal'
 - `UNIQUE_START_FROM_BLOCK`: 'current'

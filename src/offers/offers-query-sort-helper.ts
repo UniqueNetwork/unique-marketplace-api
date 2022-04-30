@@ -1,3 +1,5 @@
+import { QueryRunner } from 'typeorm';
+import { query } from 'express';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 import { BlockchainBlock, ContractAsk } from '../entity';
@@ -7,6 +9,7 @@ import { SortingOrder } from '../utils/sorting/sorting-order';
 import { SortingParameter } from '../utils/sorting/sorting-parameter';
 
 type SortMapping<T> = Partial<Record<keyof OfferContractAskDto, keyof T>>;
+type QueryBuilder<T>  =  SelectQueryBuilder<T>;
 
 const prepareMapping = (input: Record<string, string>, columnMetadata: ColumnMetadata[]): Record<string, string> => {
   return Object.entries(input).reduce(
@@ -53,6 +56,18 @@ export class OffersQuerySortHelper {
     return blockColumn ? `${blockAlias}.${blockColumn}` : undefined;
   }
 
+  private getFlatSort(sortingParameter: SortingParameter): string | undefined {
+    switch (sortingParameter.column.toLowerCase()) {
+      case 'price':
+        return 'offer_price'
+      case 'tokenid':
+        return 'offer_token_id'
+      case 'creationdate':
+        return 'block_created_at'
+    }
+    return 'offer_block_number_ask';
+  }
+
   private static getOrder(sortingParameter: SortingParameter): 'DESC' | 'ASC' {
     return sortingParameter.order === SortingOrder.Desc ? 'DESC' : 'ASC';
   }
@@ -69,6 +84,20 @@ export class OffersQuerySortHelper {
 
     query.addOrderBy(`${query.alias}.block_number_ask`, 'DESC');
 
+    return query;
+  }
+
+  applyFlatSort(query: SelectQueryBuilder<any>,  { sort = [] }: OfferSortingRequest) {
+    if (sort.length == 0) {
+      query.addOrderBy('offer_block_number_ask', 'DESC');
+    }
+    for (const sortingParameter of sort) {
+      const sort = this.getFlatSort(sortingParameter);
+      if (sort) {
+        const order = OffersQuerySortHelper.getOrder(sortingParameter);
+        query.addOrderBy(sort, order);
+      }
+    }
     return query;
   }
 }
