@@ -52,14 +52,16 @@ export class AuctionCreationService {
     let stopAt = DateHelper.addDays(days);
     if (minutes) stopAt = DateHelper.addMinutes(minutes, stopAt);
 
-    /*if (encodeAddress(ownerAddress) !== encodeAddress(tokenOwner)) {
-      throw new Error(`This token is had other owner. You don't have the right to use the token. Unfortunately`);
-    }*/
-
     const block = await this.sendTransferExtrinsic(tx);
     await this.blockchainBlockRepository.save(block);
 
     this.logger.debug(`token transfer block number: ${block.block_number}`);
+
+    const token = await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId);
+
+    const ownerToken = token.toHuman()['owner'] || null;
+
+    //TODO: добавить проверку на существования токена
 
     const contractAsk = await this.contractAskRepository.create({
       id: uuid(),
