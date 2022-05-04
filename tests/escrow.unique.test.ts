@@ -110,7 +110,7 @@ describe('Escrow test', () => {
     await unique.signTransaction(admin, api.tx.unique.setCollectionLimits(collectionId, { sponsorApproveTimeout: 1 }), 'api.tx.unique.setCollectionLimits');
     const evmCollection = lib.createEvmCollection(collectionId, contractOwner, web3);
     await unique.signTransaction(admin, api.tx.unique.setCollectionSponsor(collectionId, admin.address), 'api.tx.unique.setCollectionSponsor');
-    await lib.transferBalanceToEth(api, admin, lib.subToEth(admin.address));
+    //await lib.transferBalanceToEth(api, admin, lib.subToEth(admin.address));
     await unique.signTransaction(admin, api.tx.unique.confirmSponsorship(collectionId), 'api.tx.unique.confirmSponsorship');
     await unique.signTransaction(admin, api.tx.unique.setConstOnChainSchema(collectionId, JSON.stringify(TraitsSchema)), 'api.tx.unique.setConstOnChainSchema');
     fs.writeFileSync(cachedPath, JSON.stringify({ collectionId }));
