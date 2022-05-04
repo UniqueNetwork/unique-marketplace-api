@@ -144,13 +144,18 @@ export class AuctionClosingService {
 
       const tx = await this.kusamaApi.tx.balances.transferKeepAlive(address_from, ownerPrice).signAsync(this.auctionKeyring);
 
-      await this.extrinsicSubmitter
+      const extrinsic = await this.extrinsicSubmitter
         .submit(this.kusamaApi, tx)
-        .then(() => this.logger.log(`transfer done`))
+        .then(() => {
+          this.logger.log(`transfer done`)
+          return true;
+        })
         .catch((error) => this.logger.warn(`transfer failed with ${error.toString()}`));
 
-      await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.BOUGHT });
-      await this.auctionRepository.update(auction.id, { status: AuctionStatus.ended });
+      if (extrinsic) {
+        await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.BOUGHT });
+        await this.auctionRepository.update(auction.id, { status: AuctionStatus.ended });
+      }
     } else {
       const contractAsk = await this.contractAskRepository.findOne(auction.contractAskId);
       await this.auctionCancellingService.sendTokenBackToOwner(contractAsk);
