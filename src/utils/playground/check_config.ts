@@ -39,18 +39,19 @@ const checkCollection = async (collectionId, api, indent='  ') => {
     {
       const balance = (await api.query.system.account(address)).data.free.toBigInt();
       if (balance === 0n) {
-        fail(`Substrate wallet of sponsor is empty. Transfer some funds to ${address}`, false, indent);
+        fail(`The sponsor's wallet is empty. Transfer some funds to ${address}`, false, indent);
       } else {
         success(`Sponsor has ${balanceString(balance)} on its substrate wallet`, indent);
       }
     }
     {
+      /*
       const balance = (await api.rpc.eth.getBalance(evmAddress)).toBigInt();
       if (balance === 0n) {
         fail(`Ethereum wallet of sponsor is empty. Transfer some funds to ${evmAddress} [${address}]`, false, indent);
       } else {
         success(`Sponsor has ${balanceString(balance)} on its ethereum wallet`, indent);
-      }
+      }*/
     }
   }
   else {

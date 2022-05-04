@@ -1,6 +1,7 @@
-import { ClassToDto } from './../../utils/type-generators/class-to-dto';
+
 import { ApiProperty } from '@nestjs/swagger';
-import { Dto } from 'src/utils/dto';
+import { ClassToDto } from '../../utils/type-generators/class-to-dto';
+import { Dto } from '../../utils/dto';
 
 export class TradesFilter {
   @ApiProperty({ name: 'collectionId',

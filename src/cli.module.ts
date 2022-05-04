@@ -9,7 +9,6 @@ import {PlaygroundCommand} from './utils/playground';
 import {SentryLoggerService} from './utils/sentry/sentry-logger.service';
 
 import {EscrowModule} from './escrow/module';
-import {BroadcastModule} from "./broadcast/broadcast.module";
 import {RequestLoggerMiddleware} from "./utils/logging/request-logger-middleware.service";
 
 @Module({
@@ -23,7 +22,6 @@ import {RequestLoggerMiddleware} from "./utils/logging/request-logger-middleware
     ConfigModule,
     CommandModule,
     EscrowModule,
-    BroadcastModule,
   ],
   controllers: [],
   providers: [ PlaygroundCommand],
