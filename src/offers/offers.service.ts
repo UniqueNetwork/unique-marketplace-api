@@ -3,7 +3,6 @@ import { OfferTraits } from './dto/offer-traits';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
 
-import { paginate } from '../utils/pagination/paginate';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResult, PaginationResultDto } from '../utils/pagination/pagination-result';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
@@ -21,7 +20,8 @@ import {
 } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersQuerySortHelper } from "./offers-query-sort-helper";
-import { TypeAttributToken } from 'src/auction/types';
+import { TypeAttributToken } from '../auction/types';
+
 
 
 type OfferPaginationResult = {
