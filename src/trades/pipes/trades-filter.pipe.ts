@@ -1,9 +1,9 @@
-import { UntypedRequest } from './../../utils/type-generators/untyped-request';
-import { TradesFilter } from './../dto';
-import { TransformationResult } from './../../utils/type-generators/transformation-result';
+import { UntypedRequest } from '../../utils/type-generators/untyped-request';
+import { TradesFilter } from '../dto';
+import { TransformationResult } from '../../utils/type-generators/transformation-result';
 import { ArgumentMetadata, HttpStatus, Injectable, Optional, PipeTransform } from "@nestjs/common";
 import { ErrorHttpStatusCode, HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
-import { parseCollectionIdRequest, requestArray } from 'src/utils/parsers';
+import { parseCollectionIdRequest, requestArray } from '../../utils/parsers';
 
 
 export interface ParseTradesFilterPipeOptions {
