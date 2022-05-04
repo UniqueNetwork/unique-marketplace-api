@@ -72,7 +72,7 @@ export class AuctionCreationService {
 
     this.logger.debug(`token transfer block number: ${block.block_number}`);
 
-    const checkOwner = await this.checkOwner(+collectionId, +tokenId);
+    //const checkOwner = await this.checkOwner(+collectionId, +tokenId);
 
     const contractAsk = await this.contractAskRepository.create({
       id: uuid(),
@@ -93,10 +93,8 @@ export class AuctionCreationService {
       },
     });
 
-    await delay(1000);
 
-    if (checkOwner) {
-      await this.contractAskRepository.save(contractAsk);
+    await this.contractAskRepository.save(contractAsk);
       const offer = OfferContractAskDto.fromContractAsk(contractAsk);
       await this.searchIndexService.addSearchIndexIfNotExists({
         collectionId: Number(collectionId),
@@ -106,8 +104,6 @@ export class AuctionCreationService {
       this.broadcastService.sendAuctionStarted(offer);
 
       return offer;
-    }
-    return null;
   }
 
   private async sendTransferExtrinsic(tx: string): Promise<BlockchainBlock> {
