@@ -48,4 +48,5 @@ export interface MarketConfig {
       kusama: EscrowConfig,
     },
   },
+  ipfs: string
 }
