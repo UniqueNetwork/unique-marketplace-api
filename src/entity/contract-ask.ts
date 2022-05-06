@@ -1,4 +1,4 @@
-import { Column, Entity, Index, ManyToMany, ManyToOne, OneToOne } from 'typeorm';
+import { Column, Entity, Index, OneToOne } from 'typeorm';
 import { BlockchainBlock } from './blockchain-block';
 import { AuctionEntity } from "../auction/entities";
 import { SearchIndex } from './search-index';
@@ -42,6 +42,12 @@ export class ContractAsk {
 
     @Column('bigint', { name: 'block_number_buy', nullable: true })
     block_number_buy: string;
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_at_ask', })
+    created_at_ask: Date;
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at', })
+    updated_at: Date;
 
     @OneToOne((type) => BlockchainBlock, (BlockchainBlock) => BlockchainBlock.network)
     created_at: Date;

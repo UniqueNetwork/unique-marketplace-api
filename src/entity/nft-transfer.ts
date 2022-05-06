@@ -24,4 +24,19 @@ export class NFTTransfer {
 
     @Column('bigint', { name: 'block_number' })
     block_number: string;
+
+    @Column({
+      type: 'timestamp',
+      default: () => 'CURRENT_TIMESTAMP',
+      name: 'created_at',
+    })
+    created_at: Date;
+
+    @Column({
+      type: 'timestamp',
+      default: () => 'CURRENT_TIMESTAMP',
+      onUpdate: 'CURRENT_TIMESTAMP',
+      name: 'updated_at',
+    })
+    updated_at: Date;
 }
