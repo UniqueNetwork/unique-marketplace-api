@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Logger } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Logger } from '@nestjs/common';
 import { Connection, Not, Repository } from 'typeorm';
 import { BidEntity } from '../entities';
 import { BlockchainBlock, ContractAsk } from '../../entity';
@@ -12,6 +12,7 @@ import { DatabaseHelper } from './helpers/database-helper';
 import { BidStatus } from '../types';
 import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
+import { InjectSentry, SentryService } from 'src/utils/sentry';
 
 type AuctionCancelArgs = {
   collectionId: number;
@@ -32,6 +33,7 @@ export class AuctionCancelingService {
     @Inject('CONFIG') private config: MarketConfig,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
+    @InjectSentry() private readonly sentryService: SentryService
   ) {
     this.contractAskRepository = connection.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
@@ -90,6 +92,11 @@ export class AuctionCancelingService {
       ).signAsync(auctionKeyring);
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
+
+      if (blockNumber === undefined || blockNumber === null || blockNumber.toString() === '0') {
+        this.sentryService.message('sendTokenBackToOwner');
+        throw new Error('Block number is not defined')
+      }
 
       const block = this.blockchainBlockRepository.create({
         network: this.config.blockchain.unique.network,
