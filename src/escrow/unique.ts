@@ -8,8 +8,10 @@ import * as unique from '../utils/blockchain/unique';
 import * as util from '../utils/blockchain/util';
 import { MONEY_TRANSFER_STATUS } from './constants';
 import { MoneyTransfer } from '../entity';
+import { Logger } from "@nestjs/common";
 
 export class UniqueEscrow extends Escrow {
+  logger = new Logger(UniqueEscrow.name)
   inputDecoder;
   etherDecoder;
   explorer;
@@ -115,6 +117,7 @@ export class UniqueEscrow extends Escrow {
       this.getNetwork(),
     );
     logging.log(`Got nft transfer (collectionId: ${collectionId}, tokenId: ${tokenId}) in block #${blockNum}`);
+    this.logger.log(`{subject: 'Got nft transfer', thread: 'nft', collection: ${collectionId}, token: ${tokenId},block: ${blockNum}, addressTo: ${this.address2string(addressTo)}, addressFrom: ${this.address2string(addressFrom)}, log:'unique.processTransfer' }`)
   }
 
   async processAddAsk(blockNum, extrinsic, inputData, signer) {
@@ -230,6 +233,7 @@ export class UniqueEscrow extends Escrow {
     substrateAddress = substrateAddress ? substrateAddress : singer.toString();
     await this.service.registerKusamaWithdraw(balance, substrateAddress, blockNum, this.config('kusama.network'));
     logging.log(`Got WithdrawAllKSM (Sender: ${sender}, amount: ${balance}) in block #${blockNum}`);
+    this.logger.log(`{subject: 'Got withdrawAllKSM',thread:'withdraw', amount: ${balance}, block: ${blockNum}, sender: ${sender}, address: ${substrateAddress}, log:'unique.processWithdrawAllKSM'}`)
   }
 
   async processCall(blockNum, rawExtrinsic, events) {
