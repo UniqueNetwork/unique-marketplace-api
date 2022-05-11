@@ -115,7 +115,7 @@ export class EscrowService {
       { status: ASK_STATUS.CANCELLED, block_number_cancel: `${blockNumber}` },
     );
     logging.log(`{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: ${this.getNetwork(network)}, log: 'cancelAsk' }`)
-    this.logger.log(`{subject: contract_ask, status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: ${this.getNetwork(network)}, log: 'cancelAsk' }`)
+    this.logger.log(`{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: ${this.getNetwork(network)}, log: 'cancelAsk' }`)
   }
 
   async buyKSM(collectionId: number, tokenId: number, blockNumber: bigint, network?: string) {
