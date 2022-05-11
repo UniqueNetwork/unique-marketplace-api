@@ -5,7 +5,7 @@ import { AuctionStatus } from '../types';
 import { Connection, Repository } from 'typeorm';
 import { AuctionEntity } from '../entities';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
-import { AccountPairs, BlockchainBlock, ContractAsk } from '../../entity';
+import { BlockchainBlock, ContractAsk } from '../../entity';
 import { v4 as uuid } from 'uuid';
 import { ASK_STATUS } from '../../escrow/constants';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
@@ -15,7 +15,8 @@ import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { MarketConfig } from '../../config/market-config';
 import { SearchIndexService } from './search-index.service';
 import { AuctionCredentials } from '../providers';
-import { InjectSentry, SentryService } from 'src/utils/sentry';
+import { InjectSentry, SentryService } from '../../utils/sentry';
+import { subToEth } from '../../utils/blockchain/web3';
 
 type CreateAuctionArgs = {
   collectionId: string;
@@ -51,26 +52,20 @@ export class AuctionCreationService {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
   }
 
-  private async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
+  async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
     const token = (await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId)).toJSON()
     const owner = token['owner'];
 
-    const uniqueSubstract = encodeAddress(this.auctionCredentials.uniqueAddress);
+    const auctionSubstract = encodeAddress(this.auctionCredentials.uniqueAddress);
+    const auctionEth = subToEth(auctionSubstract).toLowerCase();
 
     if (owner?.substrate) {
-      return encodeAddress(owner.substrate) === uniqueSubstract;
+      return encodeAddress(owner.substrate) === auctionSubstract;
     }
 
     if (owner?.ethereum) {
-      const ethereumSubstract = await this.connection.manager.createQueryBuilder(AccountPairs, 'account_pairs')
-        .select(['account_pairs.ethereum'])
-        .where('account_pairs.substrate = :address', { address: uniqueSubstract })
-        .getOne() as { ethereum: string };
-
-      this.logger.log(`Ethereum auction address: ${ethereumSubstract}, Owner ethereum address: ${owner.ethereum}`);
-      return owner.ethereum === ethereumSubstract;
+      return owner.ethereum === auctionEth;
     }
-
     return false;
   }
 
