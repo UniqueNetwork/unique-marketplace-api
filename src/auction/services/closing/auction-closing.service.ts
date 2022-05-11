@@ -96,6 +96,11 @@ export class AuctionClosingService {
     const contractAsk = await this.contractAskRepository.findOne(auction.contractAskId);
     const { address_from } = contractAsk;
 
+    if (othersBidders.length === 0) {
+      await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.CANCELLED });
+      await this.auctionRepository.update(auction.id, { status: AuctionStatus.ended });
+    }
+
     for (const bidder of othersBidders) {
       try {
         const { bidderAddress, totalAmount } = bidder;
