@@ -74,7 +74,10 @@ export class DatabaseHelper {
       await this.entityManager.update(
         AuctionEntity,
         auctionIds,
-        { status: AuctionStatus.stopped },
+        {
+          status: AuctionStatus.stopped,
+          stopAt: new Date()
+        },
       );
     }
 
@@ -92,7 +95,10 @@ export class DatabaseHelper {
       .createQueryBuilder(AuctionEntity, 'auction')
       .where('auction.status = :auctionStatus')
       .andWhere(`auction.id NOT IN (${mintingBids.getSql()})`)
-      .setParameters({ auctionStatus: AuctionStatus.stopped, bidStatus: BidStatus.minting })
+      .setParameters({
+        auctionStatus: AuctionStatus.stopped,
+        bidStatus: BidStatus.minting
+      })
       .getMany();
   }
 
