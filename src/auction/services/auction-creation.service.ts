@@ -119,6 +119,16 @@ export class AuctionCreationService {
 
       this.broadcastService.sendAuctionStarted(offer);
 
+    this.logger.debug(`{subject:'Create offer for auction',thread:'auction',
+      collection: ${collectionId},
+      token: ${tokenId},
+      price: ${startPrice.toString()},
+      block: ${block.block_number},
+      auction: { stopAt:${stopAt}, startPrice: ${startPrice.toString()}, priceStep: ${priceStep.toString()}, status: 'ACTIVE' } ,
+      address_from: ${ownerAddress}
+      address_fromNorm: ${encodeAddress(ownerAddress)}
+     }`)
+
       return offer;
   }
 
