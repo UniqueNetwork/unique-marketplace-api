@@ -3,13 +3,13 @@ LABEL maintainer="Unique.Network"
 
 WORKDIR /src
 
-COPY ../package.json .
+COPY ./package.json .
 
 RUN npm install husky -g
 
 RUN npm install --production
 
-COPY .. .
+COPY . .
 
 RUN npm run build
 
