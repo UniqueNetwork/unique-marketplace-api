@@ -114,8 +114,8 @@ export class EscrowService {
       },
       { status: ASK_STATUS.CANCELLED, block_number_cancel: `${blockNumber}` },
     );
-    logging.log(`{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: ${this.getNetwork(network)}, log: 'cancelAsk' }`)
-    this.logger.log(`{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: ${this.getNetwork(network)}, log: 'cancelAsk' }`)
+    logging.log(`{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(network)}', log: 'cancelAsk' }`)
+    this.logger.log(`{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(network)}', log: 'cancelAsk' }`)
   }
 
   async buyKSM(collectionId: number, tokenId: number, blockNumber: bigint, network?: string) {
@@ -129,8 +129,8 @@ export class EscrowService {
       },
       { status: ASK_STATUS.BOUGHT, block_number_buy: `${blockNumber}` },
     );
-    logging.log(`{subject:'Got buyKSM', thread:'update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network:${this.getNetwork(network)}, status: 'ACTIVE', log:'buyKSM' }`)
-    this.logger.log(`{subject:'Got buyKSM', thread:'update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network:${this.getNetwork(network)}, status: 'ACTIVE', log:'buyKSM' }`)
+    logging.log(`{subject:'Got buyKSM', thread:'offer update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network:'${this.getNetwork(network)}', status: 'ACTIVE', log:'buyKSM' }`)
+    this.logger.log(`{subject:'Got buyKSM', thread:'offer update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(network)}', status: 'ACTIVE', log:'buyKSM' }`)
   }
 
   async registerTransfer(
