@@ -3,7 +3,7 @@ version: "3.5"
 x-marketplace: &marketplace-backend
   build:
     context: .
-    dockerfile: Dockerfile
+    dockerfile: .docker/Dockerfile
   image: marketplace-backend
   restart: unless-stopped
   environment:
