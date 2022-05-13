@@ -7,8 +7,8 @@ import * as logging from '../utils/logging';
 
 import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex } from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
-import { CollectionToken } from 'src/auction/types';
 import { encodeAddress } from '@polkadot/util-crypto';
+import { CollectionToken } from "../auction/types";
 
 @Injectable()
 export class EscrowService {
@@ -99,8 +99,8 @@ export class EscrowService {
       created_at_ask: new Date(),
       updated_at: new Date()
     });
-    logging.log(`{subject:'Created active offer', thread: 'registerAsk', address: '${data.addressFrom}', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${data.addressTo}, block: ${blockNum}, normalAddress: { address: 'address_normal: '${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`);
-    this.logger.log(`{subject:'Created active offer', thread: 'registerAsk', address: '${data.addressFrom}', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${data.addressTo}, block: ${blockNum}, normalAddress: { address: 'address_normal: '${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`);
+    logging.log(`{subject:'Created active offer', thread: 'registerAsk', address: '${data.addressFrom}', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${data.addressTo}, block: ${blockNum}, normalAddress: { address: '${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`);
+    this.logger.log(`{subject:'Created active offer', thread: 'registerAsk', address: '${data.addressFrom}', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${data.addressTo}, block: ${blockNum}, normalAddress: { address: ${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`);
   }
 
   async cancelAsk(collectionId: number, tokenId: number, blockNumber: bigint, network?: string) {
@@ -262,8 +262,8 @@ export class EscrowService {
       ask_created_at: await this.getBlockCreatedAt(BigInt(ask.block_number_ask), network),
       buy_created_at: await this.getBlockCreatedAt(blockNum, network),
     });
-    logging.log(`{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${ask.token_id}, price: ${price}, block: ${blockNum},address_seller: '${ask.address_from}', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(buyer)}' },  log: 'registerTrade' }`)
-    this.logger.log(`{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${ask.token_id}, price: ${price}, block: ${blockNum},address_seller: '${ask.address_from}', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(buyer)}' },  log: 'registerTrade' }`)
+    logging.log(`{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${ask.token_id}, price: ${price}, block: ${blockNum}, address_seller: '${ask.address_from}', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(buyer)}' },  log: 'registerTrade' }`)
+    this.logger.log(`{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${ask.token_id}, price: ${price}, block: ${blockNum}, address_seller: '${ask.address_from}', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(buyer)}' },  log: 'registerTrade' }`)
     await this.buyKSM(parseInt(ask.collection_id), parseInt(ask.token_id), blockNum, network);
   }
 
