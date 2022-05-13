@@ -78,7 +78,7 @@ export class AuctionCancelingService {
       await transactionEntityManager.update(ContractAsk, contractAsk.id, { status: ASK_STATUS.CANCELLED });
       await transactionEntityManager.update(AuctionEntity, contractAsk.auction.id, {
         stopAt: new Date(),
-        status: AuctionStatus.stopped
+        status: AuctionStatus.ended
       })
 
       return contractAsk;
