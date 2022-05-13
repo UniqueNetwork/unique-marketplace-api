@@ -124,9 +124,9 @@ export class AuctionCreationService {
       token: ${tokenId},
       price: ${startPrice.toString()},
       block: ${block.block_number},
-      auction: { stopAt:${stopAt}, startPrice: ${startPrice.toString()}, priceStep: ${priceStep.toString()}, status: 'ACTIVE' } ,
-      address_from: ${ownerAddress}
-      address_fromNorm: ${encodeAddress(ownerAddress)}
+      auction: { stopAt:'${stopAt}', startPrice: ${startPrice.toString()}, priceStep: ${priceStep.toString()}, status: 'ACTIVE' },
+      address_from: '${ownerAddress}',
+      normal: { address_from: '${encodeAddress(ownerAddress)}' }
      }`)
 
       return offer;
