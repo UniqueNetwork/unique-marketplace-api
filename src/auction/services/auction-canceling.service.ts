@@ -1,6 +1,6 @@
 import { BadRequestException, HttpStatus, Inject, Logger } from '@nestjs/common';
 import { Connection, Not, Repository } from 'typeorm';
-import { BidEntity } from '../entities';
+import { AuctionEntity, BidEntity } from '../entities';
 import { BlockchainBlock, ContractAsk } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
@@ -9,7 +9,7 @@ import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { ASK_STATUS } from '../../escrow/constants';
 import { DatabaseHelper } from './helpers/database-helper';
-import { BidStatus } from '../types';
+import { AuctionStatus, BidStatus } from '../types';
 import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { InjectSentry, SentryService } from '../../utils/sentry';
@@ -60,6 +60,8 @@ export class AuctionCancelingService {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
+
+
       if (contractAsk.address_from !== encodeAddress(ownerAddress)) {
         throw new Error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`);
       }
@@ -74,6 +76,10 @@ export class AuctionCancelingService {
 
       contractAsk.status = ASK_STATUS.CANCELLED;
       await transactionEntityManager.update(ContractAsk, contractAsk.id, { status: ASK_STATUS.CANCELLED });
+      await transactionEntityManager.update(AuctionEntity, contractAsk.auction.id, {
+        stopAt: new Date(),
+        status: AuctionStatus.stopped
+      })
 
       return contractAsk;
     });

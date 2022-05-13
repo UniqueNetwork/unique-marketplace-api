@@ -21,7 +21,7 @@ export class ForceClosingService {
 
     await this.connection.manager.update(AuctionEntity, contract.auction.id, {
       stopAt: new Date(),
-      status: AuctionStatus.active,
+      status: AuctionStatus.stopped,
     });
   }
 }
