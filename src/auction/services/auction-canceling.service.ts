@@ -12,7 +12,7 @@ import { DatabaseHelper } from './helpers/database-helper';
 import { BidStatus } from '../types';
 import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { InjectSentry, SentryService } from 'src/utils/sentry';
+import { InjectSentry, SentryService } from '../../utils/sentry';
 
 type AuctionCancelArgs = {
   collectionId: number;

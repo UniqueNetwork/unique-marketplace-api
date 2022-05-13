@@ -49,11 +49,14 @@ export class OffersController {
     ): Promise<OfferContractAskDto> {
       const offer = await this.offersService.getOne({ collectionId, tokenId })
 
-      if (offer) return offer;
+      if (offer) {
+        return offer;
+      } else {
+        throw new NotFoundException(
+          `No active offer for collection ${collectionId}, token ${tokenId}`,
+        );
+      }
 
-      throw new NotFoundException(
-        `No active offer for collection ${collectionId}, token ${tokenId}`,
-      );
     }
 
     @Get('traits/:collectionId')
