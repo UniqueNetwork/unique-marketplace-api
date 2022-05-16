@@ -27,7 +27,7 @@ const initSwagger = (app: INestApplication, config, pkg) => {
 let app: INestApplication;
 
 async function bootstrap() {
-  app = await NestFactory.create(AppModule,{logger: ['log', 'error', 'warn']});
+  app = await NestFactory.create(AppModule,{logger: ['log', 'error', 'warn','debug']});
   const config = app.get('CONFIG');
   const pkg = JSON.parse(
     await promises.readFile(join('.', 'package.json'), 'utf8'),

@@ -1,0 +1,20 @@
+version: "3.5"
+
+
+services:
+  test-postgres:
+    image: postgres:14.1-alpine
+    container_name: test-postgres
+    environment:
+      POSTGRES_DB: 'marketplace_db'
+      POSTGRES_USER: 'postgresman'
+      POSTGRES_PASSWORD: 'test12345'
+      POSTGRES_PORT: '5432'
+      POSTGRES_INITDB_ARGS: "--auth-local=trust"
+    restart: unless-stopped
+    ports:
+      - 6432:5432
+    volumes:
+      - ../postgresql/marketplace:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+

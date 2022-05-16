@@ -3,7 +3,7 @@ version: "3.5"
 x-marketplace: &marketplace-backend
   build:
     context: .
-    dockerfile: Dockerfile
+    dockerfile: .docker/Dockerfile
   image: marketplace-backend
   restart: unless-stopped
   environment:
@@ -11,6 +11,7 @@ x-marketplace: &marketplace-backend
     API_PORT: '5000'
     DISABLE_SECURITY: 'false'
     ESCROW_SEED: '//Alice'
+    AUCTION_SEED: '//Bob'
     UNIQUE_WS_ENDPOINT: 'wss://opal.unique.network'
     UNIQUE_NETWORK: 'opal'
     UNIQUE_START_FROM_BLOCK: 'current'

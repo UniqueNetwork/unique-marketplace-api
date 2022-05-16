@@ -1,11 +1,11 @@
-import { delay } from './../../utils/delay';
+
 import { encodeAddress } from '@polkadot/util-crypto';
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { AuctionStatus } from '../types';
 import { Connection, Repository } from 'typeorm';
 import { AuctionEntity } from '../entities';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
-import { AccountPairs, BlockchainBlock, ContractAsk } from '../../entity';
+import { BlockchainBlock, ContractAsk } from '../../entity';
 import { v4 as uuid } from 'uuid';
 import { ASK_STATUS } from '../../escrow/constants';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
@@ -15,6 +15,8 @@ import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { MarketConfig } from '../../config/market-config';
 import { SearchIndexService } from './search-index.service';
 import { AuctionCredentials } from '../providers';
+import { InjectSentry, SentryService } from '../../utils/sentry';
+import { subToEth } from '../../utils/blockchain/web3';
 
 type CreateAuctionArgs = {
   collectionId: string;
@@ -42,23 +44,29 @@ export class AuctionCreationService {
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @Inject('CONFIG') private config: MarketConfig,
     private searchIndexService: SearchIndexService,
-    @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials
+    @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
+    @InjectSentry() private readonly sentryService: SentryService
   ) {
     this.contractAskRepository = connection.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
   }
 
-  private async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
+  async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
     const token = (await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId)).toJSON()
     const owner = token['owner'];
-    const substractAddress = await this.connection.manager.createQueryBuilder(AccountPairs, 'account_pairs')
-    .select(['account_pairs.substrate'])
-    .where('account_pairs.ethereum = :address', { address: owner['ethereum'] })
-    .getOne() as { substrate: string };
 
-    const uniqueSubstract = encodeAddress(this.auctionCredentials.uniqueAddress);
-    return uniqueSubstract === substractAddress.substrate;
+    const auctionSubstract = encodeAddress(this.auctionCredentials.uniqueAddress);
+    const auctionEth = subToEth(auctionSubstract).toLowerCase();
+
+    if (owner?.substrate) {
+      return encodeAddress(owner.substrate) === auctionSubstract;
+    }
+
+    if (owner?.ethereum) {
+      return owner.ethereum === auctionEth;
+    }
+    return false;
   }
 
   async create(createAuctionRequest: CreateAuctionArgs): Promise<OfferContractAskDto> {
@@ -72,7 +80,15 @@ export class AuctionCreationService {
 
     this.logger.debug(`token transfer block number: ${block.block_number}`);
 
-    //const checkOwner = await this.checkOwner(+collectionId, +tokenId);
+    const checkOwner = await this.checkOwner(+collectionId, +tokenId);
+
+    if (!checkOwner) {
+      this.sentryService.message('the token does not belong to the auction');
+      throw new BadRequestException({
+        statusCode: HttpStatus.CONFLICT,
+        messsage: 'The token does not belog to the auction'
+      })
+    }
 
     const contractAsk = await this.contractAskRepository.create({
       id: uuid(),
@@ -103,6 +119,16 @@ export class AuctionCreationService {
 
       this.broadcastService.sendAuctionStarted(offer);
 
+    this.logger.debug(`{subject:'Create offer for auction',thread:'auction',
+      collection: ${collectionId},
+      token: ${tokenId},
+      price: ${startPrice.toString()},
+      block: ${block.block_number},
+      auction: { stopAt:'${stopAt}', startPrice: ${startPrice.toString()}, priceStep: ${priceStep.toString()}, status: 'ACTIVE' },
+      address_from: '${ownerAddress}',
+      normal: { address_from: '${encodeAddress(ownerAddress)}' }
+     }`)
+
       return offer;
   }
 
@@ -110,15 +136,33 @@ export class AuctionCreationService {
     try {
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 
+      if (blockNumber === undefined || blockNumber === null || blockNumber.toString() === '0') {
+
+        this.sentryService.message('sendTransferExtrinsic');
+
+        throw new BadRequestException({
+          statusCode: HttpStatus.CONFLICT,
+          message: 'Block number is not defined'
+        });
+      }
+
       return this.blockchainBlockRepository.create({
         network: this.config.blockchain.unique.network,
         block_number: blockNumber.toString(),
         created_at: new Date(),
       });
+
     } catch (error) {
       this.logger.warn(error);
+      this.sentryService.instance().captureException(new BadRequestException(error), {
+        tags: { section: 'contract_ask' }
+      });
+      throw new BadRequestException({
+        statusCode: HttpStatus.CONFLICT,
+        message: 'Failed send transfer extrinsic',
+        error: error.message
+      });
 
-      throw new BadRequestException(error.message);
     }
   }
 }

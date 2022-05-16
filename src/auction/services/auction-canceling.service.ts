@@ -1,6 +1,6 @@
-import { BadRequestException, Inject, Logger } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Logger } from '@nestjs/common';
 import { Connection, Not, Repository } from 'typeorm';
-import { BidEntity } from '../entities';
+import { AuctionEntity, BidEntity } from '../entities';
 import { BlockchainBlock, ContractAsk } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
@@ -9,9 +9,10 @@ import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { ASK_STATUS } from '../../escrow/constants';
 import { DatabaseHelper } from './helpers/database-helper';
-import { BidStatus } from '../types';
+import { AuctionStatus, BidStatus } from '../types';
 import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
+import { InjectSentry, SentryService } from '../../utils/sentry';
 
 type AuctionCancelArgs = {
   collectionId: number;
@@ -32,6 +33,7 @@ export class AuctionCancelingService {
     @Inject('CONFIG') private config: MarketConfig,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
+    @InjectSentry() private readonly sentryService: SentryService
   ) {
     this.contractAskRepository = connection.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
@@ -58,6 +60,8 @@ export class AuctionCancelingService {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
+
+
       if (contractAsk.address_from !== encodeAddress(ownerAddress)) {
         throw new Error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`);
       }
@@ -72,6 +76,10 @@ export class AuctionCancelingService {
 
       contractAsk.status = ASK_STATUS.CANCELLED;
       await transactionEntityManager.update(ContractAsk, contractAsk.id, { status: ASK_STATUS.CANCELLED });
+      await transactionEntityManager.update(AuctionEntity, contractAsk.auction.id, {
+        stopAt: new Date(),
+        status: AuctionStatus.ended
+      })
 
       return contractAsk;
     });
@@ -90,6 +98,11 @@ export class AuctionCancelingService {
       ).signAsync(auctionKeyring);
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
+
+      if (blockNumber === undefined || blockNumber === null || blockNumber.toString() === '0') {
+        this.sentryService.message('sendTokenBackToOwner');
+        throw new Error('Block number is not defined')
+      }
 
       const block = this.blockchainBlockRepository.create({
         network: this.config.blockchain.unique.network,
