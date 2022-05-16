@@ -5,8 +5,14 @@ export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column('varchar', { name: 'subst_address', length: 128 })
-  subst_address: string;
+  @Column('varchar', { name: 'address', length: 128 })
+  address: string;
+
+  @Column('varchar', { name: 'access_token' })
+  access_token: string;
+
+  @Column('varchar', { name: 'refresh_token' })
+  refresh_token: string;
 
   @Column({
     type: 'timestamp',
