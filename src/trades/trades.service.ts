@@ -196,6 +196,7 @@ export class TradesService {
             'token_id',
             'is_trait',
             'locale',
+            'key',
             'array_length(items, 1) as count_items',
             'items',
             'unnest(items) traits'
