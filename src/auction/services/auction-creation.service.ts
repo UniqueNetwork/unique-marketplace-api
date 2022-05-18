@@ -59,7 +59,7 @@ export class AuctionCreationService {
   }
 
   async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
-    console.log(await this.uniqueApi.rpc.unique.tokenOwner(collectionId, tokenId));
+
     const token = (await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId)).toJSON();
     const owner = token['owner'];
 
@@ -89,10 +89,9 @@ export class AuctionCreationService {
     const block = await this.sendTransferExtrinsic(tx);
     await this.blockchainBlockRepository.save(block);
 
-    this.logger.debug(`token transfer block number: ${block.block_number}`);
+    this.logger.debug(`Token transfer block number: ${block.block_number}`);
 
     const checkOwner = await this.checkOwner(+collectionId, +tokenId);
-    console.log(checkOwner);
     if (!checkOwner) {
       this.sentryService.message('the token does not belong to the auction');
       throw new BadRequestException({
