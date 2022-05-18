@@ -28,6 +28,13 @@ export type CreateAuctionArgs = {
   tx: string;
 };
 
+type FailedAuctionArgs = {
+  startPrice: bigint;
+  priceStep: bigint;
+  days: number;
+  minutes: number;
+}
+
 @Injectable()
 export class AuctionCreationService {
   private readonly logger = new Logger(AuctionCreationService.name);
@@ -141,6 +148,20 @@ export class AuctionCreationService {
     this.logger.debug(JSON.stringify(auctionCreatedData));
 
     return offer;
+  }
+
+
+  async saveFailedAuction(args: FailedAuctionArgs): Promise<void> {
+    await this.auctionRepository.save({
+      id: uuid(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      priceStep: args.priceStep.toString(),
+      startPrice: args.startPrice.toString(),
+      status: AuctionStatus.failed,
+      stopAt: new Date(),
+      bids: []
+    });
   }
 
   private async sendTransferExtrinsic(tx: string): Promise<BlockchainBlock> {

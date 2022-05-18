@@ -66,14 +66,21 @@ export class AuctionController {
   })
   @ApiResponse({ type: OfferContractAskDto })
   async createAuction(@Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
-    const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
+    try {
+      const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
 
-    return await this.auctionCreationService.create({
-      ...createAuctionRequest,
-      collectionId: txInfo.args.collection_id,
-      ownerAddress: txInfo.signerAddress,
-      tokenId: txInfo.args.item_id,
-    });
+      return await this.auctionCreationService.create({
+        ...createAuctionRequest,
+        collectionId: txInfo.args.collection_id,
+        ownerAddress: txInfo.signerAddress,
+        tokenId: txInfo.args.item_id,
+      });
+    } catch (error) {
+
+      await this.auctionCreationService.saveFailedAuction(createAuctionRequest);
+
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Post('place_bid')
