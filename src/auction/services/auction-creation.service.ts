@@ -1,4 +1,3 @@
-
 import { encodeAddress } from '@polkadot/util-crypto';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { AuctionStatus } from '../types';
@@ -9,7 +8,7 @@ import { BlockchainBlock, ContractAsk } from '../../entity';
 import { v4 as uuid } from 'uuid';
 import { ASK_STATUS } from '../../escrow/constants';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
-import { ApiPromise } from '@polkadot/api';
+import { ApiPromise} from '@polkadot/api';
 import { DateHelper } from '../../utils/date-helper';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { MarketConfig } from '../../config/market-config';
@@ -18,7 +17,7 @@ import { AuctionCredentials } from '../providers';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 import { subToEth } from '../../utils/blockchain/web3';
 
-type CreateAuctionArgs = {
+export type CreateAuctionArgs = {
   collectionId: string;
   tokenId: string;
   ownerAddress: string;
@@ -40,12 +39,12 @@ export class AuctionCreationService {
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     private broadcastService: BroadcastService,
-    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @Inject('UNIQUE_API') private uniqueApi: any,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @Inject('CONFIG') private config: MarketConfig,
     private searchIndexService: SearchIndexService,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
-    @InjectSentry() private readonly sentryService: SentryService
+    @InjectSentry() private readonly sentryService: SentryService,
   ) {
     this.contractAskRepository = connection.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
@@ -53,7 +52,8 @@ export class AuctionCreationService {
   }
 
   async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
-    const token = (await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId)).toJSON()
+    console.log(await this.uniqueApi.rpc.unique.tokenOwner(collectionId, tokenId));
+    const token = (await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId)).toJSON();
     const owner = token['owner'];
 
     const auctionSubstract = encodeAddress(this.auctionCredentials.uniqueAddress);
@@ -69,6 +69,10 @@ export class AuctionCreationService {
     return false;
   }
 
+  /**
+   * Create auction
+   * @param createAuctionRequest
+   */
   async create(createAuctionRequest: CreateAuctionArgs): Promise<OfferContractAskDto> {
     const { collectionId, tokenId, ownerAddress, days, minutes, startPrice, priceStep, tx } = createAuctionRequest;
 
@@ -81,13 +85,13 @@ export class AuctionCreationService {
     this.logger.debug(`token transfer block number: ${block.block_number}`);
 
     const checkOwner = await this.checkOwner(+collectionId, +tokenId);
-
+    console.log(checkOwner);
     if (!checkOwner) {
       this.sentryService.message('the token does not belong to the auction');
       throw new BadRequestException({
         statusCode: HttpStatus.CONFLICT,
-        messsage: 'The token does not belog to the auction'
-      })
+        messsage: 'The token does not belog to the auction',
+      });
     }
 
     const contractAsk = await this.contractAskRepository.create({
@@ -109,27 +113,34 @@ export class AuctionCreationService {
       },
     });
 
-
     await this.contractAskRepository.save(contractAsk);
-      const offer = OfferContractAskDto.fromContractAsk(contractAsk);
-      await this.searchIndexService.addSearchIndexIfNotExists({
-        collectionId: Number(collectionId),
-        tokenId: Number(tokenId),
-      });
+    const offer = OfferContractAskDto.fromContractAsk(contractAsk);
+    await this.searchIndexService.addSearchIndexIfNotExists({
+      collectionId: Number(collectionId),
+      tokenId: Number(tokenId),
+    });
 
-      this.broadcastService.sendAuctionStarted(offer);
+    this.broadcastService.sendAuctionStarted(offer);
 
-    this.logger.debug(`{subject:'Create offer for auction',thread:'auction',
-      collection: ${collectionId},
-      token: ${tokenId},
-      price: ${startPrice.toString()},
-      block: ${block.block_number},
-      auction: { stopAt:'${stopAt}', startPrice: ${startPrice.toString()}, priceStep: ${priceStep.toString()}, status: 'ACTIVE' },
-      address_from: '${ownerAddress}',
-      normal: { address_from: '${encodeAddress(ownerAddress)}' }
-     }`)
+    const auctionCreatedData = {
+      subject:'Create offer for auction',
+      thread:'auction',
+      collection: collectionId,
+      token: tokenId,
+      price: startPrice.toString(),
+      block: block.block_number,
+      auction: {
+        stopAt:`${stopAt}`,
+        startPrice: startPrice.toString(),
+        priceStep: priceStep.toString(),
+        status: 'ACTIVE'
+      },
+      address_from: ownerAddress,
+      address_from_n42: encodeAddress(ownerAddress)
+    }
+    this.logger.debug(JSON.stringify(auctionCreatedData));
 
-      return offer;
+    return offer;
   }
 
   private async sendTransferExtrinsic(tx: string): Promise<BlockchainBlock> {
@@ -137,32 +148,29 @@ export class AuctionCreationService {
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 
       if (blockNumber === undefined || blockNumber === null || blockNumber.toString() === '0') {
-
         this.sentryService.message('sendTransferExtrinsic');
 
         throw new BadRequestException({
           statusCode: HttpStatus.CONFLICT,
-          message: 'Block number is not defined'
+          message: 'Block number is not defined',
         });
       }
-
+      this.logger.debug(`{subject:'Send Transfer Extrinsic', thread:'transfer extrinsic', network: '${this.config.blockchain.unique.network}', block_number: '${blockNumber.toString()}' }`)
       return this.blockchainBlockRepository.create({
         network: this.config.blockchain.unique.network,
         block_number: blockNumber.toString(),
         created_at: new Date(),
       });
-
     } catch (error) {
       this.logger.warn(error);
       this.sentryService.instance().captureException(new BadRequestException(error), {
-        tags: { section: 'contract_ask' }
+        tags: { section: 'contract_ask' },
       });
       throw new BadRequestException({
         statusCode: HttpStatus.CONFLICT,
         message: 'Failed send transfer extrinsic',
-        error: error.message
+        error: error.message,
       });
-
     }
   }
 }
