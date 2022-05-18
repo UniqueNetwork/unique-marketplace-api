@@ -6,12 +6,12 @@ import {
   Delete,
   Get,
   Headers,
-  Inject,
+  Inject, Logger,
   Post,
   Query,
   Req,
   UseInterceptors,
-  ValidationPipe
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -48,6 +48,7 @@ const WithSignature = ApiHeader({
 @Controller('auction')
 @UseInterceptors(TraceInterceptor)
 export class AuctionController {
+  private logger: Logger;
   constructor(
     private readonly auctionCreationService: AuctionCreationService,
     private readonly auctionCancellingService: AuctionCancelingService,
@@ -57,7 +58,9 @@ export class AuctionController {
     private readonly signatureVerifier: SignatureVerifier,
     @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
-  ) {}
+  ) {
+    this.logger = new Logger(AuctionController.name)
+  }
 
   @Post('create_auction')
   @ApiOperation({
@@ -69,6 +72,7 @@ export class AuctionController {
     try {
       const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
 
+      this.logger.debug(`Create an auction - collectionId: ${txInfo.args.collection_id},ownerAddress: ${txInfo.signerAddress}, tokenId: ${txInfo.args.item_id}`)
       return await this.auctionCreationService.create({
         ...createAuctionRequest,
         collectionId: txInfo.args.collection_id,
@@ -140,7 +144,7 @@ export class AuctionController {
     });
 
     const ownerAddress = await convertAddress(signerAddress, this.uniqueApi.registry.chainSS58);
-
+    this.logger.debug
     return await this.auctionCancellingService.tryCancelAuction({
       collectionId: query.collectionId,
       tokenId: query.tokenId,
