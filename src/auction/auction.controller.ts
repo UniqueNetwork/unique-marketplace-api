@@ -13,7 +13,7 @@ import {
   UseInterceptors,
   ValidationPipe
 } from '@nestjs/common';
-import { ApiHeader, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { convertAddress } from '../utils/blockchain/util';
 import { AuctionCreationService } from './services/auction-creation.service';
@@ -35,6 +35,7 @@ import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidWithdrawService } from './services/bid-withdraw.service';
 import { TraceInterceptor } from "../utils/sentry";
 import { BidsWitdrawByOwnerDto } from './responses';
+import * as fs from 'fs';
 
 const WithSignature = ApiHeader({
   name: 'Authorization',
@@ -59,6 +60,10 @@ export class AuctionController {
   ) {}
 
   @Post('create_auction')
+  @ApiOperation({
+    summary: 'Create an auction',
+    description: fs.readFileSync('docs/create_auction.md').toString(),
+  })
   @ApiResponse({ type: OfferContractAskDto })
   async createAuction(@Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
     try {
@@ -80,6 +85,10 @@ export class AuctionController {
 
   @Post('place_bid')
   @ApiResponse({ type: OfferContractAskDto })
+  @ApiOperation({
+    summary: 'Placing a bid in an auction',
+    description: fs.readFileSync('docs/place_bid_auction.md').toString(),
+  })
   async placeBid(@Body() placeBidRequest: PlaceBidRequestDto): Promise<OfferContractAskDto> {
     const txInfo = await this.txDecoder.decodeBalanceTransfer(placeBidRequest.tx);
 
@@ -92,6 +101,10 @@ export class AuctionController {
 
   @Post('calculate')
   @ApiResponse({ type: CalculationInfoResponseDto })
+  @ApiOperation({
+    summary: 'Calculation',
+    description: fs.readFileSync('docs/calculation.md').toString(),
+  })
   async calculate(@Body() calculationRequest: CalculationRequestDto): Promise<CalculationInfoResponseDto> {
     try {
       const bidderAddress = await convertAddress(calculationRequest.bidderAddress, this.kusamaApi.registry.chainSS58);
@@ -106,6 +119,10 @@ export class AuctionController {
 
   @Delete('cancel_auction')
   @ApiResponse({ type: OfferContractAskDto })
+  @ApiOperation({
+    summary: 'Canceled an auction',
+    description: fs.readFileSync('docs/cancel_auction.md').toString(),
+  })
   @WithSignature
   async cancelAuction(
     @Query() query: CancelAuctionQueryDto,
@@ -132,6 +149,10 @@ export class AuctionController {
   }
 
   @Delete('withdraw_bid')
+  @ApiOperation({
+    summary: 'Withdraw bid',
+    description: fs.readFileSync('docs/withdraw_bid.md').toString(),
+  })
   @WithSignature
   async withdrawBid(@Query() query: WithdrawBidQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<void> {
     AuctionController.checkRequestTimestamp(query.timestamp);
@@ -154,11 +175,19 @@ export class AuctionController {
   }
 
   @Get('withdraw_bids')
+  @ApiOperation({
+    summary: 'Get bids',
+    description: fs.readFileSync('docs/list_withdraw_bid.md').toString(),
+  })
   async getTokenWithdrawBid(@Query() query: OwnerWithdrawBidQueryDto): Promise<BidsWitdrawByOwnerDto> {
     return this.bidWithdrawService.getBidsForWithdraw(query.owner);
   }
 
   @Delete('withdraw_choose_bid')
+  @ApiOperation({
+    summary: 'Withdraw choose bid',
+    description: fs.readFileSync('docs/withdraw_choose_bid.md').toString(),
+  })
   @WithSignature
   async withdrawChooseBid(@Query() query: WithdrawBidChosenQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<void> {
     AuctionController.checkRequestTimestamp(query.timestamp);
