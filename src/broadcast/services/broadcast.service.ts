@@ -29,7 +29,7 @@ export class BroadcastService {
 
     this.server = server;
 
-    this.logger.debug(`initialised by ${isServer ? 'BroadcastIOServer' : 'BroadcastIOEmitter'}`);
+    this.logger.debug(`Initialised by ${isServer ? 'BroadcastIOServer' : 'BroadcastIOEmitter'}`);
   }
 
   private static getAuctionRoomId({ collectionId, tokenId }: TokenIds): string {
@@ -65,14 +65,14 @@ export class BroadcastService {
   }
 
   sendAuctionStarted(offer: OfferContractAskDto): void {
-    this.logger.debug(`auctionStarted - ${JSON.stringify(offer)}`);
+    this.logger.debug(`[Emit] auctionStarted - ${JSON.stringify(offer)}`);
     this.server.emit('auctionStarted', offer);
   }
 
   sendBidPlaced(offer: OfferContractAskDto): void {
     const roomId = BroadcastService.getAuctionRoomId(offer);
 
-    this.logger.debug(`bidPlaced - ${roomId} - ${JSON.stringify(offer)}`);
+    this.logger.debug(`[Emit] bidPlaced - ${roomId} - ${JSON.stringify(offer)}`);
 
     this.server.in(roomId).emit('bidPlaced', offer);
   }
@@ -80,7 +80,7 @@ export class BroadcastService {
   sendAuctionStopped(offer: OfferContractAskDto): void {
     const roomId = BroadcastService.getAuctionRoomId(offer);
 
-    this.logger.debug(`auctionStopped - ${roomId} - ${JSON.stringify(offer)}`);
+    this.logger.debug(`[Emit] auctionStopped - ${roomId} - ${JSON.stringify(offer)}`);
 
     this.server.in(roomId).emit('auctionStopped', offer);
   }
@@ -88,7 +88,7 @@ export class BroadcastService {
   sendAuctionClosed(offer: OfferContractAskDto): void {
     const roomId = BroadcastService.getAuctionRoomId(offer);
 
-    this.logger.debug(`auctionClosed - ${roomId} - ${JSON.stringify(offer)}`);
+    this.logger.debug(`[Emit] auctionClosed - ${roomId} - ${JSON.stringify(offer)}`);
 
     this.server.in(roomId).emit('auctionClosed', offer);
   }
