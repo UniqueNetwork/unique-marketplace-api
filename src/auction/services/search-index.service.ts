@@ -213,9 +213,7 @@ export class SearchIndexService {
   }
 
   async updateSearchIndex(): Promise<void> {
-    for (const index of await this.repository.query(`select collection_id, token_id from search_index
-    group by collection_id, token_id`)) {
-      console.log(JSON.stringify(index));
+    for (const index of await this.repository.query(`select collection_id, token_id from search_index group by collection_id, token_id`)) {
 
       await this.repository.createQueryBuilder()
         .delete()

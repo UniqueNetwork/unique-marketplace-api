@@ -196,6 +196,7 @@ export class TradesService {
             'token_id',
             'is_trait',
             'locale',
+            'key',
             'array_length(items, 1) as count_items',
             'items',
             'unnest(items) traits'
@@ -210,7 +211,7 @@ export class TradesService {
 
   private filterBySearchText(query: SelectQueryBuilder<IMarketTrade>, text?: string): SelectQueryBuilder<IMarketTrade> {
     if (!nullOrWhitespace(text)) {
-      query.andWhere(`search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text })
+      query.andWhere(`search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%') and search_filter.key not in ('description', 'collectionCover', 'image')`, { searchText: text })
     }
     return query;
   }
