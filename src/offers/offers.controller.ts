@@ -20,6 +20,9 @@ import { OffersService } from './offers.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import * as fs from 'fs';
 import { TraceInterceptor } from '../utils/sentry';
+import { OfferAttributesDto } from './dto';
+import { ParseOffersAttributes } from './pipes/offers-attributes.pipe';
+import { OfferAttributes } from './dto/offer-attributes';
 
 @ApiTags('Offers')
 @Controller()
@@ -79,8 +82,10 @@ export class OffersController {
     @ApiOperation({
       summary: 'Get count of attributes by collectionId'
     })
-    @ApiResponse({ status: HttpStatus.OK })
-    async getAttributeCounts(): Promise<any> {
-      return null;
+    @ApiResponse({ status: HttpStatus.OK, type: OfferAttributes })
+    async getAttributeCounts(
+      @Query(ParseOffersAttributes) offerAttributes: OfferAttributesDto,
+    ): Promise<Array<OfferAttributes>> {
+      return this.offersService.getAttributesCounts(offerAttributes);
     }
 }
