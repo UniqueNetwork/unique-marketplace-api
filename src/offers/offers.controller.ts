@@ -59,16 +59,28 @@ export class OffersController {
 
     }
 
-    @Get('traits/:collectionId')
+    @Get('attributes/:collectionId')
+    @ApiOperation({
+      summary: 'Get attributes by collectionId'
+  })
     @ApiResponse({ type: OfferTraits, status: HttpStatus.OK })
     async getTraitsByCollection(@Param('collectionId', ParseIntPipe) collectionId: number ): Promise<OfferTraits> {
 
-      const traits = await this.offersService.getTraits(collectionId);
+      const traits = await this.offersService.getAttributes(collectionId);
 
       if (traits) return traits;
 
       throw new NotFoundException(
         `No found  collection ${collectionId} in offer`,
       );
+    }
+
+    @Get('attribute-counts')
+    @ApiOperation({
+      summary: 'Get count of attributes by collectionId'
+    })
+    @ApiResponse({ status: HttpStatus.OK })
+    async getAttributeCounts(): Promise<any> {
+      return null;
     }
 }
