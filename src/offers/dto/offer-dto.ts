@@ -31,7 +31,7 @@ class BidDto implements Bid {
   @Expose() bidderAddress: string;
 }
 
-class TokenDescriptionDto {
+export class TokenDescriptionDto {
   @Expose() collectionName: string;
   @Expose() image: string;
   @Expose() prefix: string;

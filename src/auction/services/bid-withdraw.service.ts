@@ -97,6 +97,7 @@ export class BidWithdrawService {
           status: BidStatus.finished,
           blockNumber: blockNumber.toString(),
         });
+        this.logger.debug(`Bid make Withdraw transfer id: ${withdrawingBid.id},  status: ${BidStatus.finished}, blockNumber: ${blockNumber.toString()} `)
       })
       .catch(async (error) => {
         const fullError = {
@@ -125,18 +126,21 @@ export class BidWithdrawService {
       const bidderPendingSum = await databaseHelper.getUserPendingSum({ auctionId, bidderAddress });
 
       if (bidderActualSum <= 0) {
+        this.logger.error(`Failed to create withdrawal, all minted bids sum is ${bidderActualSum} for ${bidderAddress}` )
         throw new Error(`Failed to create withdrawal, all minted bids sum is ${bidderActualSum} for ${bidderAddress}`);
       }
 
       const pendingWinner = await databaseHelper.getAuctionPendingWinner({ auctionId });
 
       if (pendingWinner && pendingWinner.bidderAddress === bidderAddress) {
+        this.logger.error(`You are going to be winner, please wait your bid to be overbidden `)
         throw new Error(`You are going to be winner, please wait your bid to be overbidden`);
       }
 
       const actualWinner = await databaseHelper.getAuctionCurrentWinner({ auctionId });
 
       if (actualWinner && actualWinner.bidderAddress === bidderAddress) {
+        this.logger.error(`You are winner at this moment, please wait your bid to be overbidden`)
         throw new Error(`You are winner at this moment, please wait your bid to be overbidden`);
       }
 
@@ -152,7 +156,18 @@ export class BidWithdrawService {
       });
 
       await transactionEntityManager.save(withdrawingBid);
-
+      const bidTransaction = {
+        subject:'Transaction bid',
+        thread: 'bid-withdraw',
+        status: BidStatus.minting,
+        bidderAddress: bidderAddress,
+        bidderAddress_n42: encodeAddress(bidderAddress),
+        amount: (-1n * bidderActualSum).toString(),
+        balance: (bidderPendingSum - bidderActualSum).toString(),
+        auctionId: contractAsk.auction.id,
+        log:'tryCreateWithdrawingBid'
+      }
+      this.logger.debug(JSON.stringify(bidTransaction))
       return withdrawingBid;
     });
   }

@@ -46,7 +46,7 @@ const log = (message, level = logLevel.INFO) => {
       } else {
         msgs.push(msg);
       }
-      sentryServ.instance().setContext('test_escrow', msgs);
+      sentryServ.instance().setContext('Escrow', msgs);
     } catch (e) {
       console.error(red(e));
       sentryServ.instance().captureException(e);

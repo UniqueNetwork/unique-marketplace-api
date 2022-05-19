@@ -24,6 +24,8 @@ export enum AuctionStatus {
    * everything is done
    */
   ended = 'ended',
+
+  failed = 'failed'
 }
 
 export interface Auction {

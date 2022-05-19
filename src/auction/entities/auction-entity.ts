@@ -58,6 +58,7 @@ export class AuctionEntity implements Auction {
   @Column({
     name: 'contract_ask_id',
     type: 'uuid',
+    nullable: true,
   })
   contractAskId: string;
 

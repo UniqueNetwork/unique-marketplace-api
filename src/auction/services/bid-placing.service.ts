@@ -48,7 +48,7 @@ export class BidPlacingService {
       const offer = OfferContractAskDto.fromContractAsk(contractAsk);
 
       await this.broadcastService.sendBidPlaced(offer);
-
+      this.logger.debug(``)
       return offer;
     } catch (error) {
       this.logger.warn(error);

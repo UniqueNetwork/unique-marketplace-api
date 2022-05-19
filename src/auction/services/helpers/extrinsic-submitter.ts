@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ApiPromise } from '@polkadot/api';
 import { Hash } from '@polkadot/types/interfaces';
 import { IExtrinsic } from '@polkadot/types/types';
@@ -22,10 +23,14 @@ export class ExtrinsicSubmitter {
     const blockHash = await this.waitFinalized(api, extrinsic);
     const txResult = await this.checkIsSucceed(api, extrinsic.hash, blockHash);
 
-    this.logger.log(`${extrinsicHuman}; ${stringify(txResult)}`);
+    this.logger.debug(`${extrinsicHuman}; ${stringify(txResult)}`);
 
     if (!txResult.isSucceed) {
-      throw new Error(`Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`);
+      this.logger.warn(`Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`)
+      throw new BadRequestException({
+        statusCode: HttpStatus.CONFLICT,
+        message: `Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`
+      });
     }
 
     return txResult;

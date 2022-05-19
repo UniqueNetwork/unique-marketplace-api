@@ -1,6 +1,6 @@
 {
   "name": "unique-marketplace-api",
-  "version": "1.2.14",
+  "version": "1.3.33",
   "description": "Backend project for unique marketplace",
   "author": "Unique Network",
   "private": true,
@@ -16,8 +16,8 @@
     "test": "jest --config tests/jest.config.json --detectOpenHandles",
     "test:escrow": "jest --config tests/jest.config.json --detectOpenHandles tests/escrow.unique.test.ts",
     "test:watch": "jest --config tests/jest.config.json --watch --detectOpenHandles",
-    "escrow:kusama": "node dist/cli.js start_escrow kusama --auction",
-    "escrow:unique": "node dist/cli.js start_escrow unique",
+    "escrow:kusama": "node dist/run.js start_escrow kusama --auction",
+    "escrow:unique": "node dist/run.js start_escrow unique",
     "playground": "npx nestjs-command playground",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/.bin/typeorm --config src/database/connection-options.ts",
     "migration:generate": "npm run typeorm -- migration:generate -n",
@@ -25,7 +25,8 @@
     "migration:show": "npm run typeorm -- migration:show",
     "migration:revert": "npm run typeorm -- migration:revert",
     "schema:log": "npm run typeorm -- schema:log",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "docs": "npx @compodoc/compodoc -p tsconfig.json -s"
   },
   "dependencies": {
     "@nestjs/axios": "^0.0.5",
@@ -67,10 +68,11 @@
     "swagger-ui-express": "4.3.0",
     "typeorm": "0.2.41",
     "uuid": "8.3.2",
-    "web3": "^1.7.0",
+    "web3": "1.7.1",
     "yargs": "17.3.0"
   },
   "devDependencies": {
+    "@compodoc/compodoc": "^1.1.19",
     "@nestjs/testing": "^8.2.6",
     "@types/cron": "^1.7.3",
     "@types/express": "^4.17.13",

@@ -107,12 +107,12 @@ describe('Escrow test', () => {
     }
 
     const collectionId = await explorer.createCollection({ name: 'test', description: 'test collection', tokenPrefix: 'test' });
-    await unique.signTransaction(admin, api.tx.unique.setCollectionLimits(collectionId, { sponsorApproveTimeout: 1 }), 'api.tx.unique.setCollectionLimits');
+    await unique.signTransaction(admin, api.tx.unique.setCollectionLimits(collectionId, { sponsorApproveTimeout: 1 }), 'api.tx.unique.setCollectionLimits'); // TODO: change createCollectionEx
     const evmCollection = lib.createEvmCollection(collectionId, contractOwner, web3);
-    await unique.signTransaction(admin, api.tx.unique.setCollectionSponsor(collectionId, admin.address), 'api.tx.unique.setCollectionSponsor');
-    await lib.transferBalanceToEth(api, admin, lib.subToEth(admin.address));
+    await unique.signTransaction(admin, api.tx.unique.setCollectionSponsor(collectionId, admin.address), 'api.tx.unique.setCollectionSponsor'); // TODO: change createCollectionEx
+    //await lib.transferBalanceToEth(api, admin, lib.subToEth(admin.address));
     await unique.signTransaction(admin, api.tx.unique.confirmSponsorship(collectionId), 'api.tx.unique.confirmSponsorship');
-    await unique.signTransaction(admin, api.tx.unique.setConstOnChainSchema(collectionId, JSON.stringify(TraitsSchema)), 'api.tx.unique.setConstOnChainSchema');
+    await unique.signTransaction(admin, api.tx.unique.setConstOnChainSchema(collectionId, JSON.stringify(TraitsSchema)), 'api.tx.unique.setConstOnChainSchema'); // TODO: change createCollectionEx
     fs.writeFileSync(cachedPath, JSON.stringify({ collectionId }));
 
     return { collectionId, evmCollection };
@@ -294,7 +294,7 @@ describe('Escrow test', () => {
     // await lib.transferBalanceToEth(api, alice, lib.subToEth(buyer.address));
     await unique.signTransaction(alice, api.tx.balances.transfer(buyer.address, 10n * lib.UNIQUE));
 
-    const tokenId = (await explorer.createToken({ collectionId, owner: seller.address,constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) })).tokenId;
+    const tokenId = (await explorer.createToken({ collectionId, owner: seller.address, constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) })).tokenId;
     await unique.signTransaction(
       seller,
       api.tx.unique.transfer(util.normalizeAccountId({ Substrate: buyer.address }), collectionId, tokenId, 1),
@@ -339,7 +339,7 @@ describe('Escrow test', () => {
 
     await processKYC(seller, state);
 
-    const cancelTokenId = (await explorer.createToken({ collectionId, owner: seller.address,constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) })).tokenId;
+    const cancelTokenId = (await explorer.createToken({ collectionId, owner: seller.address, constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) })).tokenId;
 
     await transferTokenToEVM(seller, cancelTokenId, state);
 
@@ -377,7 +377,7 @@ describe('Escrow test', () => {
 
     await processKYC(seller, state);
 
-    const sellTokenId = (await explorer.createToken({ collectionId, owner: seller.address,constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) })).tokenId;
+    const sellTokenId = (await explorer.createToken({ collectionId, owner: seller.address, constData: encodeData(JSON.stringify(TraitsSchema),ConstDataPlayload) })).tokenId;
 
     // To transfer item to matcher it first needs to be transferred to EVM account of seller
     await transferTokenToEVM(seller, sellTokenId, state);
