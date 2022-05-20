@@ -5,6 +5,11 @@ import { ClassToDto } from '../../utils/type-generators/class-to-dto';
 import { Type } from 'class-transformer';
 import { IsOptional } from 'class-validator';
 
+export type filterAttributes = {
+  key: string;
+  attribut: string;
+}
+
 export class OffersFilter {
     @ApiProperty({ name: 'collectionId',
     items: { type: 'integer', default: '' },
@@ -27,8 +32,8 @@ export class OffersFilter {
     @ApiProperty({ required: false })
     public seller?: string;
 
-    @ApiProperty({ name: 'traitsCount', items: { type: 'integer', default: '' }, required: false, type: 'array', isArray: true })
-    public traitsCount?: number[];
+    @ApiProperty({ name: 'numberOfAttributes', items: { type: 'integer', default: '' }, required: false, type: 'array', isArray: true })
+    public numberOfAttributes?: number[];
 
     @ApiProperty({ required: false })
     public searchText?: string;
@@ -37,12 +42,22 @@ export class OffersFilter {
     public searchLocale?: string;
 
     @ApiProperty({
-      name: 'traits',
-      items: { type: 'string', default: '' },
+      name: 'attributes',
+      items: {
+        type: 'object',
+        properties: {
+          key: {
+            type: 'string'
+          },
+          attribut: {
+            type: 'string'
+          }
+        }
+      },
       required: false,
       type: 'array',
       isArray: true })
-    public traits?: string[];
+    public attributes?: Array<filterAttributes>;
 
     @ApiProperty({
       required: false,

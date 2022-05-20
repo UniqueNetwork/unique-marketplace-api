@@ -9,7 +9,7 @@ import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 
 import { OfferContractAskDto } from './dto/offer-dto';
-import { OffersFilter } from './dto/offers-filter';
+import { filterAttributes, OffersFilter } from './dto/offers-filter';
 import { priceTransformer } from '../utils/price-transformer';
 import { BlockchainBlock, ContractAsk, SearchIndex, AuctionEntity, BidEntity } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
@@ -316,7 +316,7 @@ export class OffersService {
       .leftJoinAndSelect(
         (subQuery) => {
           return subQuery
-            .select(['collection_id', 'network', 'token_id', 'is_trait', 'locale', 'array_length(items, 1) as count_items', 'items', 'unnest(items) traits'])
+            .select(['collection_id', 'network', 'token_id', 'is_trait', 'locale', 'array_length(items, 1) as count_items', 'items', 'unnest(items) traits', 'key'])
             .from(SearchIndex, 'sf')
             .where(`sf.type not in ('ImageURL')`);
         },
@@ -386,17 +386,17 @@ export class OffersService {
    * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
    * @param {String} text - Search field from SearchIndex in which traits are specified
    * @param {String} locale -
-   * @param {number[]} traitsCount -
+   * @param {number[]} numberOfAttributes -
    * @private
    * @see OffersService.get
    * @return SelectQueryBuilder<ContractAsk>
    */
-  private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
+  private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, numberOfAttributes?: number[]): SelectQueryBuilder<ContractAsk> {
     //if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
 
-    if ((traitsCount ?? []).length !== 0) {
+    if ((numberOfAttributes ?? []).length !== 0) {
       query.andWhere('search_filter.is_trait = true');
-      query.andWhere('search_filter.count_items in (:...traitsCount)', { traitsCount });
+      query.andWhere('search_filter.count_items in (:...numberOfAttributes)', { numberOfAttributes });
     }
 
     if (!nullOrWhitespace(text)) {
@@ -455,13 +455,14 @@ export class OffersService {
    * Filter by Traits
    * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
    * @param {Array<number>} collectionIds - Array collection ID
-   * @param {Array<string>} traits - Array traits for token
+   * @param {Array<string>} attributes - Array traits for token
    * @private
    * @see OffersService.get
    * @return SelectQueryBuilder<ContractAsk>
    */
-  private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], traits?: string[]): SelectQueryBuilder<ContractAsk> {
-    if ((traits ?? []).length <= 0) {
+  private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], attributes?: Array<filterAttributes>):
+  SelectQueryBuilder<ContractAsk> {
+    if ((attributes ?? []).length <= 0) {
       return query;
     } else {
       if ((collectionIds ?? []).length <= 0) {
@@ -470,8 +471,23 @@ export class OffersService {
           message: 'Not found collectionIds. Please set collectionIds to offer by filter',
         });
       } else {
-        query.andWhere('array [:...traits] <@ search_filter.items', { traits });
+        const filterAttributes = attributes.reduce((previous, current) => {
+          if (!previous[current['key']]) {
+            previous[current['key']] = [];
 
+          }
+          previous[current['key']].push(current['attribut']);
+          return previous;
+        }, {});
+
+        const keyList = [];
+        for (const [key, value] of Object.entries(filterAttributes)) {
+          keyList.push(key);
+        }
+        query.andWhere('search_filter.key in (:...keyList)', { keyList });
+        for (const [key, value] of Object.entries(filterAttributes)) {
+          query.andWhere('array [:...value] <@ search_filter.items', { value });
+        }
         return query;
       }
     }
@@ -490,9 +506,9 @@ export class OffersService {
     query = this.filterByMaxPrice(query, offersFilter.maxPrice);
     query = this.filterByMinPrice(query, offersFilter.minPrice);
     query = this.filterBySeller(query, offersFilter.seller);
-    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
+    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.numberOfAttributes);
     query = this.filterByAuction(query, offersFilter.bidderAddress, offersFilter.isAuction);
-    query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.traits);
+    query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.attributes);
 
     return query.andWhere(`offer.status = :status`, { status: 'active' });
   }
@@ -510,7 +526,8 @@ export class OffersService {
         select traits as trait, collection_id, token_id, key from search_index, unnest(items) traits
         where locale is not null and collection_id = $1
     ) as si
-    left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
+      left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
+      where ca.status = 'active'
     group by key, trait order by key`,
         [collectionId],
       );
@@ -557,13 +574,17 @@ export class OffersService {
 
       const spreadCollectionIDs = args.collectionId.join(',');
 
-      const counts = await this.connection.manager.query(`select count_attributes as "numberOfAttributes", count(token_id) as amount from (
-              select token_id, array_length(items, 1) count_attributes, key
+      const counts = await this.connection.manager.query(`
+      select si.count_attributes as "numberOfAttributes", count(si.token_id) as amount
+from  (select token_id, array_length(items, 1) count_attributes, key, collection_id
                   from search_index
-                  where collection_id in (${spreadCollectionIDs}) and type = 'Enum'
-                 ) si
-              group by count_attributes
-            order by count_attributes`,
+                  where collection_id in (${spreadCollectionIDs})
+                    and type = 'Enum'
+              ) si
+left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
+    where ca.status = 'active'
+group by si.count_attributes
+order by si.count_attributes`,
       );
      return counts.map((item) => {
        return {

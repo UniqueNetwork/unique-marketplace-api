@@ -84,21 +84,22 @@ export const sortToString = (sortFilter: OfferSortingRequest) => {
  */
 export const searchByFilterOffers = async (app: INestApplication, pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest) => {
 
-  let filterRequest: string = '/offers?';
+  let filterRequest = '/offers?';
 
-  let { page, pageSize } = pagination;
+  const { page, pageSize } = pagination;
 
-  let {
+  const {
     collectionId,
-    searchText,
     searchLocale,
     minPrice,
     maxPrice,
     seller,
-    traitsCount,
-    traits,
+    numberOfAttributes,
+    attributes: traits,
     isAuction,
     bidderAddress } = offersFilter;
+
+  let { searchText } = offersFilter;
 
   page !== undefined ? (filterRequest += `page=${page}`) : filterRequest;
 
@@ -106,7 +107,7 @@ export const searchByFilterOffers = async (app: INestApplication, pagination: Pa
 
   collectionId.length !== 0 ? collectionId.forEach((cid) => (filterRequest += `&collectionId=${cid}`)) : filterRequest;
 
-  traitsCount.length !== 0 ? traitsCount.forEach((tid) => (filterRequest += `&traitsCount=${tid}`)) : filterRequest;
+  numberOfAttributes.length !== 0 ? numberOfAttributes.forEach((tid) => (filterRequest += `&traitsCount=${tid}`)) : filterRequest;
 
   searchLocale ? (filterRequest += `&searchLocale=${searchLocale}`) : filterRequest;
 
