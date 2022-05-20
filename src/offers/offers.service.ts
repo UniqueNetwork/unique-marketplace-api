@@ -161,10 +161,14 @@ export class OffersService {
         if (image.search('ipfs.unique.network') !== -1) {
           acc[`${item.key}`] = image;
         } else {
-          if (image) {
-            acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+          if (image.search('https://') !== -1) {
+            acc[`${item.key}`] = image;
           } else {
-            acc[`${item.key}`] = null;
+            if (image) {
+              acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+            } else {
+              acc[`${item.key}`] = null;
+            }
           }
         }
       }
