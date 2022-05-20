@@ -149,7 +149,12 @@ export class OffersService {
     return [];
   }
 
-  private parseSearchIndex(): (previousValue: { attributes: any[]; }, currentValue: Partial<SearchIndex>, currentIndex: number, array: Partial<SearchIndex>[]) => { attributes: any[]; } {
+  private parseSearchIndex(): (
+    previousValue: { attributes: any[] },
+    currentValue: Partial<SearchIndex>,
+    currentIndex: number,
+    array: Partial<SearchIndex>[],
+  ) => { attributes: any[] } {
     return (acc, item) => {
       if (item.type === TypeAttributToken.Prefix) {
         acc['prefix'] = item.items.pop();
@@ -168,10 +173,14 @@ export class OffersService {
         if (image.search('ipfs.unique.network') !== -1) {
           acc[`${item.key}`] = image;
         } else {
-          if (image) {
-            acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+          if (image.search('https://') !== -1) {
+            acc[`${item.key}`] = image;
           } else {
-            acc[`${item.key}`] = null;
+            if (image) {
+              acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+            } else {
+              acc[`${item.key}`] = null;
+            }
           }
         }
       }
@@ -179,8 +188,8 @@ export class OffersService {
       if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key)) {
         acc.attributes.push({
           key: item.key,
-          value: (item.items.length === 1) ? item.items.pop() : item.items,
-          type: item.type
+          value: item.items.length === 1 ? item.items.pop() : item.items,
+          type: item.type,
         });
       }
 
