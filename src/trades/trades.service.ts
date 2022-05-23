@@ -111,6 +111,9 @@ export class TradesService {
       if (column === 'collectionid' || column === 'CollectionId') {
         column = 'collection_id';
       }
+      if (column === 'Price') {
+        column = 'price';
+      }
 
       if (column === null || column === undefined) continue;
       params.push({ ...param, column });
