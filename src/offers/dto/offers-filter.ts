@@ -7,7 +7,7 @@ import { IsOptional } from 'class-validator';
 
 export type filterAttributes = {
   key: string;
-  attribut: string;
+  attribute: string;
 }
 
 export class OffersFilter {
@@ -49,7 +49,7 @@ export class OffersFilter {
           key: {
             type: 'string'
           },
-          attribut: {
+          attribute: {
             type: 'string'
           }
         }
