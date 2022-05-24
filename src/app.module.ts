@@ -25,6 +25,7 @@ import { RequestLoggerMiddleware } from "./utils/logging/request-logger-middlewa
   imports: [
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'blockchain'),
+      serveRoot:"/blockchain"
     }),
     SentryLoggerService(),
     DatabaseModule,
