@@ -9,28 +9,21 @@ import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 
 import { OfferContractAskDto } from './dto/offer-dto';
-import { OffersFilter } from './dto/offers-filter';
+import { filterAttributes, OffersFilter } from './dto/offers-filter';
 import { priceTransformer } from '../utils/price-transformer';
-import {
-  BlockchainBlock,
-  ContractAsk,
-  SearchIndex,
-  AuctionEntity,
-  BidEntity,
-} from '../entity';
+import { BlockchainBlock, ContractAsk, SearchIndex, AuctionEntity, BidEntity } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
-import { OffersQuerySortHelper } from "./offers-query-sort-helper";
+import { OffersQuerySortHelper } from './offers-query-sort-helper';
 import { TypeAttributToken } from '../auction/types';
-
-
+import { OfferAttributesDto } from './dto';
+import { OfferAttributes } from './dto/offer-attributes';
 
 type OfferPaginationResult = {
-  items: ContractAsk[]
+  items: ContractAsk[];
   itemsCount: number;
   page: number;
   pageSize: number;
-}
-
+};
 
 @Injectable()
 export class OffersService {
@@ -39,10 +32,7 @@ export class OffersService {
   private readonly searchIndexRepository: Repository<SearchIndex>;
   private offersQuerySortHelper: OffersQuerySortHelper;
 
-  constructor(
-    @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @InjectSentry() private readonly sentryService: SentryService,
-  ) {
+  constructor(@Inject('DATABASE_CONNECTION') private connection: Connection, @InjectSentry() private readonly sentryService: SentryService) {
     this.logger = new Logger(OffersService.name);
     this.contractAskRepository = connection.manager.getRepository(ContractAsk);
     this.searchIndexRepository = connection.manager.getRepository(SearchIndex);
@@ -55,16 +45,12 @@ export class OffersService {
    * @param {OffersFilter} offersFilter - DTO Offer filter
    * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate)
    */
-  async get(
-    pagination: PaginationRequest,
-    offersFilter: OffersFilter,
-    sort: OfferSortingRequest,
-  ): Promise<PaginationResultDto<OfferContractAskDto>> {
+  async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResultDto<OfferContractAskDto>> {
     let offers: SelectQueryBuilder<ContractAsk>;
     let paginationResult;
 
     try {
-      offers = await this.contractAskRepository.createQueryBuilder('offer')
+      offers = await this.contractAskRepository.createQueryBuilder('offer');
       this.addRelations(offers);
 
       offers = this.filter(offers, offersFilter);
@@ -89,22 +75,24 @@ export class OffersService {
     return new PaginationResultDto(OfferContractAskDto, {
       ...paginationResult,
       items: paginationResult.items.map(OfferContractAskDto.fromContractAsk),
-    })
+    });
   }
 
   private getAuctionIds(items: Array<any>): Array<number> {
-    return items.filter(item => item?.auction !== null)
-      .map(item => item.auction.id)
-      .filter(id => id !== null);
+    return items
+      .filter((item) => item?.auction !== null)
+      .map((item) => item.auction.id)
+      .filter((id) => id !== null);
   }
 
-  private  async getBids(auctionIds: Array<number>): Promise<Array<Partial<Bid>>> {
-    const queryBuilder = this.connection.manager.createQueryBuilder(BidEntity, 'bid')
-    .select(['created_at', 'updated_at', 'amount', 'auction_id', 'bidder_address', 'balance'])
-    .where('bid.amount > 0')
+  private async getBids(auctionIds: Array<number>): Promise<Array<Partial<Bid>>> {
+    const queryBuilder = this.connection.manager
+      .createQueryBuilder(BidEntity, 'bid')
+      .select(['created_at', 'updated_at', 'amount', 'auction_id', 'bidder_address', 'balance'])
+      .where('bid.amount > 0');
 
     if (Array.isArray(auctionIds) && auctionIds?.length > 0) {
-      queryBuilder.andWhere('bid.auction_id in (:...auctionIds)', {auctionIds});
+      queryBuilder.andWhere('bid.auction_id in (:...auctionIds)', { auctionIds });
     }
 
     const source = await queryBuilder.execute();
@@ -116,17 +104,17 @@ export class OffersService {
         auctionId: item.auction_id,
         balance: item.balance,
         amount: item.amount,
-        bidderAddress: item.bidder_address
-      }
-    })
+        bidderAddress: item.bidder_address,
+      };
+    });
   }
 
   private sqlCollectionIdTokenId(items: Array<any>): string | null {
-    const values = items.map(item => {
+    const values = items.map((item) => {
       return `(${Number(item.collection_id)}, ${Number(item.token_id)})`;
-    })
+    });
     if (values.length > 0) {
-      return `select * from (values ${values.join(',')}) as t (collection_id, token_id)`
+      return `select * from (values ${values.join(',')}) as t (collection_id, token_id)`;
     }
     return null;
   }
@@ -142,14 +130,19 @@ export class OffersService {
             key
         from search_index si  inner join (${sqlValues}) t on
         t.collection_id = si.collection_id and
-        t.token_id = si.token_id;`
+        t.token_id = si.token_id;`,
       );
-        return result as Array<Partial<SearchIndex>>;
+      return result as Array<Partial<SearchIndex>>;
     }
     return [];
   }
 
-  private parseSearchIndex(): (previousValue: { attributes: any[]; }, currentValue: Partial<SearchIndex>, currentIndex: number, array: Partial<SearchIndex>[]) => { attributes: any[]; } {
+  private parseSearchIndex(): (
+    previousValue: { attributes: any[] },
+    currentValue: Partial<SearchIndex>,
+    currentIndex: number,
+    array: Partial<SearchIndex>[],
+  ) => { attributes: any[] } {
     return (acc, item) => {
       if (item.type === TypeAttributToken.Prefix) {
         acc['prefix'] = item.items.pop();
@@ -168,10 +161,14 @@ export class OffersService {
         if (image.search('ipfs.unique.network') !== -1) {
           acc[`${item.key}`] = image;
         } else {
-          if (image) {
-            acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+          if (image.search('https://') !== -1) {
+            acc[`${item.key}`] = image;
           } else {
-            acc[`${item.key}`] = null;
+            if (image) {
+              acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+            } else {
+              acc[`${item.key}`] = null;
+            }
           }
         }
       }
@@ -179,8 +176,8 @@ export class OffersService {
       if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key)) {
         acc.attributes.push({
           key: item.key,
-          value: (item.items.length === 1) ? item.items.pop() : item.items,
-          type: item.type
+          value: item.items.length === 1 ? item.items.pop() : item.items,
+          type: item.type,
         });
       }
 
@@ -188,8 +185,7 @@ export class OffersService {
     };
   }
 
-  async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest, sort: OfferSortingRequest ): Promise<OfferPaginationResult> {
-
+  async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest, sort: OfferSortingRequest): Promise<OfferPaginationResult> {
     function convertorFlatToObject(): (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => any {
       return (acc, item) => {
         const obj = {
@@ -200,20 +196,23 @@ export class OffersService {
           address_from: item.offer_address_from,
           created_at: item.block_created_at,
           auction: null,
-          tokenDescription: {}
+          tokenDescription: {},
         };
 
         if (item.auction_id) {
-          obj.auction = Object.assign({}, {
-            id: item.auction_id,
-            createdAt: item.auction_created_at,
-            updatedAt: item.auction_updated_at,
-            priceStep: item.auction_price_step,
-            startPrice: item.auction_start_price,
-            status: item.auction_status,
-            stopAt: item.auction_stop_at,
-            bids: []
-          });
+          obj.auction = Object.assign(
+            {},
+            {
+              id: item.auction_id,
+              createdAt: item.auction_created_at,
+              updatedAt: item.auction_updated_at,
+              priceStep: item.auction_price_step,
+              startPrice: item.auction_start_price,
+              status: item.auction_status,
+              stopAt: item.auction_stop_at,
+              bids: [],
+            },
+          );
         }
 
         acc.push(obj);
@@ -225,33 +224,34 @@ export class OffersService {
     const pageSize = paramenter.pageSize ?? 10;
     const offset = (page - 1) * pageSize;
 
-    let substitutionQuery = this.connection.createQueryBuilder()
+    let substitutionQuery = this.connection
+      .createQueryBuilder()
       .select([
-        "offer_id",
-        "offer_status",
-        "offer_collection_id",
-        "offer_token_id",
-        "offer_network",
-        "offer_price",
-        "offer_currency",
-        "offer_address_from",
-        "offer_address_to",
-        "offer_block_number_ask",
-        "offer_block_number_cancel",
-        "offer_block_number_buy",
-        "auction_id",
-        "auction_created_at",
-        "auction_updated_at",
-        "auction_price_step",
-        "auction_start_price",
-        "auction_status",
-        "auction_stop_at",
-        "auction_contract_ask_id",
-        "block_block_number",
-        "block_created_at"
+        'offer_id',
+        'offer_status',
+        'offer_collection_id',
+        'offer_token_id',
+        'offer_network',
+        'offer_price',
+        'offer_currency',
+        'offer_address_from',
+        'offer_address_to',
+        'offer_block_number_ask',
+        'offer_block_number_cancel',
+        'offer_block_number_buy',
+        'auction_id',
+        'auction_created_at',
+        'auction_updated_at',
+        'auction_price_step',
+        'auction_start_price',
+        'auction_status',
+        'auction_stop_at',
+        'auction_contract_ask_id',
+        'block_block_number',
+        'block_created_at',
       ])
       .distinct()
-      .from(`(${query.getQuery()})`,'_p')
+      .from(`(${query.getQuery()})`, '_p')
       .setParameters(query.getParameters())
       .limit(pageSize)
       .offset(offset);
@@ -262,41 +262,37 @@ export class OffersService {
     //const source = await query.getMany();
     const itemsCount = await query.getCount();
 
-    const source = substitution.reduce(convertorFlatToObject(), [])
+    const source = substitution.reduce(convertorFlatToObject(), []);
 
-    const bids = await this.getBids(
-      this.getAuctionIds(source)
-    );
+    const bids = await this.getBids(this.getAuctionIds(source));
 
-    const searchIndex = await this.getSearchIndex(
-      this.sqlCollectionIdTokenId(source)
-    );
+    const searchIndex = await this.getSearchIndex(this.sqlCollectionIdTokenId(source));
 
     return {
       page,
       pageSize,
       itemsCount,
-      items: this.parseOffers(source, bids, searchIndex)
+      items: this.parseOffers(source, bids, searchIndex),
     };
   }
 
   private parseOffers(source: any, bids: Partial<Bid>[], searchIndex: Partial<SearchIndex>[]): ContractAsk[] {
     return source.reduce((acc, item) => {
       if (item.auction !== null) {
-        item.auction.bids = bids.filter(bid => bid.auctionId === item.auction.id) as any as BidEntity[];
+        item.auction.bids = bids.filter((bid) => bid.auctionId === item.auction.id) as any as BidEntity[];
       }
-      item['tokenDescription'] = searchIndex.filter(
-        index => index.collection_id === item.collection_id && index.token_id === item.token_id
-      ).reduce(this.parseSearchIndex(), {
-        attributes: []
-      });
+      item['tokenDescription'] = searchIndex
+        .filter((index) => index.collection_id === item.collection_id && index.token_id === item.token_id)
+        .reduce(this.parseSearchIndex(), {
+          attributes: [],
+        });
 
       acc.push(item);
       return acc;
     }, []);
   }
 
-  async getOne(filter: { collectionId: number, tokenId: number }): Promise<OfferContractAskDto | null> {
+  async getOne(filter: { collectionId: number; tokenId: number }): Promise<OfferContractAskDto | null> {
     const { collectionId, tokenId } = filter;
 
     const queryBuilder = this.connection.manager
@@ -308,64 +304,36 @@ export class OffersService {
     this.addRelations(queryBuilder);
 
     const source = await queryBuilder.getMany();
-    const bids = await this.getBids(
-      this.getAuctionIds(source)
-    );
+    const bids = await this.getBids(this.getAuctionIds(source));
 
-    const searchIndex = await this.getSearchIndex(
-      this.sqlCollectionIdTokenId(source)
-    );
+    const searchIndex = await this.getSearchIndex(this.sqlCollectionIdTokenId(source));
 
     const contractAsk = this.parseOffers(source, bids, searchIndex).pop();
 
-    return contractAsk && OfferContractAskDto.fromContractAsk(contractAsk)
+    return contractAsk && OfferContractAskDto.fromContractAsk(contractAsk);
   }
 
-
-  private addRelations(
-      queryBuilder: SelectQueryBuilder<ContractAsk>
-    ): void {
+  private addRelations(queryBuilder: SelectQueryBuilder<ContractAsk>): void {
     queryBuilder
-      .leftJoinAndMapOne(
-        'offer.auction',
-        AuctionEntity,
-        'auction',
-        'auction.contract_ask_id = offer.id'
-      )
-      .leftJoinAndMapOne(
-        'offer.block',
-        BlockchainBlock,
-        'block',
-        'offer.network = block.network and block.block_number = offer.block_number_ask'
-      )
+      .leftJoinAndMapOne('offer.auction', AuctionEntity, 'auction', 'auction.contract_ask_id = offer.id')
+      .leftJoinAndMapOne('offer.block', BlockchainBlock, 'block', 'offer.network = block.network and block.block_number = offer.block_number_ask')
       .leftJoinAndSelect(
-        (subQuery => {
-            return subQuery.select([
-              'collection_id',
-              'network',
-              'token_id',
-              'is_trait',
-              'locale',
-              'array_length(items, 1) as count_items',
-              'items',
-              'unnest(items) traits'
-            ])
+        (subQuery) => {
+          return subQuery
+            .select(['collection_id', 'network', 'token_id', 'is_trait', 'locale', 'array_length(items, 1) as count_items', 'items', 'unnest(items) traits', 'key'])
             .from(SearchIndex, 'sf')
-            .where(`sf.type not in ('ImageURL')`)
-        }),
+            .where(`sf.type not in ('ImageURL')`);
+        },
         'search_filter',
-        'offer.network = search_filter.network and offer.collection_id = search_filter.collection_id and offer.token_id = search_filter.token_id')
+        'offer.network = search_filter.network and offer.collection_id = search_filter.collection_id and offer.token_id = search_filter.token_id',
+      )
       .leftJoinAndSelect(
-        (subQuery => {
-          return subQuery.select([
-            'auction_id as auc_id',
-            'bidder_address'
-          ])
-          .from(BidEntity, '_bids')
-          .where('_bids.amount > 0')
-        }),
+        (subQuery) => {
+          return subQuery.select(['auction_id as auc_id', 'bidder_address']).from(BidEntity, '_bids').where('_bids.amount > 0');
+        },
         '_bids',
-        '_bids.auc_id = auction.id')
+        '_bids.auc_id = auction.id',
+      );
   }
 
   /**
@@ -422,29 +390,28 @@ export class OffersService {
    * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
    * @param {String} text - Search field from SearchIndex in which traits are specified
    * @param {String} locale -
-   * @param {number[]} traitsCount -
+   * @param {number[]} numberOfAttributes -
    * @private
    * @see OffersService.get
    * @return SelectQueryBuilder<ContractAsk>
    */
-  private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, traitsCount?: number[]): SelectQueryBuilder<ContractAsk> {
-
+  private filterBySearchText(query: SelectQueryBuilder<ContractAsk>, text?: string, locale?: string, numberOfAttributes?: number[]): SelectQueryBuilder<ContractAsk> {
     //if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
 
-    if ((traitsCount ?? []).length !== 0) {
+    if ((numberOfAttributes ?? []).length !== 0) {
       query.andWhere('search_filter.is_trait = true');
-      query.andWhere('search_filter.count_items in (:...traitsCount)', {traitsCount});
+      query.andWhere('search_filter.count_items in (:...numberOfAttributes)', { numberOfAttributes });
     }
 
-    if(!nullOrWhitespace(text)) {
-      query.andWhere(`search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text })
+    if (!nullOrWhitespace(text)) {
+      query.andWhere(`search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%')`, { searchText: text });
     }
 
-    if(!nullOrWhitespace(locale)) {
-      query.andWhere('(search_filter.locale is null OR search_filter.locale = :locale)', { locale: locale, })
+    if (!nullOrWhitespace(locale)) {
+      query.andWhere('(search_filter.locale is null OR search_filter.locale = :locale)', { locale: locale });
     }
 
-    return query
+    return query;
   }
 
   /**
@@ -463,19 +430,18 @@ export class OffersService {
 
     return query.andWhere('offer.address_from = :seller', { seller });
   }
-/**
- * Filter by Auction
- * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
- * @param {String} bidderAddress - bidder address for bids in auction
- * @param {Boolean} isAuction - flag for checking auctions in offers
- * @private
- * @see OffersService.get
- * @return SelectQueryBuilder<ContractAsk>
- */
+  /**
+   * Filter by Auction
+   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
+   * @param {String} bidderAddress - bidder address for bids in auction
+   * @param {Boolean} isAuction - flag for checking auctions in offers
+   * @private
+   * @see OffersService.get
+   * @return SelectQueryBuilder<ContractAsk>
+   */
   private filterByAuction(query: SelectQueryBuilder<ContractAsk>, bidderAddress?: string, isAuction?: boolean | string): SelectQueryBuilder<ContractAsk> {
-
     if (isAuction !== null) {
-      const _auction = (isAuction === 'true');
+      const _auction = isAuction === 'true';
       if (_auction === true) {
         query.andWhere('auction.id is not null');
       } else {
@@ -483,8 +449,7 @@ export class OffersService {
       }
     }
 
-
-    if(!nullOrWhitespace(bidderAddress)) {
+    if (!nullOrWhitespace(bidderAddress)) {
       query.andWhere('(_bids.bidder_address = :bidderAddress)', { bidderAddress });
     }
 
@@ -494,26 +459,40 @@ export class OffersService {
    * Filter by Traits
    * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
    * @param {Array<number>} collectionIds - Array collection ID
-   * @param {Array<string>} traits - Array traits for token
+   * @param {Array<string>} attributes - Array traits for token
    * @private
    * @see OffersService.get
    * @return SelectQueryBuilder<ContractAsk>
    */
-  private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], traits?: string[]): SelectQueryBuilder<ContractAsk> {
-
-    if ((traits ?? []).length <= 0) {
-      return query
+  private filterByTraits(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[], attributes?: Array<filterAttributes>):
+  SelectQueryBuilder<ContractAsk> {
+    if ((attributes ?? []).length <= 0) {
+      return query;
     } else {
       if ((collectionIds ?? []).length <= 0) {
-          throw new BadRequestException({
-            statusCode: HttpStatus.BAD_REQUEST,
-            message: 'Not found collectionIds. Please set collectionIds to offer by filter',
-          });
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Not found collectionIds. Please set collectionIds to offer by filter',
+        });
       } else {
+        const filterAttributes = attributes.reduce((previous, current) => {
+          if (!previous[current['key']]) {
+            previous[current['key']] = [];
 
-        query.andWhere('array [:...traits] <@ search_filter.items', { traits });
+          }
+          previous[current['key']].push(current['attribute']);
+          return previous;
+        }, {});
 
-        return query
+        const keyList = [];
+        for (const [key, value] of Object.entries(filterAttributes)) {
+          keyList.push(key);
+        }
+        query.andWhere('search_filter.key in (:...keyList)', { keyList });
+        for (const [key, value] of Object.entries(filterAttributes)) {
+          query.andWhere('array [:...value] <@ search_filter.items', { value });
+        }
+        return query;
       }
     }
   }
@@ -531,9 +510,9 @@ export class OffersService {
     query = this.filterByMaxPrice(query, offersFilter.maxPrice);
     query = this.filterByMinPrice(query, offersFilter.minPrice);
     query = this.filterBySeller(query, offersFilter.seller);
-    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.traitsCount);
+    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.numberOfAttributes);
     query = this.filterByAuction(query, offersFilter.bidderAddress, offersFilter.isAuction);
-    query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.traits);
+    query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.attributes);
 
     return query.andWhere(`offer.status = :status`, { status: 'active' });
   }
@@ -542,18 +521,34 @@ export class OffersService {
     return true;
   }
 
-  async getTraits( collectionId: number ): Promise<OfferTraits | null> {
-    let traits = [];
+  async getAttributes(collectionId: number): Promise<OfferTraits | null> {
+    let attributes = [];
     try {
-      traits =  await this.connection.manager.query(`
+      attributes = await this.connection.manager.query(
+        `
       select key, trait, count(trait) from (
         select traits as trait, collection_id, token_id, key from search_index, unnest(items) traits
         where locale is not null and collection_id = $1
     ) as si
-    left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
-    where ca.status = 'active'
-    group by key, trait`, [collectionId]);
+      left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
+      where ca.status = 'active'
+    group by key, trait order by key`,
+        [collectionId],
+      );
 
+      attributes = attributes.reduce((previous, current) => {
+        const tempObj = {
+          key: current['trait'],
+          count: +current['count'],
+        };
+
+        if (!previous[current['key']]) {
+          previous[current['key']] = [];
+        }
+
+        previous[current['key']].push(tempObj);
+        return previous;
+      }, {});
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -568,7 +563,41 @@ export class OffersService {
 
     return {
       collectionId,
-      traits
+      attributes,
     };
+  }
+
+  async getAttributesCounts(args: OfferAttributesDto): Promise<Array<OfferAttributes>> {
+    try {
+      if ((args.collectionId ?? []).length <= 0) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Not found collectionIds. Please set collectionIds',
+        });
+      }
+
+      const spreadCollectionIDs = args.collectionId.join(',');
+
+      const counts = await this.connection.manager.query(`
+      select si.count_attributes as "numberOfAttributes", count(si.token_id) as amount
+from  (select token_id, array_length(items, 1) count_attributes, key, collection_id
+                  from search_index
+                  where collection_id in (${spreadCollectionIDs})
+                    and type = 'Enum'
+              ) si
+left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
+    where ca.status = 'active'
+group by si.count_attributes
+order by si.count_attributes`,
+      );
+     return counts.map((item) => {
+       return {
+        numberOfAttributes: +item.numberOfAttributes,
+        amount: +item.amount
+       }
+     })
+    } catch (e) {
+      this.logger.error(e.message);
+    }
   }
 }

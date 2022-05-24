@@ -20,6 +20,9 @@ import { OffersService } from './offers.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import * as fs from 'fs';
 import { TraceInterceptor } from '../utils/sentry';
+import { OfferAttributesDto } from './dto';
+import { ParseOffersAttributes } from './pipes/offers-attributes.pipe';
+import { OfferAttributes } from './dto/offer-attributes';
 
 @ApiTags('Offers')
 @Controller()
@@ -59,16 +62,30 @@ export class OffersController {
 
     }
 
-    @Get('traits/:collectionId')
+    @Get('attributes/:collectionId')
+    @ApiOperation({
+      summary: 'Get attributes by collectionId'
+  })
     @ApiResponse({ type: OfferTraits, status: HttpStatus.OK })
     async getTraitsByCollection(@Param('collectionId', ParseIntPipe) collectionId: number ): Promise<OfferTraits> {
 
-      const traits = await this.offersService.getTraits(collectionId);
+      const traits = await this.offersService.getAttributes(collectionId);
 
       if (traits) return traits;
 
       throw new NotFoundException(
         `No found  collection ${collectionId} in offer`,
       );
+    }
+
+    @Get('attribute-counts')
+    @ApiOperation({
+      summary: 'Get count of attributes by collectionId'
+    })
+    @ApiResponse({ status: HttpStatus.OK, type: OfferAttributes })
+    async getAttributeCounts(
+      @Query(ParseOffersAttributes) offerAttributes: OfferAttributesDto,
+    ): Promise<Array<OfferAttributes>> {
+      return this.offersService.getAttributesCounts(offerAttributes);
     }
 }
