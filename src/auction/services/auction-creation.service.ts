@@ -193,4 +193,8 @@ export class AuctionCreationService {
       });
     }
   }
+
+  public get isConnected(): boolean {
+    return true;
+  }
 }

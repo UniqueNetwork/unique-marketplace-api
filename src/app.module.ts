@@ -30,6 +30,7 @@ const config = getConfig();
   imports: [
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'blockchain'),
+      serveRoot:"/blockchain"
     }),
     JwtModule.register({ secret: config.blockchain.escrowSeed }),
     SentryLoggerService(),
