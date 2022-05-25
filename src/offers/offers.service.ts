@@ -629,7 +629,7 @@ export class OffersService {
                         if (!previous[current['key']]) {
                             previous[current['key']] = [];
                         }
-                        previous[current['key']].push(current['attribut']);
+                        previous[current['key']].push(current['attribute']);
                         return previous;
                     },
                     {},
