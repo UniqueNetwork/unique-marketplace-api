@@ -70,11 +70,6 @@ export class OffersService {
                 pagination,
                 sort,
             );
-            /*if ((offersFilter.traitsCount ?? []).length !== 0 ) {
-        const filterItems = paginationResult.items.filter((item) => (offersFilter?.traitsCount.includes(item.search_index.length)));
-        paginationResult.items = filterItems;
-        paginationResult.itemsCount = filterItems.length;
-      }*/
         } catch (e) {
             this.logger.error(e.message);
             this.sentryService
