@@ -1,12 +1,15 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('users', { schema: 'public' })
-export class UserEntity {
+@Entity('sessions', { schema: 'public' })
+export class AdminSessionEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column('varchar', { name: 'address', length: 128 })
   address: string;
+
+  @Column('varchar', { name: 'substrate_address', length: 128 })
+  substrate_address: string;
 
   @Column('varchar', { name: 'access_token' })
   access_token: string;
