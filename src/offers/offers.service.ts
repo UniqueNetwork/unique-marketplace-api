@@ -624,12 +624,40 @@ export class OffersService {
                         'Not found collectionIds. Please set collectionIds to offer by filter',
                 });
             } else {
+              query.leftJoinAndSelect((subQuery) => {
+                return subQuery
+                  .select(['collection_id', 'token_id', 'attributes'])
+                  .from((qb) => {
+                    return qb
+                      .select(['collection_id', 'token_id', 'array_agg(attributes) attributes'])
+                      .from((_qb) => {
+                        return _qb.select([
+                          'collection_id',
+                          'token_id',
+                          'unnest(items) as attributes'
+                        ])
+                          .from(SearchIndex, '_si')
+                          .where('_si.type = :type', { type: 'Enum' })
+                          .andWhere('_si.collection_id IN (:...collectionIds)', { collectionIds })
+                      }, '_t')
+                      .groupBy('collection_id')
+                      .addGroupBy('token_id')
+                  }, '_f')
+              },
+                '_attiributes',
+                '_attiributes.collection_id = offer.collection_id and _attiributes.token_id = offer.token_id',
+              );
 
-                /*for (const [key, value] of Object.entries(filterAttributes)) {
-                    query.orWhere('array [:...value] <@ search_filter.items', {
-                        value,
-                    });
-                }*/
+                const filterAttributes = attributes.reduce(
+                    (previous, current) => {
+                        previous.push(current['attribute']);
+                        return previous;
+                    },
+                    [],
+                );
+
+                query.andWhere('array [:...filterAttributes] <@ _attiributes.attributes', { filterAttributes });
+
                 return query;
             }
         }
