@@ -414,26 +414,6 @@ export class OffersService {
             )
             .leftJoinAndSelect(
                 (subQuery) => {
-                  return subQuery.select([
-                    '_i.collection_id',
-                    '_i.token_id',
-                    'sum(array_count) over (partition by _i.collection_id, _i.token_id) as amount'
-                  ])
-                  .distinct()
-                  .from((qb) => {
-                    return qb.select(['_s.collection_id as collection_id', '_s.token_id as token_id', 'array_length(_s.items, 1) as array_count'])
-                      .distinct()
-                      .from(SearchIndex, '_s')
-                      .leftJoinAndSelect(ContractAsk, 'ca', 'ca.collection_id = _s.collection_id and ca.token_id = _s.token_id')
-                      .where('_s.type = :type', { type: 'Enum' })
-                      .andWhere('ca.status = :status', { status: 'active' });
-                  },'_i')
-                },
-                '_count_token',
-                '_count_token.collection_id = offer.collection_id and _count_token.token_id = offer.token_id',
-            )
-            .leftJoinAndSelect(
-                (subQuery) => {
                     return subQuery
                         .select(['auction_id as auc_id', 'bidder_address'])
                         .from(BidEntity, '_bids')
@@ -524,13 +504,33 @@ export class OffersService {
         locale?: string,
         numberOfAttributes?: number[],
     ): SelectQueryBuilder<ContractAsk> {
-        //if(nullOrWhitespace(text) || nullOrWhitespace(locale) || (traitsCount ?? []).length === 0) return query;
-
         if ((numberOfAttributes ?? []).length !== 0) {
-            query.andWhere(
+            query.leftJoinAndSelect(
+              (subQuery) => {
+                return subQuery.select([
+                  '_i.collection_id',
+                  '_i.token_id',
+                  'sum(array_count) over (partition by _i.collection_id, _i.token_id) as amount'
+                ])
+                .distinct()
+                .from((qb) => {
+                  return qb.select(['_s.collection_id as collection_id', '_s.token_id as token_id', 'array_length(_s.items, 1) as array_count'])
+                    .distinct()
+                    .from(SearchIndex, '_s')
+                    .leftJoinAndSelect(ContractAsk, 'ca', 'ca.collection_id = _s.collection_id and ca.token_id = _s.token_id')
+                    .andWhere('_s.type in (:...types)', { types: ['Enum', 'String'] })
+                    .andWhere('_s.key not in (:...keys)', { keys: ['collectionCover', 'description', 'collectionName'] })
+                    .andWhere('ca.status = :status', { status: 'active' });
+                },'_i')
+              },
+              '_count_token',
+              '_count_token.collection_id = offer.collection_id and _count_token.token_id = offer.token_id',
+          )
+
+          query.andWhere(
                 '_count_token.amount in (:...numberOfAttributes)',
                 { numberOfAttributes },
-            );
+          );
         }
 
         if (!nullOrWhitespace(text)) {
@@ -624,29 +624,12 @@ export class OffersService {
                         'Not found collectionIds. Please set collectionIds to offer by filter',
                 });
             } else {
-                const filterAttributes = attributes.reduce(
-                    (previous, current) => {
-                        if (!previous[current['key']]) {
-                            previous[current['key']] = [];
-                        }
-                        previous[current['key']].push(current['attribute']);
-                        return previous;
-                    },
-                    {},
-                );
 
-                const keyList = [];
-                for (const [key, value] of Object.entries(filterAttributes)) {
-                    keyList.push(key);
-                }
-                query.andWhere('search_filter.key in (:...keyList)', {
-                    keyList,
-                });
-                for (const [key, value] of Object.entries(filterAttributes)) {
-                    query.andWhere('array [:...value] <@ search_filter.items', {
+                /*for (const [key, value] of Object.entries(filterAttributes)) {
+                    query.orWhere('array [:...value] <@ search_filter.items', {
                         value,
                     });
-                }
+                }*/
                 return query;
             }
         }
@@ -751,7 +734,8 @@ export class OffersService {
                         'Not found collectionIds. Please set collectionIds',
                 });
             }
-          const counts = await this.connection.manager.createQueryBuilder()
+
+            const counts = await this.connection.manager.createQueryBuilder()
             .select(['"numberOfAttributes"', 'count(_j.token_id) over (partition by "numberOfAttributes") amount'])
             .distinct()
             .from((qb) => {
@@ -766,7 +750,8 @@ export class OffersService {
                         .from(SearchIndex, '_s')
                         .leftJoinAndSelect(ContractAsk, 'ca', 'ca.collection_id = _s.collection_id and ca.token_id = _s.token_id')
                         .where('_s.collection_id in (:...collectionIds)', { collectionIds: args.collectionId })
-                        .andWhere('_s.type = :type', { type: 'Enum' })
+                        .andWhere('_s.type in (:...types)', { types: ['Enum', 'String'] })
+                        .andWhere('_s.key not in (:...keys)', { keys: ['collectionCover', 'description', 'collectionName'] })
                         .andWhere('ca.status = :status', { status: 'active' });
                     }, '_p')
                 }, '_i')
