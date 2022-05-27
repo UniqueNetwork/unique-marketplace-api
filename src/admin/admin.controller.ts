@@ -1,7 +1,9 @@
-import { Controller, Patch, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Headers, HttpStatus, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
+import { Request } from 'express';
+import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
 
 @ApiTags('Administration')
 @Controller('admin')
@@ -10,17 +12,30 @@ export class AdminController {
 
   @Post('/login')
   @ApiOperation({ description: 'User authorization' })
-  async login() {
-    return await this.adminService.login({});
+  @ApiHeader({ name: 'Signature', description: 'signature' })
+  @ApiQuery({ name: 'account', description: 'Substrate account', example: '5EsQUxc6FLEJKgCwWbiC4kBuCbBt6ePtdKLvVP5gfpXkrztf' })
+  @ApiResponse({ status: HttpStatus.OK, type: ResponseAdminDto })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized address or bad signature', type: ResponseAdminErrorDto })
+  @ApiForbiddenResponse({ description: 'Forbidden. Marketplace disabled management for administrators.', type: ResponseAdminErrorDto })
+  async login(
+    @Headers('Signature') signature = '',
+    @Query('account') signerAddress: string,
+    @Req() req: Request,
+  ): Promise<ResponseAdminDto | ResponseAdminErrorDto> {
+    const queryString = req.originalUrl.split('?')[0];
+    return await this.adminService.login(signerAddress, signature, queryString);
   }
 
-  @Post('/refresh_token')
-  @ApiOperation({ description: 'Refresh authorization token' })
-  async refreshToken() {
-    return await this.adminService.refreshToken({});
+  @Get('/collection/list')
+  @ApiBearerAuth()
+  @ApiOperation({ description: 'Create collection' })
+  @UseGuards(AuthGuard)
+  async listCollection() {
+    return await this.adminService.createCollection({});
   }
 
   @Post('/collection/add')
+  @ApiBearerAuth()
   @ApiOperation({ description: 'Create collection' })
   @UseGuards(AuthGuard)
   async createCollection() {
@@ -30,6 +45,7 @@ export class AdminController {
   @Post('/collection/remove')
   @ApiOperation({ description: 'Remove collection' })
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   async removeCollection() {
     return await this.adminService.removeCollection({});
   }
