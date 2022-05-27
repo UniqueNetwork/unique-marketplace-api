@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { MarketConfig } from "./market-config";
+import { MarketConfig } from './market-config';
 
 export default {
   postgresUrl: process.env.POSTGRES_URL || 'postgres://marketplace:12345@marketplace-postgres:5432/marketplace_db',
@@ -8,10 +8,16 @@ export default {
   disableSecurity: process.env.DISABLE_SECURITY === 'true',
   rootDir: path.normalize(path.join(__dirname, '..')),
   autoDBMigrations: process.env.AUTO_DB_MIGRATIONS === 'true',
+  marketType: process.env.MARKET_TYPE || 'secondary', // primary or secondary
+  mainSaleSeed: process.env.MAINSALE_SEED || null,
   adminList: process.env.ADMIN_LIST || '',
   dev: {
     debugMigrations: false,
     debugScanBlock: false,
+  },
+  jwt: {
+    access: '24h',
+    refresh: '7d',
   },
   sentry: {
     enabled: process.env.SENTRY_ENABLED === 'true',

@@ -1,4 +1,4 @@
-import { SentryModuleOptions } from "../utils/sentry";
+import { SentryModuleOptions } from '../utils/sentry';
 
 interface EscrowConfig {
   wsEndpoint: string;
@@ -18,35 +18,42 @@ interface AuctionConfig {
 }
 
 export interface MarketConfig {
-  postgresUrl: string,
-  testingPostgresUrl: string,
-  listenPort: number,
-  disableSecurity: boolean,
-  rootDir: string,
-  autoDBMigrations: boolean,
-  auction: AuctionConfig,
-  sentry: SentryModuleOptions,
+  postgresUrl: string;
+  testingPostgresUrl: string;
+  listenPort: number;
+  disableSecurity: boolean;
+  rootDir: string;
+  autoDBMigrations: boolean;
+  auction: AuctionConfig;
+  marketType: string;
+  mainSaleSeed: string;
+  adminList: string;
+  jwt: {
+    access: string;
+    refresh: string;
+  };
+  sentry: SentryModuleOptions;
   dev: {
-    debugMigrations: boolean,
-    debugScanBlock: boolean,
-  },
+    debugMigrations: boolean;
+    debugScanBlock: boolean;
+  };
   swagger: {
     title: string;
     version: string;
     description: string;
-  },
+  };
   blockchain: {
-    escrowSeed: string | null,
-    unique: UniqueEscrowConfig,
+    escrowSeed: string | null;
+    unique: UniqueEscrowConfig;
     kusama: EscrowConfig & {
-      ss58Format: number,
-      marketCommission: number,
-    },
+      ss58Format: number;
+      marketCommission: number;
+    };
     testing: {
-      escrowSeed: string,
-      unique: UniqueEscrowConfig,
-      kusama: EscrowConfig,
-    },
-  },
-  ipfs: string
+      escrowSeed: string;
+      unique: UniqueEscrowConfig;
+      kusama: EscrowConfig;
+    };
+  };
+  ipfs: string;
 }
