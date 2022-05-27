@@ -22,15 +22,16 @@ import { BroadcastModule } from './broadcast/broadcast.module';
 import { RequestLoggerMiddleware } from './utils/logging/request-logger-middleware.service';
 import { JwtModule } from '@nestjs/jwt';
 import { getConfig } from './config';
-import { AdminController } from './admin/admin.controller';
+import { SignatureVerifier } from './auction/services/helpers/signature-verifier';
 import { AdminService } from './admin/admin.service';
+import { AdminController } from './admin/admin.controller';
 const config = getConfig();
 
 @Module({
   imports: [
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'blockchain'),
-      serveRoot:"/blockchain"
+      serveRoot: '/blockchain',
     }),
     JwtModule.register({ secret: config.blockchain.escrowSeed }),
     SentryLoggerService(),
@@ -44,7 +45,17 @@ const config = getConfig();
     BroadcastModule,
   ],
   controllers: [OffersController, TradesController, SettingsController, AdminController, HealthController, MetricsController],
-  providers: [OffersService, TradesService, PlaygroundCommand, SettingsService, AdminService, HealthService, MetricsService, PrometheusService],
+  providers: [
+    OffersService,
+    TradesService,
+    PlaygroundCommand,
+    SettingsService,
+    AdminService,
+    SignatureVerifier,
+    HealthService,
+    MetricsService,
+    PrometheusService,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): any {
