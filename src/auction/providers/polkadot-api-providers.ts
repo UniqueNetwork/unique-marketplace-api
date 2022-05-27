@@ -1,27 +1,24 @@
-import { Logger, Provider, Scope } from "@nestjs/common";
-import { ApiPromise, WsProvider } from "@polkadot/api";
-import * as defs from "@unique-nft/types/definitions";
-import { ApiInterfaceEvents } from "@polkadot/api/types";
-import { MarketConfig } from "../../config/market-config";
+import { Logger, Provider, Scope } from '@nestjs/common';
+import { ApiPromise, WsProvider } from '@polkadot/api';
+import * as defs from '@unique-nft/types/definitions';
+import { ApiInterfaceEvents } from '@polkadot/api/types';
+import { MarketConfig } from '../../config/market-config';
 
 const waitConnectionReady = async (api: ApiPromise, logger: Logger, wsEndpoint: string): Promise<ApiPromise> => {
   const apiEvents: ApiInterfaceEvents[] = ['ready', 'connected', 'disconnected', 'error'];
 
   apiEvents.forEach((event) => {
-    api.on(event, () => logger.debug(`${event} (${wsEndpoint})`))
+    api.on(event, () => logger.debug(`${event} (${wsEndpoint})`));
   });
 
   await api.isReady;
 
-  const [chain, version] = await Promise.all([
-    api.rpc.system.chain(),
-    api.rpc.system.version(),
-  ]);
+  const [chain, version] = await Promise.all([api.rpc.system.chain(), api.rpc.system.version()]);
 
   logger.log(`${chain} (${wsEndpoint}) version ${version} - ready`);
 
   return api;
-}
+};
 
 const uniqueApiProvider: Provider<Promise<ApiPromise>> = {
   provide: 'UNIQUE_API',
@@ -40,7 +37,7 @@ const uniqueApiProvider: Provider<Promise<ApiPromise>> = {
     return await waitConnectionReady(api, logger, wsEndpoint);
   },
   scope: Scope.DEFAULT,
-}
+};
 
 const kusamaApiProvider: Provider<Promise<ApiPromise>> = {
   provide: 'KUSAMA_API',
@@ -58,9 +55,6 @@ const kusamaApiProvider: Provider<Promise<ApiPromise>> = {
     return await waitConnectionReady(api, logger, wsEndpoint);
   },
   scope: Scope.DEFAULT,
-}
+};
 
-export const polkadotApiProviders = [
-  uniqueApiProvider,
-  kusamaApiProvider,
-];
+export const polkadotApiProviders = [uniqueApiProvider, kusamaApiProvider];

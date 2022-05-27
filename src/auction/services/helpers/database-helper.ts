@@ -1,11 +1,10 @@
-import { EntityManager, MoreThan, LessThanOrEqual, SelectQueryBuilder, Any } from 'typeorm';
-import { Logger } from "@nestjs/common";
+import { Any, EntityManager, LessThanOrEqual, MoreThan, SelectQueryBuilder } from 'typeorm';
+import { Logger } from '@nestjs/common';
 import { AuctionEntity, BidEntity, ContractAsk } from '../../../entity';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { AuctionStatus, BidStatus } from '../../types';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { BidsWitdrawByOwner } from 'src/auction/responses';
 
 type AggregatedBid = { bidderAddress: string; totalAmount: bigint };
 type AggregatedBidDb = { bidderAddress: string; totalAmount: string };
@@ -24,7 +23,7 @@ type BidsFilter = {
 type ContractFilter = {
   collectionId: number;
   tokenId: number;
-}
+};
 
 export class DatabaseHelper {
   private logger = new Logger(DatabaseHelper.name);
@@ -69,27 +68,18 @@ export class DatabaseHelper {
 
     if (auctionsToStop.length === 0) return { contractIds };
 
-
     if (auctionIds.length) {
-      await this.entityManager.update(
-        AuctionEntity,
-        auctionIds,
-        {
-          status: AuctionStatus.stopped,
-          stopAt: new Date()
-        },
-      );
+      await this.entityManager.update(AuctionEntity, auctionIds, {
+        status: AuctionStatus.stopped,
+        stopAt: new Date(),
+      });
     }
 
     return { contractIds };
   }
 
   async findAuctionsReadyForWithdraw(): Promise<AuctionEntity[]> {
-    const mintingBids = this.entityManager
-      .createQueryBuilder(BidEntity, 'bid')
-      .select('auction_id')
-      .distinct()
-      .where('bid.status = :bidStatus');
+    const mintingBids = this.entityManager.createQueryBuilder(BidEntity, 'bid').select('auction_id').distinct().where('bid.status = :bidStatus');
 
     return this.entityManager
       .createQueryBuilder(AuctionEntity, 'auction')
@@ -97,16 +87,12 @@ export class DatabaseHelper {
       .andWhere(`auction.id NOT IN (${mintingBids.getSql()})`)
       .setParameters({
         auctionStatus: AuctionStatus.stopped,
-        bidStatus: BidStatus.minting
+        bidStatus: BidStatus.minting,
       })
       .getMany();
   }
 
-  private async getAggregatedBid(filter: {
-    auctionId: string;
-    bidStatuses?: BidStatus[];
-    bidderAddress?: string;
-  }): Promise<AggregatedBid | undefined> {
+  private async getAggregatedBid(filter: { auctionId: string; bidStatuses?: BidStatus[]; bidderAddress?: string }): Promise<AggregatedBid | undefined> {
     const result = await this.buildGroupedBidsQuery(filter).getRawOne<AggregatedBidDb>();
 
     return result ? toAggregatedBid(result) : undefined;
@@ -118,11 +104,7 @@ export class DatabaseHelper {
     return result.map(toAggregatedBid);
   }
 
-  private buildGroupedBidsQuery(filter: {
-    auctionId: string;
-    bidStatuses?: BidStatus[];
-    bidderAddress?: string;
-  }): SelectQueryBuilder<AggregatedBidDb> {
+  private buildGroupedBidsQuery(filter: { auctionId: string; bidStatuses?: BidStatus[]; bidderAddress?: string }): SelectQueryBuilder<AggregatedBidDb> {
     const { auctionId, bidStatuses, bidderAddress } = filter;
 
     const query = this.entityManager
@@ -134,15 +116,12 @@ export class DatabaseHelper {
     if (bidStatuses) query.andWhere('auction_bid.status = ANY (:bidStatuses)', { bidStatuses });
     if (bidderAddress) query.andWhere('auction_bid.bidder_address = :bidderAddress', { bidderAddress: encodeAddress(bidderAddress) });
 
-    query
-      .groupBy('bidder_address')
-      .orderBy('1', 'DESC');
+    query.groupBy('bidder_address').orderBy('1', 'DESC');
 
     //this.logger.debug(JSON.stringify(query.getQueryAndParameters()));
 
     return query;
   }
-
 
   async getUserPendingSum(filter: { auctionId: string; bidderAddress: string }): Promise<bigint> {
     const bidsTotal = await this.getAggregatedBid({ ...filter, bidStatuses: [BidStatus.finished, BidStatus.minting] });
