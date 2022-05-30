@@ -1,8 +1,9 @@
-import { forwardRef, Inject, Injectable, Logger} from '@nestjs/common';
-import { ApiPromise } from "@polkadot/api";
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { ApiPromise } from '@polkadot/api';
 import { SettingsDto } from './dto/settings.dto';
 import { convertAddress, seedToAddress } from '../utils/blockchain/util';
-import { MarketConfig } from "../config/market-config";
+import { MarketConfig } from '../config/market-config';
+import { CollectionsService } from 'src/collections/collections.service';
 
 @Injectable()
 export class SettingsService {
@@ -13,46 +14,49 @@ export class SettingsService {
   constructor(
     @Inject('CONFIG') private config: MarketConfig,
     @Inject(forwardRef(() => 'UNIQUE_API')) private uniqueApi: ApiPromise,
+    private readonly collections: CollectionsService,
   ) {}
 
   async prepareSettings(): Promise<SettingsDto> {
-      const { blockchain, auction } = this.config;
+    const { blockchain, auction } = this.config;
 
-      const settings: SettingsDto = {
-          blockchain: {
-              escrowAddress: await seedToAddress(blockchain.escrowSeed),
-              unique: {
-                  wsEndpoint: blockchain.unique.wsEndpoint,
-                  collectionIds: blockchain.unique.collectionIds,
-                  contractAddress: blockchain.unique.contractAddress,
-              },
-              kusama: {
-                  wsEndpoint: blockchain.kusama.wsEndpoint,
-                  marketCommission: blockchain.kusama.marketCommission.toString(),
-              },
-          },
-      };
+    const collectionIds = await this.collections.getCollectionIds();
 
-      if (auction.seed) {
-        try {
-          let auctionAddress = await seedToAddress(auction.seed);
-          auctionAddress = await convertAddress(auctionAddress, this.uniqueApi.registry.chainSS58);
+    const settings: SettingsDto = {
+      blockchain: {
+        escrowAddress: await seedToAddress(blockchain.escrowSeed),
+        unique: {
+          wsEndpoint: blockchain.unique.wsEndpoint,
+          collectionIds,
+          contractAddress: blockchain.unique.contractAddress,
+        },
+        kusama: {
+          wsEndpoint: blockchain.kusama.wsEndpoint,
+          marketCommission: blockchain.kusama.marketCommission.toString(),
+        },
+      },
+    };
 
-          settings.auction = {
-            commission: auction.commission,
-            address: auctionAddress,
-          };
-        } catch (error) {
-          this.logger.warn(error);
-        }
+    if (auction.seed) {
+      try {
+        let auctionAddress = await seedToAddress(auction.seed);
+        auctionAddress = await convertAddress(auctionAddress, this.uniqueApi.registry.chainSS58);
+
+        settings.auction = {
+          commission: auction.commission,
+          address: auctionAddress,
+        };
+      } catch (error) {
+        this.logger.warn(error);
       }
+    }
 
-      this.preparedSettings = settings;
+    this.preparedSettings = settings;
 
-      return settings;
+    return settings;
   }
 
   async getSettings(): Promise<SettingsDto> {
-    return this.preparedSettings || await this.prepareSettings();
+    return this.preparedSettings || (await this.prepareSettings());
   }
 }

@@ -25,6 +25,8 @@ import { getConfig } from './config';
 import { SignatureVerifier } from './auction/services/helpers/signature-verifier';
 import { AdminService } from './admin/admin.service';
 import { AdminController } from './admin/admin.controller';
+import { CollectionsModule } from './collections/collections.module';
+import { PolkadotModule } from './polkadot/polkadot.module';
 const config = getConfig();
 
 @Module({
@@ -43,6 +45,8 @@ const config = getConfig();
     TerminusModule,
     AuctionModule,
     BroadcastModule,
+    CollectionsModule,
+    PolkadotModule,
   ],
   controllers: [OffersController, TradesController, SettingsController, AdminController, HealthController, MetricsController],
   providers: [
