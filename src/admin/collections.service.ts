@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from 'src/config/market-config';
 import { Collection } from 'src/entity';
@@ -43,6 +43,7 @@ export class CollectionsService implements OnModuleInit {
    * If collection already exists in database - update record
    * If collection not found in chain its created with empty data
    * @param id - collection id from unique network
+   * @return ({Promise<Collection>})
    */
   async importById(id: number): Promise<Collection> {
     const data = await this.unique.query.common.collectionById(id);
@@ -61,6 +62,7 @@ export class CollectionsService implements OnModuleInit {
   /**
    * Remove collection by ID in database
    * @param id - collection id
+   * @return ({Promise<DeleteResult>})
    */
   async deleteById(id: number): Promise<DeleteResult> {
     return await this.collectionsRepository.delete(id);
@@ -69,6 +71,7 @@ export class CollectionsService implements OnModuleInit {
   /**
    * Find collection by ID in database
    * @param id - collection id
+   * @return ({Promise<Collection>})
    */
   async findById(id: number): Promise<Collection> {
     return await this.collectionsRepository.findOne(id);
@@ -76,6 +79,7 @@ export class CollectionsService implements OnModuleInit {
 
   /**
    * Find array of collection in database
+   * @return ({Promise<Collection[]>})
    */
   async findAll(): Promise<Collection[]> {
     return await this.collectionsRepository.find();
@@ -83,6 +87,7 @@ export class CollectionsService implements OnModuleInit {
 
   /**
    * Get collections ids in database
+   * @return ({Promise<number[]>})
    */
   async getCollectionIds(): Promise<number[]> {
     const collections = await this.collectionsRepository.find();
@@ -94,6 +99,8 @@ export class CollectionsService implements OnModuleInit {
    * Create or update if exists collection in database
    * @param id - collection id
    * @param entity - collection object
+   * @private
+   * @return ({Promise<Collection>})
    */
   private async createOrUpdate(id: number, entity: Collection): Promise<Collection> {
     const collection = await this.findById(id);

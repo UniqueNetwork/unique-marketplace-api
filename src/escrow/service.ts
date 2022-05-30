@@ -336,6 +336,10 @@ export class EscrowService {
     return searchIndex.addSearchIndexIfNotExists(token);
   }
 
+  /**
+   * Get collections ids from database
+   * @return ({Promise<number[]>})
+   */
   async getCollectionIds(): Promise<number[]> {
     const collections = await this.collectionsRepository.find({ select: ['id'] });
 

@@ -63,6 +63,7 @@ export class AdminService {
   /**
    * List collection
    * @param param
+   * @return ({Promise<Collection[]>})
    */
   async listCollection(): Promise<Collection[]> {
     return await this.collectionsService.findAll();
@@ -71,6 +72,7 @@ export class AdminService {
   /**
    * Create collection
    * @param id - collection id from unique network
+   * @return ({Promise<Collection>})
    */
   async createCollection(collectionId: number): Promise<Collection> {
     return await this.collectionsService.importById(collectionId);
@@ -79,6 +81,7 @@ export class AdminService {
   /**
    * Remove collection
    * @param id - collection id from database
+   * @return ({Promise<Collection>})
    */
   async removeCollection(collectionId: number): Promise<DeleteResult> {
     return await this.collectionsService.deleteById(collectionId);
