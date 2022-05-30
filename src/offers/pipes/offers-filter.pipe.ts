@@ -3,8 +3,8 @@ import { ErrorHttpStatusCode, HttpErrorByCode } from '@nestjs/common/utils/http-
 
 import { TransformationResult } from '../../utils/type-generators/transformation-result';
 import { UntypedRequest } from '../../utils/type-generators/untyped-request';
-import { OffersFilter } from '../dto/offers-filter';
-import { parseBigIntRequest, parseCollectionIdRequest, parseIntRequest, requestArray } from '../../utils/parsers';
+import { filterAttributes, OffersFilter } from '../dto/offers-filter';
+import { parseBigIntRequest, parseCollectionIdRequest, parseIntRequest, requestArray, requestArrayObject } from '../../utils/parsers';
 
 export interface ParseOffersFilterPipeOptions {
     errorHttpStatusCode?: ErrorHttpStatusCode;
@@ -38,15 +38,17 @@ export class ParseOffersFilterPipe implements PipeTransform<any, TransformationR
             searchLocale: value.searchLocale,
             searchText: value.searchText,
             seller: value.seller,
-            traitsCount: requestArray(value.traitsCount)
+            numberOfAttributes: requestArray(value.numberOfAttributes)
                 .map((id) =>
                     parseIntRequest(id, () => {
-                        throw this.exceptionFactory(`Failed to parse traits count. Expected an array of integers, got ${JSON.stringify(value.traitsCount)}`);
+                        throw this.exceptionFactory(`Failed to parse traits count. Expected an array of integers, got ${JSON.stringify(value.numberOfAttributes)}`);
                     }),
                 )
                 .filter((id) => id != null) as number[],
-            traits: requestArray(value.traits)
-                    .filter((id) => id != null) as string[],
+            attributes: requestArrayObject(value.attributes)
+                    .filter((id) => id != null).map((item) => {
+                      return JSON.parse(item);
+                    }) as Array<filterAttributes>,
             bidderAddress: value.bidderAddress,
             isAuction: value?.isAuction || null,
         });

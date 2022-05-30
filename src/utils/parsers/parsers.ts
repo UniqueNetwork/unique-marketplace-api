@@ -67,7 +67,7 @@ export function parseCollectionIdRequest(collectionId: QueryParamArray): number[
  * @param {String} request
  * @return {Array}
  */
-export function requestArray(request: string | string[] | undefined | null): string[] {
+export function requestArray(request: string | string[] | undefined | null ): string[] {
     if (Array.isArray(request)) {
         return request;
     }
@@ -77,4 +77,22 @@ export function requestArray(request: string | string[] | undefined | null): str
     }
 
     return [request];
+}
+
+
+/**
+ * Parse incoming strings into an array of strings
+ * @param {String} request
+ * @return {Array}
+ */
+ export function requestArrayObject(request: any[] | undefined | null ): any[] {
+  if (Array.isArray(request)) {
+      return request;
+  }
+
+  if (request == null) {
+      return [];
+  }
+
+  return [request];
 }
