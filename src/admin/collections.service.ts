@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from 'src/config/market-config';
 import { Collection } from 'src/entity';
@@ -48,7 +48,7 @@ export class CollectionsService implements OnModuleInit {
 
     const collection = data.toHuman();
 
-    if (collection === null) throw new Error(`Collection #${id} not found in chain`);
+    if (collection === null) throw new BadRequestException(`Collection #${id} not found in chain`);
 
     const decoded = decodeCollection(collection);
 
