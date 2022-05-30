@@ -4,6 +4,7 @@ import { MarketConfig } from 'src/config/market-config';
 import { Collection } from 'src/entity';
 import { Connection, DeleteResult, Repository } from 'typeorm';
 import { decodeCollection } from './utils';
+import { HumanizedCollection } from './types/collection';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
@@ -48,7 +49,7 @@ export class CollectionsService implements OnModuleInit {
   async importById(id: number): Promise<Collection> {
     const data = await this.unique.query.common.collectionById(id);
 
-    const collection = data.toHuman();
+    const collection = data.toHuman() as any as HumanizedCollection;
 
     if (collection === null) this.logger.warn(`Collection #${id} not found in chain`);
 
