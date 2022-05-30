@@ -45,8 +45,8 @@ export class AdminController {
 
   @Post('/collection/remove')
   @ApiOperation({ description: 'Remove collection' })
-  // @UseGuards(AuthGuard)
   @ApiBearerAuth()
+  @UseGuards(AuthGuard)
   async removeCollection(@Body() data: RemoveCollectionDTO) {
     return await this.adminService.removeCollection(data.collectionId);
   }

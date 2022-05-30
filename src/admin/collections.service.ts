@@ -41,6 +41,7 @@ export class CollectionsService implements OnModuleInit {
   /**
    * Import collection from unique network by collection id and save to database
    * If collection already exists in database - update record
+   * If collection not found in chain its created with empty data
    * @param id - collection id from unique network
    */
   async importById(id: number): Promise<Collection> {
@@ -48,11 +49,11 @@ export class CollectionsService implements OnModuleInit {
 
     const collection = data.toHuman();
 
-    if (collection === null) throw new BadRequestException(`Collection #${id} not found in chain`);
+    if (collection === null) this.logger.warn(`Collection #${id} not found in chain`);
 
-    const decoded = decodeCollection(collection);
+    const args = collection ? decodeCollection(collection) : {};
 
-    const entity = this.collectionsRepository.create(decoded);
+    const entity = this.collectionsRepository.create(args);
 
     return await this.createOrUpdate(id, entity);
   }
@@ -73,6 +74,9 @@ export class CollectionsService implements OnModuleInit {
     return await this.collectionsRepository.findOne(id);
   }
 
+  /**
+   * Find array of collection in database
+   */
   async findAll(): Promise<Collection[]> {
     return await this.collectionsRepository.find();
   }

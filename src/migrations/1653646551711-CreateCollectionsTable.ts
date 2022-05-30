@@ -15,32 +15,36 @@ export class CreateCollectionsTable1653646551711 implements MigrationInterface {
             name: 'owner',
             type: 'varchar',
             length: '128',
+            isNullable: true,
           },
           {
             name: 'mode',
             type: 'enum',
             enum: ['NFT', 'Fungible', 'ReFungible'],
+            isNullable: true,
           },
           {
             name: 'decimal_points',
             type: 'int',
-            isNullable: false,
             default: 0,
           },
           {
             name: 'name',
             type: 'varchar',
             length: '64',
+            isNullable: true,
           },
           {
             name: 'description',
             type: 'varchar',
             length: '256',
+            isNullable: true,
           },
           {
             name: 'token_prefix',
             type: 'varchar',
             length: '16',
+            isNullable: true,
           },
           {
             name: 'mint_mode',
