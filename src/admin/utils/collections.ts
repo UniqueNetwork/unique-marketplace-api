@@ -1,6 +1,6 @@
 import { AnyJson } from '@polkadot/types/types';
 import { vec2str } from 'src/utils/blockchain/util';
-import { DecodedCollection } from './types';
+import { DecodedCollection } from '../types/collection';
 
 export const decodeCollection = (collection: AnyJson): DecodedCollection => ({
   owner: collection['owner'],

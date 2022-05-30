@@ -1,4 +1,4 @@
-import { CollectionMode } from 'src/collections/types';
+import { CollectionMode } from 'src/admin/types/collection';
 import { Column, CreateDateColumn, Entity, UpdateDateColumn } from 'typeorm';
 
 @Entity('collections', { schema: 'public' })

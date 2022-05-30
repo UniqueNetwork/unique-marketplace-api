@@ -2,7 +2,6 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from 'src/config/market-config';
 import { Collection } from 'src/entity';
-import { InjectUniqueAPI } from 'src/polkadot';
 import { Connection, DeleteResult, Repository } from 'typeorm';
 import { decodeCollection } from './utils';
 
@@ -12,11 +11,11 @@ export class CollectionsService implements OnModuleInit {
   private readonly logger: Logger;
 
   constructor(
-    @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @InjectUniqueAPI() private unique: ApiPromise,
+    @Inject('DATABASE_CONNECTION') private db: Connection,
+    @Inject('UNIQUE_API') private unique: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
   ) {
-    this.collectionsRepository = connection.getRepository(Collection);
+    this.collectionsRepository = db.getRepository(Collection);
     this.logger = new Logger(CollectionsService.name);
   }
 
