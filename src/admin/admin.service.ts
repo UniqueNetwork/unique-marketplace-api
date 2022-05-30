@@ -64,8 +64,8 @@ export class AdminService {
    * List collection
    * @param param
    */
-  async listCollection(param: {}) {
-    return Promise.resolve({ data: 'Example Collection' });
+  async listCollection(): Promise<Collection[]> {
+    return await this.collectionsService.findAll();
   }
 
   /**

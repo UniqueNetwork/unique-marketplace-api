@@ -1,16 +1,15 @@
-import { Body, Controller, Get, Headers, HttpStatus, Post, Query, Req, UseGuards, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpStatus, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
 import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
 import { AddCollectionDTO, RemoveCollectionDTO } from './dto/collections.dto';
-import { CollectionsService } from './collections.service';
 
 @ApiTags('Administration')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService, private readonly collectionsService: CollectionsService) {}
+  constructor(private readonly adminService: AdminService) {}
 
   @Post('/login')
   @ApiOperation({ description: 'User authorization' })
@@ -30,10 +29,10 @@ export class AdminController {
 
   @Get('/collection/list')
   @ApiBearerAuth()
-  @ApiOperation({ description: 'Create collection' })
+  @ApiOperation({ description: 'List collection' })
   @UseGuards(AuthGuard)
   async listCollection() {
-    return await this.adminService.listCollection({});
+    return await this.adminService.listCollection();
   }
 
   @Post('/collection/add')
@@ -46,9 +45,9 @@ export class AdminController {
 
   @Post('/collection/remove')
   @ApiOperation({ description: 'Remove collection' })
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @ApiBearerAuth()
   async removeCollection(@Body() data: RemoveCollectionDTO) {
-    return await this.collectionsService.deleteById(data.collectionId);
+    return await this.adminService.removeCollection(data.collectionId);
   }
 }

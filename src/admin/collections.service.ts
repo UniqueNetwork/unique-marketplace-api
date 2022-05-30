@@ -73,6 +73,10 @@ export class CollectionsService implements OnModuleInit {
     return await this.collectionsRepository.findOne(id);
   }
 
+  async findAll(): Promise<Collection[]> {
+    return await this.collectionsRepository.find();
+  }
+
   /**
    * Get collections ids in database
    */
