@@ -1,5 +1,5 @@
 import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { Connection, Repository } from 'typeorm';
+import { Connection, DeleteResult, Repository } from 'typeorm';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { MarketConfig } from '../config/market-config';
 import { ApiPromise } from '@polkadot/api';
@@ -9,6 +9,8 @@ import * as util from '../utils/blockchain/util';
 import { SignatureVerifier } from '../auction/services/helpers/signature-verifier';
 import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
 import { AdminSessionEntity } from '../entity/adminsession-entity';
+import { CollectionsService } from './collections.service';
+import { Collection } from 'src/entity';
 
 @Injectable()
 export class AdminService {
@@ -21,6 +23,7 @@ export class AdminService {
     @Inject('CONFIG') private config: MarketConfig,
     private readonly signatureVerifier: SignatureVerifier,
     private jwtService: JwtService,
+    private collectionsService: CollectionsService,
   ) {
     this.logger = new Logger(AdminService.name);
     this.adminRepository = connection.manager.getRepository(AdminSessionEntity);
@@ -67,18 +70,18 @@ export class AdminService {
 
   /**
    * Create collection
-   * @param param
+   * @param id - collection id from unique network
    */
-  async createCollection(param: {}) {
-    return Promise.resolve({ data: 'Example Collection' });
+  async createCollection(collectionId: number): Promise<Collection> {
+    return await this.collectionsService.importById(collectionId);
   }
 
   /**
    * Remove collection
-   * @param param
+   * @param id - collection id from database
    */
-  async removeCollection(param: {}) {
-    return Promise.resolve(undefined);
+  async removeCollection(collectionId: number): Promise<DeleteResult> {
+    return await this.collectionsService.deleteById(collectionId);
   }
 
   /**

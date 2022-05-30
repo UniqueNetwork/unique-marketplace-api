@@ -1,14 +1,16 @@
-import { Controller, Get, Headers, HttpStatus, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpStatus, Post, Query, Req, UseGuards, ValidationPipe } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
 import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
+import { AddCollectionDTO, RemoveCollectionDTO } from './dto/collections.dto';
+import { CollectionsService } from './collections.service';
 
 @ApiTags('Administration')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: AdminService, private readonly collectionsService: CollectionsService) {}
 
   @Post('/login')
   @ApiOperation({ description: 'User authorization' })
@@ -31,22 +33,22 @@ export class AdminController {
   @ApiOperation({ description: 'Create collection' })
   @UseGuards(AuthGuard)
   async listCollection() {
-    return await this.adminService.createCollection({});
+    return await this.adminService.listCollection({});
   }
 
   @Post('/collection/add')
   @ApiBearerAuth()
   @ApiOperation({ description: 'Create collection' })
   @UseGuards(AuthGuard)
-  async createCollection() {
-    return await this.adminService.createCollection({});
+  async createCollection(@Body() data: AddCollectionDTO) {
+    return await this.adminService.createCollection(data.collectionId);
   }
 
   @Post('/collection/remove')
   @ApiOperation({ description: 'Remove collection' })
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  async removeCollection() {
-    return await this.adminService.removeCollection({});
+  async removeCollection(@Body() data: RemoveCollectionDTO) {
+    return await this.collectionsService.deleteById(data.collectionId);
   }
 }
