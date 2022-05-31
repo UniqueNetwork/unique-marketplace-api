@@ -25,6 +25,7 @@ export class SettingsService {
     const { blockchain, auction } = this.config;
 
     const collectionIds = await this.getCollectionIds();
+    const allowedTokens = await this.getAllowedTokens();
 
     const settings: SettingsDto = {
       blockchain: {
@@ -32,6 +33,7 @@ export class SettingsService {
         unique: {
           wsEndpoint: blockchain.unique.wsEndpoint,
           collectionIds,
+          allowedTokens,
           contractAddress: blockchain.unique.contractAddress,
         },
         kusama: {
@@ -68,5 +70,9 @@ export class SettingsService {
     const collections = await this.collectionsRepository.find();
 
     return collections.map((i) => Number(i.id));
+  }
+
+  private async getAllowedTokens(): Promise<any> {
+    return {};
   }
 }

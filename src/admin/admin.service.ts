@@ -1,4 +1,14 @@
-import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { MarketConfig } from '../config/market-config';
@@ -11,6 +21,7 @@ import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dt
 import { AdminSessionEntity } from '../entity/adminsession-entity';
 import { CollectionsService } from './collections.service';
 import { Collection } from 'src/entity';
+import { IsNumber } from 'class-validator';
 
 @Injectable()
 export class AdminService {
@@ -19,7 +30,7 @@ export class AdminService {
   constructor(
     @InjectSentry() private readonly sentryService: SentryService,
     @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @Inject('UNIQUE_API') private uniqueApi: any,
     @Inject('CONFIG') private config: MarketConfig,
     private readonly signatureVerifier: SignatureVerifier,
     private jwtService: JwtService,
@@ -88,6 +99,28 @@ export class AdminService {
   }
 
   /**
+   * Add allowed token for collection
+   */
+  async addTokens(collection: string, data: { tokens: string }): Promise<any> {
+    const reg = /^[0-9-,]*$/;
+    if (!reg.test(data.tokens)) {
+      throw new BadRequestException('Wrong format insert tokens');
+    }
+    // Checkout collection
+    const collectionId = await this.collectionsService.findById(+collection);
+    if (collectionId === undefined) throw new NotFoundException('Collection not found');
+    // Create list tokens
+    const tokenList = await this.calculateTokens(data.tokens, reg);
+    let collectionTokens = [];
+    for (let token of tokenList.values()) {
+      let owner = (await this.uniqueApi.rpc.unique.tokenOwner(+collectionId.id, token)).toJSON();
+      collectionTokens.push({ collection_id: +collectionId.id, token_id: token, owner_token: owner });
+    }
+    collectionTokens.sort((a, b) => a.token_id - b.token_id);
+    return collectionTokens;
+  }
+
+  /**
    * Health check
    */
   public get isConnected(): boolean {
@@ -111,6 +144,15 @@ export class AdminService {
     });
 
     return { accessToken: access, refreshToken: refresh };
+  }
+
+  regexNumber(num: string) {
+    const regx = /\d+$/;
+    if (regx.test(num)) {
+      return { isNumber: true, value: parseInt(num) };
+    } else {
+      return { isNumber: false, value: null };
+    }
   }
 
   private checkAdministratorAddress(signerAddress: string, signature: string) {
@@ -137,5 +179,22 @@ export class AdminService {
       this.logger.error({ statusCode: e.status, message: e.message, error: e.response?.error });
       throw new HttpException({ statusCode: e.status, message: e.message, error: e.response?.error }, e.status);
     }
+  }
+
+  private async calculateTokens(tokens: string, regex: RegExp): Promise<Set<number>> {
+    const array = tokens.match(regex)[0];
+    const arr = array.split(',');
+    const allTokens = new Set<number>();
+    arr.forEach((token) => {
+      let rangeNum = token.split('-');
+      if (rangeNum.length > 1) {
+        for (let i = parseInt(rangeNum[0]); i < parseInt(rangeNum[1]) + 1; i++) {
+          allTokens.add(i);
+        }
+      } else {
+        allTokens.add(parseInt(token));
+      }
+    });
+    return allTokens;
   }
 }

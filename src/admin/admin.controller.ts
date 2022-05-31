@@ -3,9 +3,9 @@ import { AdminService } from './admin.service';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
-import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
-import { AddCollectionDTO } from './dto/collections.dto';
+
 import { Collection } from 'src/entity';
+import { AddCollectionDTO, AddTokensDto, ResponseAdminDto, ResponseAdminErrorDto } from './dto';
 
 @ApiTags('Administration')
 @Controller('admin')
@@ -50,5 +50,13 @@ export class AdminController {
   @UseGuards(AuthGuard)
   async removeCollection(@Param('id', ParseIntPipe) collectionId: number): Promise<Collection> {
     return await this.adminService.removeCollection(collectionId);
+  }
+
+  @Post('/tokens/:collectionId')
+  //@ApiBearerAuth()
+  @ApiOperation({ description: 'Add allowed tokens' })
+  //@UseGuards(AuthGuard)
+  async addTokens(@Param('collectionId') collectionId: string, @Body() data: AddTokensDto): Promise<any> {
+    return await this.adminService.addTokens(collectionId, data);
   }
 }
