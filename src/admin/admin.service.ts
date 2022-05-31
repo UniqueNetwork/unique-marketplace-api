@@ -1,5 +1,5 @@
 import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { Connection, DeleteResult, Repository } from 'typeorm';
+import { Connection, Repository } from 'typeorm';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { MarketConfig } from '../config/market-config';
 import { ApiPromise } from '@polkadot/api';
@@ -83,7 +83,7 @@ export class AdminService {
    * @param id - collection id from database
    * @return ({Promise<Collection>})
    */
-  async removeCollection(collectionId: number): Promise<DeleteResult> {
+  async removeCollection(collectionId: number): Promise<Collection> {
     return await this.collectionsService.deleteById(collectionId);
   }
 

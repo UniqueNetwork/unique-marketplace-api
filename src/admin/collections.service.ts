@@ -1,8 +1,8 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from 'src/config/market-config';
 import { Collection } from 'src/entity';
-import { Connection, DeleteResult, Repository } from 'typeorm';
+import { Connection, Repository } from 'typeorm';
 import { decodeCollection } from './utils';
 import { HumanizedCollection } from './types/collection';
 
@@ -63,10 +63,16 @@ export class CollectionsService implements OnModuleInit {
   /**
    * Remove collection by ID in database
    * @param id - collection id
-   * @return ({Promise<DeleteResult>})
+   * @return ({Promise<Collection>})
    */
-  async deleteById(id: number): Promise<DeleteResult> {
-    return await this.collectionsRepository.delete(id);
+  async deleteById(id: number): Promise<Collection> {
+    const collection = await this.collectionsRepository.findOne(id);
+
+    if (!collection) throw new NotFoundException(`Collection #${id} not found`);
+
+    await this.collectionsRepository.delete(id);
+
+    return collection;
   }
 
   /**

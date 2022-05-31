@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Headers, HttpStatus, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpStatus, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
 import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
-import { AddCollectionDTO, RemoveCollectionDTO } from './dto/collections.dto';
+import { AddCollectionDTO } from './dto/collections.dto';
+import { Collection } from 'src/entity';
 
 @ApiTags('Administration')
 @Controller('admin')
@@ -27,27 +28,27 @@ export class AdminController {
     return await this.adminService.login(signerAddress, signature, queryString);
   }
 
-  @Get('/collection/list')
+  @Get('/collections')
   @ApiBearerAuth()
   @ApiOperation({ description: 'List collection' })
   @UseGuards(AuthGuard)
-  async listCollection() {
+  async listCollection(): Promise<Collection[]> {
     return await this.adminService.listCollection();
   }
 
-  @Post('/collection/add')
+  @Post('/collections')
   @ApiBearerAuth()
   @ApiOperation({ description: 'Create collection' })
   @UseGuards(AuthGuard)
-  async createCollection(@Body() data: AddCollectionDTO) {
+  async createCollection(@Body() data: AddCollectionDTO): Promise<Collection> {
     return await this.adminService.createCollection(data.collectionId);
   }
 
-  @Post('/collection/remove')
+  @Delete('/collections/:id')
   @ApiOperation({ description: 'Remove collection' })
   @ApiBearerAuth()
   @UseGuards(AuthGuard)
-  async removeCollection(@Body() data: RemoveCollectionDTO) {
-    return await this.adminService.removeCollection(data.collectionId);
+  async removeCollection(@Param('id', ParseIntPipe) collectionId: number): Promise<Collection> {
+    return await this.adminService.removeCollection(collectionId);
   }
 }
