@@ -7,9 +7,9 @@ import { UniqueEscrow } from './unique';
 import { EscrowService } from './service';
 import { Escrow } from './base';
 import { AuctionClosingScheduler } from '../auction/services/closing/auction-closing.scheduler';
-import { PostgresIoAdapter } from "../broadcast/services/postgres-io.adapter";
-import { MarketConfig } from "../config/market-config";
-import { BroadcastService } from "../broadcast/services/broadcast.service";
+import { PostgresIoAdapter } from '../broadcast/services/postgres-io.adapter';
+import { MarketConfig } from '../config/market-config';
+import { BroadcastService } from '../broadcast/services/broadcast.service';
 
 @Injectable()
 export class EscrowCommand {

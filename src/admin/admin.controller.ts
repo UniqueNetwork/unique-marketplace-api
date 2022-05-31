@@ -1,9 +1,10 @@
-import { Controller, Get, Headers, HttpStatus, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpStatus, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
 import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
+import { AddCollectionDTO, RemoveCollectionDTO } from './dto/collections.dto';
 
 @ApiTags('Administration')
 @Controller('admin')
@@ -28,25 +29,25 @@ export class AdminController {
 
   @Get('/collection/list')
   @ApiBearerAuth()
-  @ApiOperation({ description: 'Create collection' })
+  @ApiOperation({ description: 'List collection' })
   @UseGuards(AuthGuard)
   async listCollection() {
-    return await this.adminService.createCollection({});
+    return await this.adminService.listCollection();
   }
 
   @Post('/collection/add')
   @ApiBearerAuth()
   @ApiOperation({ description: 'Create collection' })
   @UseGuards(AuthGuard)
-  async createCollection() {
-    return await this.adminService.createCollection({});
+  async createCollection(@Body() data: AddCollectionDTO) {
+    return await this.adminService.createCollection(data.collectionId);
   }
 
   @Post('/collection/remove')
   @ApiOperation({ description: 'Remove collection' })
-  @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  async removeCollection() {
-    return await this.adminService.removeCollection({});
+  @UseGuards(AuthGuard)
+  async removeCollection(@Body() data: RemoveCollectionDTO) {
+    return await this.adminService.removeCollection(data.collectionId);
   }
 }

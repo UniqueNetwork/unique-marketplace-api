@@ -8,10 +8,10 @@ import * as unique from '../utils/blockchain/unique';
 import * as util from '../utils/blockchain/util';
 import { MONEY_TRANSFER_STATUS } from './constants';
 import { MoneyTransfer } from '../entity';
-import { Logger } from "@nestjs/common";
+import { Logger } from '@nestjs/common';
 
 export class UniqueEscrow extends Escrow {
-  logger = new Logger(UniqueEscrow.name)
+  logger = new Logger(UniqueEscrow.name);
   inputDecoder;
   etherDecoder;
   explorer;
@@ -21,6 +21,7 @@ export class UniqueEscrow extends Escrow {
   SECTION_UNIQUE = 'unique';
   SECTION_CONTRACT = 'evm';
   SECTION_ETHEREUM = 'ethereum';
+  collectionIds: number[];
 
   BLOCKED_SCHEMA_KEYS = ['ipfsJson'];
 
@@ -68,28 +69,28 @@ export class UniqueEscrow extends Escrow {
   }
 
   async addToAllowList(substrateAddress, contract, helpers) {
-    let contractAddress = this.config('unique.contractAddress');
-    let ethAddress = lib.subToEth(substrateAddress),
+    const contractAddress = this.config('unique.contractAddress');
+    const ethAddress = lib.subToEth(substrateAddress),
       toAdd = [];
     // let toCheck = [substrateAddress, ethAddress, evmToAddress(ethAddress, 42, 'blake2')];
-    let toCheck = [ethAddress];
-    for (let address of toCheck) {
-      let isAllowed = (await this.api.query.evmContractHelpers.allowlist(contractAddress, address)).toJSON();
+    const toCheck = [ethAddress];
+    for (const address of toCheck) {
+      const isAllowed = (await this.api.query.evmContractHelpers.allowlist(contractAddress, address)).toJSON();
       if (!isAllowed) toAdd.push(address);
     }
     if (!toAdd.length) return;
 
-    for (let address of toAdd) {
+    for (const address of toAdd) {
       await helpers.methods.toggleAllowed(contract.options.address, address, true).send({ from: this.contractOwner.address });
     }
   }
 
   isCollectionManaged(collectionId: number) {
-    return this.config('unique.collectionIds').indexOf(collectionId) !== -1;
+    return this.collectionIds.indexOf(collectionId) !== -1;
   }
 
   getPriceWithoutCommission(price: bigint) {
-    let commission = BigInt(100 + parseInt(this.config('kusama.marketCommission')));
+    const commission = BigInt(100 + parseInt(this.config('kusama.marketCommission')));
     return (price * 100n) / commission;
   }
 
@@ -117,7 +118,11 @@ export class UniqueEscrow extends Escrow {
       this.getNetwork(),
     );
     logging.log(`Got nft transfer (collectionId: ${collectionId}, tokenId: ${tokenId}) in block #${blockNum}`);
-    this.logger.log(`{subject: 'Got nft transfer', thread: 'nft', collection: ${collectionId}, token: ${tokenId},block: ${blockNum}, addressTo: ${this.address2string(addressTo)}, addressFrom: ${this.address2string(addressFrom)}, log:'unique.processTransfer' }`)
+    this.logger.log(
+      `{subject: 'Got nft transfer', thread: 'nft', collection: ${collectionId}, token: ${tokenId},block: ${blockNum}, addressTo: ${this.address2string(
+        addressTo,
+      )}, addressFrom: ${this.address2string(addressFrom)}, log:'unique.processTransfer' }`,
+    );
   }
 
   async processAddAsk(blockNum, extrinsic, inputData, signer) {
@@ -131,20 +136,20 @@ export class UniqueEscrow extends Escrow {
     const tokenId = inputData.inputs[3].toNumber();
     if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
-    if(activeAsk) {
+    if (activeAsk) {
       logging.log(`Got duplicate ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum})`, logging.level.WARNING);
       logging.log(`Changed status to cancelled for old ask #${activeAsk.id}`, logging.level.WARNING);
       await this.service.cancelAsk(collectionId, tokenId, blockNum, this.getNetwork());
     }
     await this.service.registerAccountPair(addressFrom, this.address2string(addressFromEth));
-    let isToContract = this.address2string(addressTo).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
+    const isToContract = this.address2string(addressTo).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
     if (!isToContract) return;
     logging.log(`Got ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum}`);
 
     await this.service.addSearchIndexes({
       collectionId,
       tokenId,
-      network: this.getNetwork()
+      network: this.getNetwork(),
     });
 
     await this.service.registerAsk(
@@ -184,7 +189,7 @@ export class UniqueEscrow extends Escrow {
     await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
 
     // Balance on smart-contract (Process now, instead of next-tick)
-    let transfer = await this.service.modifyContractBalance(-realPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
+    const transfer = await this.service.modifyContractBalance(-realPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
     await this.modifyBalanceOnContract(transfer);
     // Real KSM (Processed on kusama escrow)
     await this.service.registerKusamaWithdraw(origPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));
@@ -211,7 +216,7 @@ export class UniqueEscrow extends Escrow {
   async processWithdrawAllKSM(blockNum: number, extrinsic, events, singer) {
     const isToContract = this.address2string(extrinsic.args.target).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
     if (!isToContract) return; // Not our contract
-    let eventLogEVM = events.find((e) => e.event.method === 'Log' && e.event.section === 'evm'); // TODO: check this
+    const eventLogEVM = events.find((e) => e.event.method === 'Log' && e.event.section === 'evm'); // TODO: check this
     if (!eventLogEVM) {
       logging.log(`Failed WithdrawAllKSM for ${singer} in block #${blockNum}`, logging.level.WARNING);
       return;
@@ -224,8 +229,8 @@ export class UniqueEscrow extends Escrow {
       logging.log(e, logging.level.ERROR);
       return;
     }
-    let sender = withDrawData._sender;
-    let balance = withDrawData.balance.toBigInt();
+    const sender = withDrawData._sender;
+    const balance = withDrawData.balance.toBigInt();
     let substrateAddress = await this.service.getSubstrateAddress(sender);
     if (!substrateAddress) {
       logging.log(`No substrate address pair for ${sender} eth address`, logging.level.WARNING);
@@ -233,14 +238,16 @@ export class UniqueEscrow extends Escrow {
     substrateAddress = substrateAddress ? substrateAddress : singer.toString();
     await this.service.registerKusamaWithdraw(balance, substrateAddress, blockNum, this.config('kusama.network'));
     logging.log(`Got WithdrawAllKSM (Sender: ${sender}, amount: ${balance}) in block #${blockNum}`);
-    this.logger.log(`{subject: 'Got withdrawAllKSM',thread:'withdraw', amount: ${balance}, block: ${blockNum}, sender: ${sender}, address: ${substrateAddress}, log:'unique.processWithdrawAllKSM'}`)
+    this.logger.log(
+      `{subject: 'Got withdrawAllKSM',thread:'withdraw', amount: ${balance}, block: ${blockNum}, sender: ${sender}, address: ${substrateAddress}, log:'unique.processWithdrawAllKSM'}`,
+    );
   }
 
   async processCall(blockNum, rawExtrinsic, events) {
     const extrinsic = rawExtrinsic.toHuman().method;
     const inputData = this.inputDecoder.decodeData(extrinsic.args.input);
-    let isFailed = events.find((e) => e.event.method == 'ExecutedFailed' && e.event.section === 'evm');
-    if(isFailed) {
+    const isFailed = events.find((e) => e.event.method == 'ExecutedFailed' && e.event.section === 'evm');
+    if (isFailed) {
       logging.log(`evm call failed (Method: ${inputData.method}, sender: ${rawExtrinsic.signer})`, logging.level.WARNING);
       return;
     }
@@ -326,7 +333,7 @@ export class UniqueEscrow extends Escrow {
 
   async processContractBalance() {
     while (true) {
-      let deposit = await this.service.getPendingContractBalance(this.config('kusama.network'));
+      const deposit = await this.service.getPendingContractBalance(this.config('kusama.network'));
       if (!deposit) break;
       await this.modifyBalanceOnContract(deposit);
     }
@@ -357,5 +364,9 @@ export class UniqueEscrow extends Escrow {
     logging.log(`Unique escrow contract address: ${this.config('unique.contractAddress')}`);
     await this.subscribe();
     await this.mainLoop();
+  }
+
+  async beforeBlockScan(): Promise<void> {
+    this.collectionIds = await this.service.getCollectionIds();
   }
 }
