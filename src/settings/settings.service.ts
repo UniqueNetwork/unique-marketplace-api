@@ -5,6 +5,7 @@ import { convertAddress, seedToAddress } from '../utils/blockchain/util';
 import { MarketConfig } from '../config/market-config';
 import { Connection, Repository } from 'typeorm';
 import { Collection } from 'src/entity';
+import { CollectionStatus } from 'src/admin/types/collection';
 
 @Injectable()
 export class SettingsService {
@@ -65,7 +66,7 @@ export class SettingsService {
   }
 
   async getCollectionIds(): Promise<number[]> {
-    const collections = await this.collectionsRepository.find();
+    const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
 
     return collections.map((i) => Number(i.id));
   }
