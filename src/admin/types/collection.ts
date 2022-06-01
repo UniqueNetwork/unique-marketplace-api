@@ -6,12 +6,20 @@ export enum CollectionMode {
   ReFungible = 'ReFungible',
 }
 
+export enum CollectionStatus {
+  Enabled = 'Enabled',
+  Disabled = 'Disabled',
+}
+
+export enum CollectionImportType {
+  Env = 'Env',
+  Api = 'Api',
+}
+
 export type HumanizedCollection = {
   owner: string;
   mode: CollectionMode;
-  access: string;
   tokenPrefix: string;
-  mintMode: boolean;
   name: Vec<u16>;
   description: Vec<u16>;
 };
@@ -19,9 +27,7 @@ export type HumanizedCollection = {
 export type DecodedCollection = {
   owner: string;
   mode: CollectionMode;
-  access: string;
   tokenPrefix: string;
-  mintMode: boolean;
   name: string;
   description: string;
 };

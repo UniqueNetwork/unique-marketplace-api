@@ -11,6 +11,7 @@ import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dt
 import { AdminSessionEntity } from '../entity/adminsession-entity';
 import { CollectionsService } from './collections.service';
 import { Collection } from 'src/entity';
+import { CollectionImportType } from './types/collection';
 
 @Injectable()
 export class AdminService {
@@ -70,21 +71,23 @@ export class AdminService {
   }
 
   /**
-   * Create collection
+   * Create collection or enable if exists
    * @param id - collection id from unique network
    * @return ({Promise<Collection>})
    */
   async createCollection(collectionId: number): Promise<Collection> {
-    return await this.collectionsService.importById(collectionId);
+    await this.collectionsService.importById(collectionId, CollectionImportType.Api);
+
+    return await this.collectionsService.enableById(collectionId);
   }
 
   /**
-   * Remove collection
+   * Disable collection
    * @param id - collection id from database
    * @return ({Promise<Collection>})
    */
-  async removeCollection(collectionId: number): Promise<Collection> {
-    return await this.collectionsService.deleteById(collectionId);
+  async disableCollection(collectionId: number): Promise<Collection> {
+    return await this.collectionsService.disableById(collectionId);
   }
 
   /**

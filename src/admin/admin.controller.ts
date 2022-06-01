@@ -28,14 +28,6 @@ export class AdminController {
     return await this.adminService.login(signerAddress, signature, queryString);
   }
 
-  @Get('/collections')
-  @ApiBearerAuth()
-  @ApiOperation({ description: 'List collection' })
-  @UseGuards(AuthGuard)
-  async listCollection(): Promise<Collection[]> {
-    return await this.adminService.listCollection();
-  }
-
   @Post('/collections')
   @ApiBearerAuth()
   @ApiOperation({ description: 'Create collection' })
@@ -45,10 +37,10 @@ export class AdminController {
   }
 
   @Delete('/collections/:id')
-  @ApiOperation({ description: 'Remove collection' })
+  @ApiOperation({ description: 'Disable collection' })
   @ApiBearerAuth()
   @UseGuards(AuthGuard)
-  async removeCollection(@Param('id', ParseIntPipe) collectionId: number): Promise<Collection> {
-    return await this.adminService.removeCollection(collectionId);
+  async disableCollection(@Param('id', ParseIntPipe) collectionId: number): Promise<Collection> {
+    return await this.adminService.disableCollection(collectionId);
   }
 }

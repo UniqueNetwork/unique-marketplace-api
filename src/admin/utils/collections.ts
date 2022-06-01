@@ -2,7 +2,9 @@ import { vec2str } from 'src/utils/blockchain/util';
 import { DecodedCollection, HumanizedCollection } from '../types/collection';
 
 export const decodeCollection = (collection: HumanizedCollection): DecodedCollection => ({
-  ...collection,
-  name: vec2str(collection.name),
-  description: vec2str(collection.description),
+  owner: collection?.owner,
+  mode: collection?.mode,
+  tokenPrefix: collection?.tokenPrefix,
+  name: collection?.name ? vec2str(collection.name) : null,
+  description: collection?.description ? vec2str(collection.description) : null,
 });
