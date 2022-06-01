@@ -19,9 +19,10 @@ import * as util from '../utils/blockchain/util';
 import { SignatureVerifier } from '../auction/services/helpers/signature-verifier';
 import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
 import { AdminSessionEntity } from '../entity/adminsession-entity';
-import { CollectionsService } from './collections.service';
+import { CollectionsService } from './servises/collections.service';
 import { Collection } from 'src/entity';
 import { IsNumber } from 'class-validator';
+import { TokenService } from './servises/tokens.service';
 
 @Injectable()
 export class AdminService {
@@ -35,6 +36,7 @@ export class AdminService {
     private readonly signatureVerifier: SignatureVerifier,
     private jwtService: JwtService,
     private collectionsService: CollectionsService,
+    private tokenService: TokenService,
   ) {
     this.logger = new Logger(AdminService.name);
     this.adminRepository = connection.manager.getRepository(AdminSessionEntity);
@@ -46,7 +48,7 @@ export class AdminService {
    * @param signature
    * @param queryString
    */
-  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto | ResponseAdminErrorDto> {
+  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto> {
     this.checkAdministratorAddress(signerAddress, signature);
     try {
       await this.signatureVerifier.verify({
@@ -85,8 +87,9 @@ export class AdminService {
    * @param id - collection id from unique network
    * @return ({Promise<Collection>})
    */
-  async createCollection(collectionId: number): Promise<Collection> {
-    return await this.collectionsService.importById(collectionId);
+  async createCollection(collectionId: number): Promise<any> {
+    await this.collectionsService.importById(collectionId);
+    return { statusCode: HttpStatus.OK, message: 'Add collection: 7' };
   }
 
   /**
@@ -113,10 +116,12 @@ export class AdminService {
     const tokenList = await this.calculateTokens(data.tokens, reg);
     let collectionTokens = [];
     for (let token of tokenList.values()) {
-      let owner = (await this.uniqueApi.rpc.unique.tokenOwner(+collectionId.id, token)).toJSON();
-      collectionTokens.push({ collection_id: +collectionId.id, token_id: token, owner_token: owner });
+      //let owner = (await this.uniqueApi.rpc.unique.tokenOwner(+collectionId.id, token)).toJSON();
+      collectionTokens.push({ collection_id: +collectionId.id, token_id: token, owner_token: '' });
     }
     collectionTokens.sort((a, b) => a.token_id - b.token_id);
+    await this.tokenService.addTokens(collectionTokens, collectionId.id);
+
     return collectionTokens;
   }
 

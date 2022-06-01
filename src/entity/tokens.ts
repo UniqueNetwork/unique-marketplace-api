@@ -2,7 +2,7 @@ import { Column, Entity, Index } from 'typeorm';
 
 @Index('IX_tokens_collection_id_token_id', ['collection_id', 'token_id'])
 @Entity('tokens', { schema: 'public' })
-export class ListTokens {
+export class Tokens {
   @Column('uuid', { primary: true, name: 'id' })
   id: string;
 
@@ -13,7 +13,7 @@ export class ListTokens {
   token_id: string;
 
   @Column('varchar', { name: 'owner_token', length: 128, nullable: true })
-  ownerToken: string;
+  owner_token: string;
 
   @Column({
     type: 'timestamp',

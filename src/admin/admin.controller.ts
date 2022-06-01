@@ -1,6 +1,16 @@
-import { Body, Controller, Delete, Get, Headers, HttpStatus, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
-import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiHeader,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
 
@@ -19,11 +29,7 @@ export class AdminController {
   @ApiResponse({ status: HttpStatus.OK, type: ResponseAdminDto })
   @ApiUnauthorizedResponse({ description: 'Unauthorized address or bad signature', type: ResponseAdminErrorDto })
   @ApiForbiddenResponse({ description: 'Forbidden. Marketplace disabled management for administrators.', type: ResponseAdminErrorDto })
-  async login(
-    @Headers('Signature') signature = '',
-    @Query('account') signerAddress: string,
-    @Req() req: Request,
-  ): Promise<ResponseAdminDto | ResponseAdminErrorDto> {
+  async login(@Headers('Signature') signature = '', @Query('account') signerAddress: string, @Req() req: Request): Promise<ResponseAdminDto> {
     const queryString = req.originalUrl.split('?')[0];
     return await this.adminService.login(signerAddress, signature, queryString);
   }
@@ -53,8 +59,10 @@ export class AdminController {
   }
 
   @Post('/tokens/:collectionId')
+  @HttpCode(HttpStatus.OK)
   //@ApiBearerAuth()
   @ApiOperation({ description: 'Add allowed tokens' })
+  @ApiParam({ name: 'collectionId', example: '1,4,5-10' })
   //@UseGuards(AuthGuard)
   async addTokens(@Param('collectionId') collectionId: string, @Body() data: AddTokensDto): Promise<any> {
     return await this.adminService.addTokens(collectionId, data);

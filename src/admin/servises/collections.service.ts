@@ -3,8 +3,8 @@ import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from 'src/config/market-config';
 import { Collection } from 'src/entity';
 import { Connection, Repository } from 'typeorm';
-import { decodeCollection } from './utils';
-import { HumanizedCollection } from './types/collection';
+import { decodeCollection } from '../utils';
+import { HumanizedCollection } from '../types/collection';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
