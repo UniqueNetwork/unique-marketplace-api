@@ -1,4 +1,14 @@
-import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { MarketConfig } from '../config/market-config';
@@ -9,6 +19,10 @@ import * as util from '../utils/blockchain/util';
 import { SignatureVerifier } from '../auction/services/helpers/signature-verifier';
 import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
 import { AdminSessionEntity } from '../entity/adminsession-entity';
+import { CollectionsService } from './servises/collections.service';
+import { Collection } from 'src/entity';
+import { IsNumber } from 'class-validator';
+import { TokenService } from './servises/tokens.service';
 
 @Injectable()
 export class AdminService {
@@ -32,7 +46,7 @@ export class AdminService {
    * @param signature
    * @param queryString
    */
-  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto | ResponseAdminErrorDto> {
+  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto> {
     this.checkAdministratorAddress(signerAddress, signature);
     try {
       await this.signatureVerifier.verify({
@@ -81,6 +95,15 @@ export class AdminService {
     });
 
     return { accessToken: access, refreshToken: refresh };
+  }
+
+  regexNumber(num: string) {
+    const regx = /\d+$/;
+    if (regx.test(num)) {
+      return { isNumber: true, value: parseInt(num) };
+    } else {
+      return { isNumber: false, value: null };
+    }
   }
 
   private checkAdministratorAddress(signerAddress: string, signature: string) {

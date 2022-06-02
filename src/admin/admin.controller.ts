@@ -3,30 +3,36 @@ import { AdminService } from './admin.service';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
-import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
-import { DisableCollectionResult, ImportCollectionResult, ListCollectionResult } from './dto/collections.dto';
+import {
+  AddTokensDto,
+  DisableCollectionResult,
+  ImportCollectionResult,
+  ListCollectionResult,
+  ResponseAdminDto,
+  ResponseAdminErrorDto,
+  ResponseCreateDto,
+} from './dto';
 import { ParseCollectionIdPipe } from './pipes/parse-collection-id.pipe';
-import { CollectionsService } from './collections.service';
 import { CollectionImportType } from './types/collection';
+import { CollectionsService, TokenService } from './servises';
 
 @ApiTags('Administration')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService, private readonly collectionsService: CollectionsService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly collectionsService: CollectionsService,
+    private readonly tokenService: TokenService,
+  ) {}
 
   @Post('/login')
-  @HttpCode(HttpStatus.OK)
   @ApiOperation({ description: 'User authorization' })
   @ApiHeader({ name: 'Signature', description: 'signature' })
   @ApiQuery({ name: 'account', description: 'Substrate account', example: '5EsQUxc6FLEJKgCwWbiC4kBuCbBt6ePtdKLvVP5gfpXkrztf' })
   @ApiResponse({ status: HttpStatus.OK, type: ResponseAdminDto })
   @ApiUnauthorizedResponse({ description: 'Unauthorized address or bad signature', type: ResponseAdminErrorDto })
   @ApiForbiddenResponse({ description: 'Forbidden. Marketplace disabled management for administrators.', type: ResponseAdminErrorDto })
-  async login(
-    @Headers('Signature') signature = '',
-    @Query('account') signerAddress: string,
-    @Req() req: Request,
-  ): Promise<ResponseAdminDto | ResponseAdminErrorDto> {
+  async login(@Headers('Signature') signature = '', @Query('account') signerAddress: string, @Req() req: Request): Promise<ResponseAdminDto> {
     const queryString = req.originalUrl.split('?')[0];
     return await this.adminService.login(signerAddress, signature, queryString);
   }
@@ -76,5 +82,14 @@ export class AdminController {
       message: `Сollection #${collection.id} successfully disabled`,
       data: collection,
     };
+  }
+
+  @Post('/tokens/:collectionId')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ description: 'Add allowed tokens' })
+  @UseGuards(AuthGuard)
+  async addTokens(@Param('collectionId') collectionId: string, @Body() data: AddTokensDto): Promise<ResponseCreateDto> {
+    return await this.tokenService.addTokens(collectionId, data);
   }
 }

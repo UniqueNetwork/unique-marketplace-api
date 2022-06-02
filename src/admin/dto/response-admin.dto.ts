@@ -14,3 +14,12 @@ export class ResponseAdminErrorDto {
   @ApiProperty({})
   error: string;
 }
+
+export class ResponseCreateDto {
+  @ApiProperty({})
+  statusCode: number;
+  @ApiProperty({})
+  message: string;
+  @ApiProperty({})
+  data: {};
+}
