@@ -1,11 +1,14 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { CollectionImportType, CollectionMode, CollectionStatus } from 'src/admin/types/collection';
 import { Column, CreateDateColumn, Entity, UpdateDateColumn } from 'typeorm';
 
 @Entity('collections', { schema: 'public' })
 export class Collection {
+  @ApiProperty()
   @Column('bigint', { name: 'id', primary: true })
   id: string;
 
+  @ApiProperty()
   @Column('varchar', { name: 'owner', length: 128, nullable: true })
   owner: string;
 
