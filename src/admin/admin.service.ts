@@ -1,4 +1,14 @@
-import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { MarketConfig } from '../config/market-config';
@@ -25,8 +35,6 @@ export class AdminService {
     @Inject('CONFIG') private config: MarketConfig,
     private readonly signatureVerifier: SignatureVerifier,
     private jwtService: JwtService,
-    private collectionsService: CollectionsService,
-    private tokenService: TokenService,
   ) {
     this.logger = new Logger(AdminService.name);
     this.adminRepository = connection.manager.getRepository(AdminSessionEntity);
@@ -38,7 +46,7 @@ export class AdminService {
    * @param signature
    * @param queryString
    */
-  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto | ResponseAdminErrorDto> {
+  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto> {
     this.checkAdministratorAddress(signerAddress, signature);
     try {
       await this.signatureVerifier.verify({
@@ -61,58 +69,6 @@ export class AdminService {
     });
     await this.adminRepository.save(session);
     return token;
-  }
-
-  /**
-   * List collection
-   * @param param
-   * @return ({Promise<Collection[]>})
-   */
-  async listCollection(): Promise<Collection[]> {
-    return await this.collectionsService.findAll();
-  }
-
-  /**
-   * Create collection
-   * @param id - collection id from unique network
-   * @return ({Promise<Collection>})
-   */
-  async createCollection(collectionId: number): Promise<any> {
-    await this.collectionsService.importById(collectionId);
-    return { statusCode: HttpStatus.OK, message: 'Add collection: 7' };
-  }
-
-  /**
-   * Remove collection
-   * @param id - collection id from database
-   * @return ({Promise<Collection>})
-   */
-  async removeCollection(collectionId: number): Promise<Collection> {
-    return await this.collectionsService.deleteById(collectionId);
-  }
-
-  /**
-   * Add allowed token for collection
-   */
-  async addTokens(collection: string, data: { tokens: string }): Promise<any> {
-    const reg = /^[0-9-,]*$/;
-    if (!reg.test(data.tokens)) {
-      throw new BadRequestException('Wrong format insert tokens');
-    }
-    // Checkout collection
-    const collectionId = await this.collectionsService.findById(+collection);
-    if (collectionId === undefined) throw new NotFoundException('Collection not found');
-    // Create list tokens
-    const tokenList = await this.calculateTokens(data.tokens, reg);
-    let collectionTokens = [];
-    for (let token of tokenList.values()) {
-      //let owner = (await this.uniqueApi.rpc.unique.tokenOwner(+collectionId.id, token)).toJSON();
-      collectionTokens.push({ collection_id: +collectionId.id, token_id: token, owner_token: '' });
-    }
-    collectionTokens.sort((a, b) => a.token_id - b.token_id);
-    await this.tokenService.addTokens(collectionTokens, collectionId.id);
-
-    return collectionTokens;
   }
 
   /**
@@ -174,22 +130,5 @@ export class AdminService {
       this.logger.error({ statusCode: e.status, message: e.message, error: e.response?.error });
       throw new HttpException({ statusCode: e.status, message: e.message, error: e.response?.error }, e.status);
     }
-  }
-
-  private async calculateTokens(tokens: string, regex: RegExp): Promise<Set<number>> {
-    const array = tokens.match(regex)[0];
-    const arr = array.split(',');
-    const allTokens = new Set<number>();
-    arr.forEach((token) => {
-      let rangeNum = token.split('-');
-      if (rangeNum.length > 1) {
-        for (let i = parseInt(rangeNum[0]); i < parseInt(rangeNum[1]) + 1; i++) {
-          allTokens.add(i);
-        }
-      } else {
-        allTokens.add(parseInt(token));
-      }
-    });
-    return allTokens;
   }
 }

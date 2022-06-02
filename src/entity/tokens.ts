@@ -1,9 +1,9 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Index('IX_tokens_collection_id_token_id', ['collection_id', 'token_id'])
 @Entity('tokens', { schema: 'public' })
 export class Tokens {
-  @Column('uuid', { primary: true, name: 'id' })
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column('bigint', { name: 'collection_id' })

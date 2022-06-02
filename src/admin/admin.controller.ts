@@ -3,19 +3,27 @@ import { AdminService } from './admin.service';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
-
-import { Collection } from 'src/entity';
-import { AddCollectionDTO, AddTokensDto, ResponseAdminDto, ResponseAdminErrorDto } from './dto';
-import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
-import { DisableCollectionResult, ImportCollectionResult, ListCollectionResult } from './dto/collections.dto';
+import {
+  AddTokensDto,
+  DisableCollectionResult,
+  ImportCollectionResult,
+  ListCollectionResult,
+  ResponseAdminDto,
+  ResponseAdminErrorDto,
+  ResponseCreateDto,
+} from './dto';
 import { ParseCollectionIdPipe } from './pipes/parse-collection-id.pipe';
-import { CollectionsService } from './collections.service';
 import { CollectionImportType } from './types/collection';
+import { CollectionsService, TokenService } from './servises';
 
 @ApiTags('Administration')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly collectionsService: CollectionsService,
+    private readonly tokenService: TokenService,
+  ) {}
 
   @Post('/login')
   @ApiOperation({ description: 'User authorization' })
@@ -74,5 +82,14 @@ export class AdminController {
       message: `Сollection #${collection.id} successfully disabled`,
       data: collection,
     };
+  }
+
+  @Post('/tokens/:collectionId')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ description: 'Add allowed tokens' })
+  @UseGuards(AuthGuard)
+  async addTokens(@Param('collectionId') collectionId: string, @Body() data: AddTokensDto): Promise<ResponseCreateDto> {
+    return await this.tokenService.addTokens(collectionId, data);
   }
 }

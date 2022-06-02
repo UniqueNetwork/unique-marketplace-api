@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { example } from 'yargs';
 
 export class AddTokensDto {
-  @ApiProperty({ example: '1,3,17-40,5,24-33' })
+  @ApiProperty({ example: '1,3,5,8,17-40' })
   tokens: string;
 }
