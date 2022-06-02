@@ -1,11 +1,26 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
-import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiForbiddenResponse,
+  ApiHeader,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
 import {
   AddTokensDto,
+  DisableCollectionError,
   DisableCollectionResult,
+  ImportCollectionDTO,
+  ImportCollectionError,
   ImportCollectionResult,
   ListCollectionResult,
   ResponseAdminDto,
@@ -41,6 +56,7 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ description: 'List collection' })
+  @ApiResponse({ status: HttpStatus.OK, type: ListCollectionResult })
   @UseGuards(AuthGuard)
   async listCollection(): Promise<ListCollectionResult> {
     const collections = await this.collectionsService.findAll();
@@ -56,6 +72,9 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ description: 'Import collection' })
+  @ApiResponse({ status: HttpStatus.OK, type: ImportCollectionResult })
+  @ApiBody({ type: ImportCollectionDTO })
+  @ApiBadRequestResponse({ type: ImportCollectionError })
   @UseGuards(AuthGuard)
   async importCollection(@Body('collectionId', ParseCollectionIdPipe) collectionId: number): Promise<ImportCollectionResult> {
     const { message } = await this.collectionsService.importById(collectionId, CollectionImportType.Api);
@@ -72,6 +91,8 @@ export class AdminController {
   @Delete('/collections/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ description: 'Disable collection' })
+  @ApiResponse({ status: HttpStatus.OK, type: DisableCollectionResult })
+  @ApiNotFoundResponse({ type: DisableCollectionError })
   @ApiBearerAuth()
   @UseGuards(AuthGuard)
   async disableCollection(@Param('id', ParseCollectionIdPipe) collectionId: number): Promise<DisableCollectionResult> {
