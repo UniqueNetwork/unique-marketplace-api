@@ -4,7 +4,7 @@ import { MarketConfig } from 'src/config/market-config';
 import { Collection } from 'src/entity';
 import { Connection, Repository } from 'typeorm';
 import { decodeCollection } from './utils';
-import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection } from './types/collection';
+import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from './types/collection';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
@@ -33,9 +33,9 @@ export class CollectionsService implements OnModuleInit {
     this.logger.debug(`Import collection by ids ${collectionIds} ...`);
 
     for (const collectionId of collectionIds) {
-      await this.importById(collectionId, CollectionImportType.Env);
+      const { message } = await this.importById(collectionId, CollectionImportType.Env);
 
-      this.logger.debug(`Collection #${collectionId} imported.`);
+      this.logger.debug(message);
     }
   }
 
@@ -47,25 +47,35 @@ export class CollectionsService implements OnModuleInit {
    * @param importType - where the collection is imported from (Env/Api)
    * @return ({Promise<Collection>})
    */
-  async importById(id: number, importType: CollectionImportType): Promise<Collection> {
+  async importById(id: number, importType: CollectionImportType): Promise<ImportByIdResult> {
     const query = await this.unique.query.common.collectionById(id);
 
-    const data = query.toHuman() as any as HumanizedCollection;
+    const humanized = query.toHuman() as any as HumanizedCollection;
 
-    if (data === null) this.logger.warn(`Collection #${id} not found in chain`);
+    if (humanized === null) this.logger.warn(`Collection #${id} not found in chain`);
 
-    const decoded: DecodedCollection = decodeCollection(data);
+    const decoded: DecodedCollection = decodeCollection(humanized);
 
     const entity = this.collectionsRepository.create(decoded);
 
-    const collection = await this.findById(id);
+    const existing = await this.findById(id);
 
-    if (collection) {
-      this.logger.debug(`Collection #${id} already exists, update ...`);
+    if (existing) {
+      this.logger.debug(`Collection #${id} already exists`);
 
-      return await this.collectionsRepository.save({ id: collection.id, ...entity });
+      const collection = await this.collectionsRepository.save({ id: existing.id, ...entity });
+
+      return {
+        collection,
+        message: `Collection #${id} already exists`,
+      };
     } else {
-      return await this.collectionsRepository.save({ id, importType, ...entity });
+      const collection = await this.collectionsRepository.save({ id, importType, ...entity });
+
+      return {
+        collection,
+        message: `Collection #${id} successfully created`,
+      };
     }
   }
 

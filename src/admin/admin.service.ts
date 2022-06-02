@@ -9,9 +9,6 @@ import * as util from '../utils/blockchain/util';
 import { SignatureVerifier } from '../auction/services/helpers/signature-verifier';
 import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
 import { AdminSessionEntity } from '../entity/adminsession-entity';
-import { CollectionsService } from './collections.service';
-import { Collection } from 'src/entity';
-import { CollectionImportType } from './types/collection';
 
 @Injectable()
 export class AdminService {
@@ -24,7 +21,6 @@ export class AdminService {
     @Inject('CONFIG') private config: MarketConfig,
     private readonly signatureVerifier: SignatureVerifier,
     private jwtService: JwtService,
-    private collectionsService: CollectionsService,
   ) {
     this.logger = new Logger(AdminService.name);
     this.adminRepository = connection.manager.getRepository(AdminSessionEntity);
@@ -59,35 +55,6 @@ export class AdminService {
     });
     await this.adminRepository.save(session);
     return token;
-  }
-
-  /**
-   * List collection
-   * @param param
-   * @return ({Promise<Collection[]>})
-   */
-  async listCollection(): Promise<Collection[]> {
-    return await this.collectionsService.findAll();
-  }
-
-  /**
-   * Create collection or enable if exists
-   * @param id - collection id from unique network
-   * @return ({Promise<Collection>})
-   */
-  async createCollection(collectionId: number): Promise<Collection> {
-    await this.collectionsService.importById(collectionId, CollectionImportType.Api);
-
-    return await this.collectionsService.enableById(collectionId);
-  }
-
-  /**
-   * Disable collection
-   * @param id - collection id from database
-   * @return ({Promise<Collection>})
-   */
-  async disableCollection(collectionId: number): Promise<Collection> {
-    return await this.collectionsService.disableById(collectionId);
   }
 
   /**

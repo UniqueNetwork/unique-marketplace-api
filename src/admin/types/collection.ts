@@ -1,4 +1,5 @@
 import type { Vec, u16 } from '@polkadot/types-codec';
+import { Collection } from 'src/entity';
 
 export enum CollectionMode {
   NFT = 'NFT',
@@ -30,4 +31,9 @@ export type DecodedCollection = {
   tokenPrefix: string;
   name: string;
   description: string;
+};
+
+export type ImportByIdResult = {
+  collection: Collection;
+  message: string;
 };
