@@ -1,16 +1,29 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDefined, IsNumber } from 'class-validator';
+import { Collection } from '../../entity/collection';
 
-export class AddCollectionDTO {
+export class ListCollectionResult {
   @ApiProperty({})
-  @IsDefined()
-  @IsNumber()
-  collectionId: number;
+  statusCode: number;
+  @ApiProperty({})
+  message: string;
+  @ApiProperty({})
+  data: Collection[];
 }
 
-export class RemoveCollectionDTO {
+export class ImportCollectionResult {
   @ApiProperty({})
-  @IsDefined()
-  @IsNumber()
-  collectionId: number;
+  statusCode: number;
+  @ApiProperty({})
+  message: string;
+  @ApiProperty({})
+  data: Collection;
+}
+
+export class DisableCollectionResult {
+  @ApiProperty({})
+  statusCode: number;
+  @ApiProperty({})
+  message: string;
+  @ApiProperty({})
+  data: Collection;
 }

@@ -9,6 +9,7 @@ import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer,
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { CollectionToken } from '../auction/types';
+import { CollectionStatus } from 'src/admin/types/collection';
 
 @Injectable()
 export class EscrowService {
@@ -337,11 +338,11 @@ export class EscrowService {
   }
 
   /**
-   * Get collections ids from database
+   * Get enabled collections ids from database
    * @return ({Promise<number[]>})
    */
   async getCollectionIds(): Promise<number[]> {
-    const collections = await this.collectionsRepository.find({ select: ['id'] });
+    const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
 
     return collections.map((i) => Number(i.id));
   }

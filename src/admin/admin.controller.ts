@@ -1,18 +1,21 @@
-import { Body, Controller, Delete, Get, Headers, HttpStatus, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
 import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
-import { AddCollectionDTO } from './dto/collections.dto';
-import { Collection } from 'src/entity';
+import { DisableCollectionResult, ImportCollectionResult, ListCollectionResult } from './dto/collections.dto';
+import { ParseCollectionIdPipe } from './pipes/parse-collection-id.pipe';
+import { CollectionsService } from './collections.service';
+import { CollectionImportType } from './types/collection';
 
 @ApiTags('Administration')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: AdminService, private readonly collectionsService: CollectionsService) {}
 
   @Post('/login')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ description: 'User authorization' })
   @ApiHeader({ name: 'Signature', description: 'signature' })
   @ApiQuery({ name: 'account', description: 'Substrate account', example: '5EsQUxc6FLEJKgCwWbiC4kBuCbBt6ePtdKLvVP5gfpXkrztf' })
@@ -29,26 +32,49 @@ export class AdminController {
   }
 
   @Get('/collections')
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ description: 'List collection' })
   @UseGuards(AuthGuard)
-  async listCollection(): Promise<Collection[]> {
-    return await this.adminService.listCollection();
+  async listCollection(): Promise<ListCollectionResult> {
+    const collections = await this.collectionsService.findAll();
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: '',
+      data: collections,
+    };
   }
 
   @Post('/collections')
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @ApiOperation({ description: 'Create collection' })
+  @ApiOperation({ description: 'Import collection' })
   @UseGuards(AuthGuard)
-  async createCollection(@Body() data: AddCollectionDTO): Promise<Collection> {
-    return await this.adminService.createCollection(data.collectionId);
+  async importCollection(@Body('collectionId', ParseCollectionIdPipe) collectionId: number): Promise<ImportCollectionResult> {
+    const { message } = await this.collectionsService.importById(collectionId, CollectionImportType.Api);
+
+    const collection = await this.collectionsService.enableById(collectionId);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message,
+      data: collection,
+    };
   }
 
   @Delete('/collections/:id')
-  @ApiOperation({ description: 'Remove collection' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ description: 'Disable collection' })
   @ApiBearerAuth()
   @UseGuards(AuthGuard)
-  async removeCollection(@Param('id', ParseIntPipe) collectionId: number): Promise<Collection> {
-    return await this.adminService.removeCollection(collectionId);
+  async disableCollection(@Param('id', ParseCollectionIdPipe) collectionId: number): Promise<DisableCollectionResult> {
+    const collection = await this.collectionsService.disableById(collectionId);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: `Сollection #${collection.id} successfully disabled`,
+      data: collection,
+    };
   }
 }
