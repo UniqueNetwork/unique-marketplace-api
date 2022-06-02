@@ -1,4 +1,4 @@
-import { CollectionMode } from 'src/admin/types/collection';
+import { CollectionImportType, CollectionMode, CollectionStatus } from 'src/admin/types/collection';
 import { Column, CreateDateColumn, Entity, UpdateDateColumn } from 'typeorm';
 
 @Entity('collections', { schema: 'public' })
@@ -9,7 +9,7 @@ export class Collection {
   @Column('varchar', { name: 'owner', length: 128, nullable: true })
   owner: string;
 
-  @Column('enum', { enum: CollectionMode, nullable: true })
+  @Column('enum', { name: 'mode', enum: CollectionMode, nullable: true })
   mode: CollectionMode;
 
   @Column('int', { name: 'decimal_points', default: 0 })
@@ -29,6 +29,12 @@ export class Collection {
 
   @Column('varchar', { name: 'allowed_tokens', default: '' })
   allowedTokens: string;
+
+  @Column('enum', { name: 'status', enum: CollectionStatus, default: CollectionStatus.Enabled })
+  status: CollectionStatus;
+
+  @Column('enum', { name: 'import_type', enum: CollectionImportType })
+  importType: CollectionImportType;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

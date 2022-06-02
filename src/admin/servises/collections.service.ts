@@ -3,8 +3,8 @@ import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from 'src/config/market-config';
 import { Collection } from 'src/entity';
 import { Connection, Repository } from 'typeorm';
-import { decodeCollection } from '../utils';
-import { HumanizedCollection } from '../types/collection';
+import { decodeCollection } from './utils';
+import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from './types/collection';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
@@ -33,9 +33,9 @@ export class CollectionsService implements OnModuleInit {
     this.logger.debug(`Import collection by ids ${collectionIds} ...`);
 
     for (const collectionId of collectionIds) {
-      await this.importById(collectionId);
+      const { message } = await this.importById(collectionId, CollectionImportType.Env);
 
-      this.logger.debug(`Collection #${collectionId} imported.`);
+      this.logger.debug(message);
     }
   }
 
@@ -44,35 +44,69 @@ export class CollectionsService implements OnModuleInit {
    * If collection already exists in database - update record
    * If collection not found in chain its created with empty data
    * @param id - collection id from unique network
+   * @param importType - where the collection is imported from (Env/Api)
    * @return ({Promise<Collection>})
    */
-  async importById(id: number): Promise<Collection> {
-    const data = await this.unique.query.common.collectionById(id);
+  async importById(id: number, importType: CollectionImportType): Promise<ImportByIdResult> {
+    const query = await this.unique.query.common.collectionById(id);
 
-    const collection = data.toHuman() as any as HumanizedCollection;
+    const humanized = query.toHuman() as any as HumanizedCollection;
 
-    if (collection === null) this.logger.warn(`Collection #${id} not found in chain`);
+    if (humanized === null) this.logger.warn(`Collection #${id} not found in chain`);
 
-    const args = collection ? decodeCollection(collection) : {};
+    const decoded: DecodedCollection = decodeCollection(humanized);
 
-    const entity = this.collectionsRepository.create(args);
+    const entity = this.collectionsRepository.create(decoded);
 
-    return await this.createOrUpdate(id, entity);
+    const existing = await this.findById(id);
+
+    if (existing) {
+      this.logger.debug(`Collection #${id} already exists`);
+
+      const collection = await this.collectionsRepository.save({ id: existing.id, ...entity });
+
+      return {
+        collection,
+        message: `Collection #${id} already exists`,
+      };
+    } else {
+      const collection = await this.collectionsRepository.save({ id, importType, ...entity });
+
+      return {
+        collection,
+        message: `Collection #${id} successfully created`,
+      };
+    }
   }
 
   /**
-   * Remove collection by ID in database
+   * Enable collection by ID
    * @param id - collection id
    * @return ({Promise<Collection>})
    */
-  async deleteById(id: number): Promise<Collection> {
+  async enableById(id: number): Promise<Collection> {
     const collection = await this.collectionsRepository.findOne(id);
 
     if (!collection) throw new NotFoundException(`Collection #${id} not found`);
 
-    await this.collectionsRepository.delete(id);
+    await this.collectionsRepository.update(id, { status: CollectionStatus.Enabled });
 
-    return collection;
+    return { ...collection, status: CollectionStatus.Enabled };
+  }
+
+  /**
+   * Disable collection by ID
+   * @param id - collection id
+   * @return ({Promise<Collection>})
+   */
+  async disableById(id: number): Promise<Collection> {
+    const collection = await this.collectionsRepository.findOne(id);
+
+    if (!collection) throw new NotFoundException(`Collection #${id} not found`);
+
+    await this.collectionsRepository.update(id, { status: CollectionStatus.Disabled });
+
+    return { ...collection, status: CollectionStatus.Disabled };
   }
 
   /**
@@ -100,24 +134,5 @@ export class CollectionsService implements OnModuleInit {
     const collections = await this.collectionsRepository.find();
 
     return collections.map((i) => Number(i.id));
-  }
-
-  /**
-   * Create or update if exists collection in database
-   * @param id - collection id
-   * @param entity - collection object
-   * @private
-   * @return ({Promise<Collection>})
-   */
-  private async createOrUpdate(id: number, entity: Collection): Promise<Collection> {
-    const collection = await this.findById(id);
-
-    if (collection) {
-      this.logger.debug(`Collection #${id} already exists, update ...`);
-
-      return await this.collectionsRepository.save({ id: collection.id, ...entity });
-    } else {
-      return await this.collectionsRepository.save({ id, ...entity });
-    }
   }
 }

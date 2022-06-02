@@ -1,14 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { MarketConfig } from '../config/market-config';
@@ -31,7 +21,7 @@ export class AdminService {
   constructor(
     @InjectSentry() private readonly sentryService: SentryService,
     @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @Inject('UNIQUE_API') private uniqueApi: any,
+    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
     private readonly signatureVerifier: SignatureVerifier,
     private jwtService: JwtService,
@@ -48,7 +38,7 @@ export class AdminService {
    * @param signature
    * @param queryString
    */
-  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto> {
+  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto | ResponseAdminErrorDto> {
     this.checkAdministratorAddress(signerAddress, signature);
     try {
       await this.signatureVerifier.verify({
