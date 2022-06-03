@@ -8,3 +8,5 @@ export * from './account-pairs';
 export * from '../auction/entities';
 export * from './collection';
 export * from './tokens';
+export * from './offer-filters';
+export * from './auction-bids';

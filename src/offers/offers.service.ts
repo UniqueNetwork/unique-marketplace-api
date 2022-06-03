@@ -11,12 +11,13 @@ import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 import { OfferContractAskDto } from './dto/offer-dto';
 import { filterAttributes, OffersFilter } from './dto/offers-filter';
 import { priceTransformer } from '../utils/price-transformer';
-import { BlockchainBlock, ContractAsk, SearchIndex, AuctionEntity, BidEntity } from '../entity';
+import { BlockchainBlock, ContractAsk, SearchIndex, AuctionEntity, BidEntity, OfferFilters } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersQuerySortHelper } from './offers-query-sort-helper';
 import { TypeAttributToken } from '../auction/types';
 import { OfferAttributesDto } from './dto';
 import { OfferAttributes } from './dto/offer-attributes';
+import { OffersFilterService } from './offers-filter.service';
 
 type OfferPaginationResult = {
   items: ContractAsk[];
@@ -35,6 +36,7 @@ export class OffersService {
     constructor(
         @Inject('DATABASE_CONNECTION') private connection: Connection,
         @InjectSentry() private readonly sentryService: SentryService,
+        private readonly offersFilterService: OffersFilterService,
     ) {
         this.logger = new Logger(OffersService.name);
         this.contractAskRepository =
@@ -55,14 +57,11 @@ export class OffersService {
         offersFilter: OffersFilter,
         sort: OfferSortingRequest,
     ): Promise<PaginationResultDto<OfferContractAskDto>> {
-        let offers: SelectQueryBuilder<ContractAsk>;
+        let offers: SelectQueryBuilder<OfferFilters>;
         let paginationResult;
 
         try {
-            offers = await this.contractAskRepository.createQueryBuilder(
-                'offer',
-            );
-            this.addRelations(offers);
+            offers = this.offersFilterService.offerFilters();
 
             offers = this.filter(offers, offersFilter);
             paginationResult = await this.setPagination(
@@ -433,14 +432,15 @@ export class OffersService {
      * @return {SelectQueryBuilder<ContractAsk>}
      */
     private filterByCollectionId(
-        query: SelectQueryBuilder<ContractAsk>,
+        query: SelectQueryBuilder<OfferFilters>,
         collectionIds?: number[],
-    ): SelectQueryBuilder<ContractAsk> {
-        if ((collectionIds ?? []).length <= 0) {
+    ): SelectQueryBuilder<OfferFilters> {
+
+      if ((collectionIds ?? []).length <= 0) {
             return query;
         }
 
-        return query.andWhere('offer.collection_id in (:...collectionIds)', {
+        return query.andWhere('offer_filters.collection_id IN (:...collectionIds)', {
             collectionIds,
         });
     }
@@ -454,9 +454,9 @@ export class OffersService {
      * @return {SelectQueryBuilder<ContractAsk>}
      */
     private filterByMaxPrice(
-        query: SelectQueryBuilder<ContractAsk>,
+        query: SelectQueryBuilder<OfferFilters>,
         maxPrice?: BigInt,
-    ): SelectQueryBuilder<ContractAsk> {
+    ): SelectQueryBuilder<OfferFilters> {
         if (maxPrice == null) {
             return query;
         }
@@ -672,9 +672,9 @@ export class OffersService {
      * @return SelectQueryBuilder<ContractAsk>
      */
     private filter(
-        query: SelectQueryBuilder<ContractAsk>,
+        query: SelectQueryBuilder<OfferFilters>,
         offersFilter: OffersFilter,
-    ): SelectQueryBuilder<ContractAsk> {
+    ): SelectQueryBuilder<OfferFilters> {
         query = this.filterByCollectionId(query, offersFilter.collectionId);
         query = this.filterByMaxPrice(query, offersFilter.maxPrice);
         query = this.filterByMinPrice(query, offersFilter.minPrice);
@@ -696,7 +696,7 @@ export class OffersService {
             offersFilter.attributes,
         );
 
-        return query.andWhere(`offer.status = :status`, { status: 'active' });
+        return query;
     }
 
     public get isConnected(): boolean {

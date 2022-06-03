@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { InjectSentry, SentryService } from "src/utils/sentry";
 import { Connection, SelectQueryBuilder } from "typeorm";
 import { OffersService } from "./offers.service";
-import { ContractAsk } from '../entity';
+import { ContractAsk, OfferFilters } from '../entity';
 
 @Injectable()
 export class OffersFilterService {
@@ -21,4 +21,8 @@ export class OffersFilterService {
     return queryBuilder;
   }
 
+  public offerFilters(): SelectQueryBuilder<OfferFilters> {
+    const queryBuilder = this.connection.createQueryBuilder(OfferFilters, 'offer_filters');
+    return queryBuilder;
+  }
 }
