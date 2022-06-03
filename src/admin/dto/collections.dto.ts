@@ -1,11 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Collection } from '../../entity/collection';
-
-export class ImportCollectionDTO {
-  @ApiProperty({ example: 1 })
-  collectionId: number;
-}
+import { IsOptional } from 'class-validator';
 
 export class ListCollectionResult {
   @ApiProperty({ default: HttpStatus.OK })
@@ -16,7 +12,27 @@ export class ListCollectionResult {
   data: Collection[];
 }
 
-export class ImportCollectionResult {
+export class ListCollectionBadRequestError {
+  @ApiProperty({ default: HttpStatus.BAD_REQUEST })
+  statusCode = HttpStatus.BAD_REQUEST;
+  @ApiProperty()
+  message: string;
+  @ApiProperty()
+  error: string;
+}
+
+export class CollectionsFilter {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  collectionId: number;
+}
+
+export class EnableCollectionDTO {
+  @ApiProperty({ example: 1 })
+  collectionId: number;
+}
+
+export class EnableCollectionResult {
   @ApiProperty({ default: HttpStatus.OK })
   statusCode = HttpStatus.OK;
   @ApiProperty()
@@ -25,7 +41,7 @@ export class ImportCollectionResult {
   data: Collection;
 }
 
-export class ImportCollectionError {
+export class EnableCollectionBadRequestError {
   @ApiProperty({ default: HttpStatus.BAD_REQUEST })
   statusCode = HttpStatus.BAD_REQUEST;
   @ApiProperty()
@@ -43,7 +59,16 @@ export class DisableCollectionResult {
   data: Collection;
 }
 
-export class DisableCollectionError {
+export class DisableCollectionNotFoundError {
+  @ApiProperty({ default: HttpStatus.NOT_FOUND })
+  statusCode = HttpStatus.NOT_FOUND;
+  @ApiProperty()
+  message: string;
+  @ApiProperty()
+  error: string;
+}
+
+export class DisableCollectionBadRequestError {
   @ApiProperty({ default: HttpStatus.NOT_FOUND })
   statusCode = HttpStatus.NOT_FOUND;
   @ApiProperty()
