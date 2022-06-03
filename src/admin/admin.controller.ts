@@ -17,21 +17,21 @@ import { AuthGuard } from './guards/auth.guard';
 import { Request } from 'express';
 import {
   AddTokensDto,
-  DisableCollectionError,
   DisableCollectionResult,
-  ImportCollectionDTO,
-  ImportCollectionError,
-  ImportCollectionResult,
+  EnableCollectionDTO,
+  EnableCollectionResult,
   ListCollectionResult,
   ResponseAdminDto,
-  ResponseAdminErrorDto,
   ResponseAdminForbiddenDto,
   ResponseAdminUnauthorizedDto,
-  ResponseCreateDto,
+  CollectionsFilter,
+  ListCollectionBadRequestError,
+  EnableCollectionBadRequestError,
+  DisableCollectionNotFoundError,
+  DisableCollectionBadRequestError,
   ResponseTokenDto,
 } from './dto';
-import { ParseCollectionIdPipe } from './pipes/parse-collection-id.pipe';
-import { CollectionImportType } from './types/collection';
+import { ParseCollectionIdPipe, CollectionsFilterPipe } from './pipes';
 import { CollectionsService, TokenService } from './servises';
 import * as fs from 'fs';
 
@@ -69,38 +69,25 @@ export class AdminController {
   @ApiBearerAuth()
   @ApiOperation({ description: 'List collection' })
   @ApiResponse({ status: HttpStatus.OK, type: ListCollectionResult })
+  @ApiBadRequestResponse({ type: ListCollectionBadRequestError })
   @UseGuards(AuthGuard)
-  async listCollection(): Promise<ListCollectionResult> {
-    const collections = await this.collectionsService.findAll();
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: '',
-      data: collections,
-    };
+  async listCollection(@Query(CollectionsFilterPipe) filter: CollectionsFilter): Promise<ListCollectionResult> {
+    return await this.collectionsService.findAll(filter);
   }
 
   @Post('/collections')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @UseGuards(AuthGuard)
   @ApiOperation({
     summary: 'Import collection',
     description: fs.readFileSync('docs/admin_collection_import.md').toString(),
   })
-  @ApiResponse({ status: HttpStatus.OK, type: ImportCollectionResult })
-  @ApiBody({ type: ImportCollectionDTO })
-  @ApiBadRequestResponse({ type: ImportCollectionError })
-  async importCollection(@Body('collectionId', ParseCollectionIdPipe) collectionId: number): Promise<ImportCollectionResult> {
-    const { message } = await this.collectionsService.importById(collectionId, CollectionImportType.Api);
-
-    const collection = await this.collectionsService.enableById(collectionId);
-
-    return {
-      statusCode: HttpStatus.OK,
-      message,
-      data: collection,
-    };
+  @ApiResponse({ status: HttpStatus.OK, type: EnableCollectionResult })
+  @ApiBody({ type: EnableCollectionDTO })
+  @ApiBadRequestResponse({ type: EnableCollectionBadRequestError })
+  @UseGuards(AuthGuard)
+  async enableCollection(@Body('collectionId', ParseCollectionIdPipe) collectionId: number): Promise<EnableCollectionResult> {
+    return await this.collectionsService.enableById(collectionId);
   }
 
   @Delete('/collections/:id')
@@ -111,17 +98,12 @@ export class AdminController {
   })
   @ApiOperation({ description: 'Disable collection' })
   @ApiResponse({ status: HttpStatus.OK, type: DisableCollectionResult })
-  @ApiNotFoundResponse({ type: DisableCollectionError })
+  @ApiNotFoundResponse({ type: DisableCollectionNotFoundError })
+  @ApiBadRequestResponse({ type: DisableCollectionBadRequestError })
   @ApiBearerAuth()
   @UseGuards(AuthGuard)
   async disableCollection(@Param('id', ParseCollectionIdPipe) collectionId: number): Promise<DisableCollectionResult> {
-    const collection = await this.collectionsService.disableById(collectionId);
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: `Сollection #${collection.id} successfully disabled`,
-      data: collection,
-    };
+    return await this.collectionsService.disableById(collectionId);
   }
 
   @Post('/tokens/:collectionId')

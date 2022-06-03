@@ -1,10 +1,11 @@
-import { Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, OnModuleInit, HttpStatus } from '@nestjs/common';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from 'src/config/market-config';
 import { Collection } from 'src/entity';
 import { Connection, Repository } from 'typeorm';
 import { decodeCollection } from '../utils';
-import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from '../types/collection';
+import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from '../types';
+import { CollectionsFilter, EnableCollectionResult, ListCollectionResult, DisableCollectionResult } from '../dto';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
@@ -45,7 +46,7 @@ export class CollectionsService implements OnModuleInit {
    * If collection not found in chain its created with empty data
    * @param {Number} id - collection id from unique network
    * @param {CollectionImportType} importType - where the collection is imported from (Env/Api)
-   * @return ({Promise<Collection>})
+   * @return ({Promise<ImportByIdResult>})
    */
   async importById(id: number, importType: CollectionImportType): Promise<ImportByIdResult> {
     const query = await this.unique.query.common.collectionById(id);
@@ -82,31 +83,37 @@ export class CollectionsService implements OnModuleInit {
   /**
    * Enable collection by ID
    * @param {Number} id - collection id
-   * @return ({Promise<Collection>})
+   * @return ({Promise<EnableCollectionResult>})
    */
-  async enableById(id: number): Promise<Collection> {
-    const collection = await this.collectionsRepository.findOne(id);
-
-    if (!collection) throw new NotFoundException(`Collection #${id} not found`);
+  async enableById(id: number): Promise<EnableCollectionResult> {
+    const { message, collection } = await this.importById(id, CollectionImportType.Api);
 
     await this.collectionsRepository.update(id, { status: CollectionStatus.Enabled });
 
-    return { ...collection, status: CollectionStatus.Enabled };
+    return {
+      statusCode: HttpStatus.OK,
+      message,
+      data: { ...collection, status: CollectionStatus.Enabled },
+    };
   }
 
   /**
    * Disable collection by ID
    * @param {Number} id - collection id
-   * @return ({Promise<Collection>})
+   * @return ({Promise<DisableCollectionResult>})
    */
-  async disableById(id: number): Promise<Collection> {
+  async disableById(id: number): Promise<DisableCollectionResult> {
     const collection = await this.collectionsRepository.findOne(id);
 
     if (!collection) throw new NotFoundException(`Collection #${id} not found`);
 
     await this.collectionsRepository.update(id, { status: CollectionStatus.Disabled });
 
-    return { ...collection, status: CollectionStatus.Disabled };
+    return {
+      statusCode: HttpStatus.OK,
+      message: `Сollection #${collection.id} successfully disabled`,
+      data: { ...collection, status: CollectionStatus.Disabled },
+    };
   }
 
   /**
@@ -134,10 +141,27 @@ export class CollectionsService implements OnModuleInit {
 
   /**
    * Find array of collection in database
-   * @return ({Promise<Collection[]>})
+   * @param {CollectionsFilter} filter - filter params
+   * @return ({Promise<ListCollectionResult>})
    */
-  async findAll(): Promise<Collection[]> {
-    return await this.collectionsRepository.find();
+  async findAll(filter: CollectionsFilter): Promise<ListCollectionResult> {
+    if (filter.collectionId) {
+      return {
+        statusCode: HttpStatus.OK,
+        message: '',
+        data: await this.collectionsRepository.find({
+          where: {
+            id: filter.collectionId,
+          },
+        }),
+      };
+    } else {
+      return {
+        statusCode: HttpStatus.OK,
+        message: '',
+        data: await this.collectionsRepository.find(),
+      };
+    }
   }
 
   /**
