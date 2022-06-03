@@ -4,6 +4,7 @@ import { Collection, Tokens } from '../../entity';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
 import { CollectionsService } from './collections.service';
+import { ResponseTokenDto } from '../dto';
 
 @Injectable()
 export class TokenService {
@@ -25,7 +26,7 @@ export class TokenService {
   /**
    * Add allowed token for collection
    */
-  async addTokens(collection: string, data: { tokens: string }): Promise<any> {
+  async addTokens(collection: string, data: { tokens: string }): Promise<ResponseTokenDto> {
     const reg = /^[0-9-,]*$/;
     if (!reg.test(data.tokens)) {
       throw new BadRequestException('Wrong format insert tokens');
@@ -42,8 +43,9 @@ export class TokenService {
     collectionTokens.sort((a, b) => a.token_id - b.token_id);
     let saveTokensString = collectionTokens.toString().split(';,').join(';\n');
     await this.createTokens(saveTokensString, collectionId.id);
+    await this.collectionsService.updateAllowedTokens(+collection, data.tokens);
 
-    return { statusCode: 200, message: `Add allowed tokens: ${data.tokens} for collection: ${collectionId.id}` };
+    return { statusCode: HttpStatus.OK, message: `Add allowed tokens: ${data.tokens} for collection: ${collectionId.id}` };
   }
 
   /**

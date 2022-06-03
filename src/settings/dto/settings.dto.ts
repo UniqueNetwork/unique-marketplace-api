@@ -11,7 +11,12 @@ class SettingBlockchainUnique {
   @ApiProperty({})
   contractAddress: string;
 
-  @ApiProperty({ example: { '1': [1, 30, 12], '5': [1, 2, 17] } })
+  @ApiProperty({
+    example: [
+      { collection: 1, tokens: '1-15,37' },
+      { collection: 2, tokens: '1,3,5,8,17-40' },
+    ],
+  })
   allowedTokens: string;
 }
 

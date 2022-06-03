@@ -3,9 +3,10 @@ import { ApiPromise } from '@polkadot/api';
 import { SettingsDto } from './dto/settings.dto';
 import { convertAddress, seedToAddress } from '../utils/blockchain/util';
 import { MarketConfig } from '../config/market-config';
-import { Connection, Repository } from 'typeorm';
+import { Connection, IsNull, Not, Repository } from 'typeorm';
 import { Collection } from 'src/entity';
 import { CollectionStatus } from 'src/admin/types/collection';
+import { IsString } from 'class-validator';
 
 @Injectable()
 export class SettingsService {
@@ -74,6 +75,9 @@ export class SettingsService {
   }
 
   private async getAllowedTokens(): Promise<any> {
-    return {};
+    const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled, allowedTokens: Not('') });
+    return collections.map((i) => {
+      return { collection: Number(i.id), tokens: i.allowedTokens };
+    });
   }
 }

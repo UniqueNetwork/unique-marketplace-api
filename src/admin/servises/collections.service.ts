@@ -43,8 +43,8 @@ export class CollectionsService implements OnModuleInit {
    * Import collection from unique network by collection id and save to database
    * If collection already exists in database - update record
    * If collection not found in chain its created with empty data
-   * @param id - collection id from unique network
-   * @param importType - where the collection is imported from (Env/Api)
+   * @param {Number} id - collection id from unique network
+   * @param {CollectionImportType} importType - where the collection is imported from (Env/Api)
    * @return ({Promise<Collection>})
    */
   async importById(id: number, importType: CollectionImportType): Promise<ImportByIdResult> {
@@ -81,7 +81,7 @@ export class CollectionsService implements OnModuleInit {
 
   /**
    * Enable collection by ID
-   * @param id - collection id
+   * @param {Number} id - collection id
    * @return ({Promise<Collection>})
    */
   async enableById(id: number): Promise<Collection> {
@@ -96,7 +96,7 @@ export class CollectionsService implements OnModuleInit {
 
   /**
    * Disable collection by ID
-   * @param id - collection id
+   * @param {Number} id - collection id
    * @return ({Promise<Collection>})
    */
   async disableById(id: number): Promise<Collection> {
@@ -110,8 +110,22 @@ export class CollectionsService implements OnModuleInit {
   }
 
   /**
+   * Update allowed tokens for collection
+   * @param {Number} id - id collection
+   * @param {String} tokens - string data. Example: '2,17,21-42'
+   * @return ({Promise<void>})
+   */
+  async updateAllowedTokens(id: number, tokens: string): Promise<void> {
+    const collection = await this.collectionsRepository.findOne(id);
+
+    if (!collection) throw new NotFoundException(`Collection #${id} not found`);
+
+    await this.collectionsRepository.update(id, { allowedTokens: tokens });
+  }
+
+  /**
    * Find collection by ID in database
-   * @param id - collection id
+   * @param {Number} id - collection id
    * @return ({Promise<Collection>})
    */
   async findById(id: number): Promise<Collection> {
