@@ -74,6 +74,9 @@ export class SettingsService {
   }
 
   private async getAllowedTokens(): Promise<any> {
-    return {};
+    const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
+    return collections.map((i) => {
+      return { collection: Number(i.id), tokens: i.allowedTokens };
+    });
   }
 }
