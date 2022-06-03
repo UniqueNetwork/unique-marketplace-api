@@ -30,6 +30,7 @@ import {
 import { ParseCollectionIdPipe } from './pipes/parse-collection-id.pipe';
 import { CollectionImportType } from './types/collection';
 import { CollectionsService, TokenService } from './servises';
+import * as fs from 'fs';
 
 @ApiTags('Administration')
 @Controller('admin')
@@ -41,7 +42,11 @@ export class AdminController {
   ) {}
 
   @Post('/login')
-  @ApiOperation({ description: 'User authorization' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'User authorization',
+    description: fs.readFileSync('docs/admin_login.md').toString(),
+  })
   @ApiHeader({ name: 'Signature', description: 'signature' })
   @ApiQuery({ name: 'account', description: 'Substrate account', example: '5EsQUxc6FLEJKgCwWbiC4kBuCbBt6ePtdKLvVP5gfpXkrztf' })
   @ApiResponse({ status: HttpStatus.OK, type: ResponseAdminDto })
@@ -54,6 +59,10 @@ export class AdminController {
 
   @Get('/collections')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'List collections',
+    description: fs.readFileSync('docs/admin_collection_list.md').toString(),
+  })
   @ApiBearerAuth()
   @ApiOperation({ description: 'List collection' })
   @ApiResponse({ status: HttpStatus.OK, type: ListCollectionResult })
@@ -71,7 +80,10 @@ export class AdminController {
   @Post('/collections')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @ApiOperation({ description: 'Import collection' })
+  @ApiOperation({
+    summary: 'Import collection',
+    description: fs.readFileSync('docs/admin_collection_import.md').toString(),
+  })
   @ApiResponse({ status: HttpStatus.OK, type: ImportCollectionResult })
   @ApiBody({ type: ImportCollectionDTO })
   @ApiBadRequestResponse({ type: ImportCollectionError })
@@ -90,6 +102,10 @@ export class AdminController {
 
   @Delete('/collections/:id')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Disable collection',
+    description: fs.readFileSync('docs/admin_collection_disable.md').toString(),
+  })
   @ApiOperation({ description: 'Disable collection' })
   @ApiResponse({ status: HttpStatus.OK, type: DisableCollectionResult })
   @ApiNotFoundResponse({ type: DisableCollectionError })
@@ -107,6 +123,10 @@ export class AdminController {
 
   @Post('/tokens/:collectionId')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Adding tokens to allowed',
+    description: fs.readFileSync('docs/admin_tokens_allowed.md').toString(),
+  })
   @ApiBearerAuth()
   @ApiOperation({ description: 'Add allowed tokens' })
   @UseGuards(AuthGuard)
