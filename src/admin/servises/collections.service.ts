@@ -117,8 +117,22 @@ export class CollectionsService implements OnModuleInit {
   }
 
   /**
+   * Update allowed tokens for collection
+   * @param {Number} id - id collection
+   * @param {String} tokens - string data. Example: '2,17,21-42'
+   * @return ({Promise<void>})
+   */
+  async updateAllowedTokens(id: number, tokens: string): Promise<void> {
+    const collection = await this.collectionsRepository.findOne(id);
+
+    if (!collection) throw new NotFoundException(`Collection #${id} not found`);
+
+    await this.collectionsRepository.update(id, { allowedTokens: tokens });
+  }
+
+  /**
    * Find collection by ID in database
-   * @param id - collection id
+   * @param {Number} id - collection id
    * @return ({Promise<Collection>})
    */
   async findById(id: number): Promise<Collection> {
