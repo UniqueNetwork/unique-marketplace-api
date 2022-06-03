@@ -44,8 +44,8 @@ export class CollectionsService implements OnModuleInit {
    * Import collection from unique network by collection id and save to database
    * If collection already exists in database - update record
    * If collection not found in chain its created with empty data
-   * @param id - collection id from unique network
-   * @param importType - where the collection is imported from (Env/Api)
+   * @param {Number} id - collection id from unique network
+   * @param {CollectionImportType} importType - where the collection is imported from (Env/Api)
    * @return ({Promise<ImportByIdResult>})
    */
   async importById(id: number, importType: CollectionImportType): Promise<ImportByIdResult> {
@@ -82,7 +82,7 @@ export class CollectionsService implements OnModuleInit {
 
   /**
    * Enable collection by ID
-   * @param id - collection id
+   * @param {Number} id - collection id
    * @return ({Promise<EnableCollectionResult>})
    */
   async enableById(id: number): Promise<EnableCollectionResult> {
@@ -99,7 +99,7 @@ export class CollectionsService implements OnModuleInit {
 
   /**
    * Disable collection by ID
-   * @param id - collection id
+   * @param {Number} id - collection id
    * @return ({Promise<DisableCollectionResult>})
    */
   async disableById(id: number): Promise<DisableCollectionResult> {
@@ -141,6 +141,7 @@ export class CollectionsService implements OnModuleInit {
 
   /**
    * Find array of collection in database
+   * @param {CollectionsFilter} filter - filter params
    * @return ({Promise<ListCollectionResult>})
    */
   async findAll(filter: CollectionsFilter): Promise<ListCollectionResult> {
