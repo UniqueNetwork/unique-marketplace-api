@@ -25,7 +25,10 @@ import {
   ListCollectionResult,
   ResponseAdminDto,
   ResponseAdminErrorDto,
+  ResponseAdminForbiddenDto,
+  ResponseAdminUnauthorizedDto,
   ResponseCreateDto,
+  ResponseTokenDto,
 } from './dto';
 import { ParseCollectionIdPipe } from './pipes/parse-collection-id.pipe';
 import { CollectionImportType } from './types/collection';
@@ -33,6 +36,8 @@ import { CollectionsService, TokenService } from './servises';
 import * as fs from 'fs';
 
 @ApiTags('Administration')
+@ApiUnauthorizedResponse({ description: 'Unauthorized address or bad signature', type: ResponseAdminUnauthorizedDto })
+@ApiForbiddenResponse({ description: 'Forbidden. Marketplace disabled management for administrators.', type: ResponseAdminForbiddenDto })
 @Controller('admin')
 export class AdminController {
   constructor(
@@ -50,8 +55,6 @@ export class AdminController {
   @ApiHeader({ name: 'Signature', description: 'signature' })
   @ApiQuery({ name: 'account', description: 'Substrate account', example: '5EsQUxc6FLEJKgCwWbiC4kBuCbBt6ePtdKLvVP5gfpXkrztf' })
   @ApiResponse({ status: HttpStatus.OK, type: ResponseAdminDto })
-  @ApiUnauthorizedResponse({ description: 'Unauthorized address or bad signature', type: ResponseAdminErrorDto })
-  @ApiForbiddenResponse({ description: 'Forbidden. Marketplace disabled management for administrators.', type: ResponseAdminErrorDto })
   async login(@Headers('Signature') signature = '', @Query('account') signerAddress: string, @Req() req: Request): Promise<ResponseAdminDto> {
     const queryString = req.originalUrl.split('?')[0];
     return await this.adminService.login(signerAddress, signature, queryString);
@@ -80,6 +83,7 @@ export class AdminController {
   @Post('/collections')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
+  @UseGuards(AuthGuard)
   @ApiOperation({
     summary: 'Import collection',
     description: fs.readFileSync('docs/admin_collection_import.md').toString(),
@@ -87,7 +91,6 @@ export class AdminController {
   @ApiResponse({ status: HttpStatus.OK, type: ImportCollectionResult })
   @ApiBody({ type: ImportCollectionDTO })
   @ApiBadRequestResponse({ type: ImportCollectionError })
-  @UseGuards(AuthGuard)
   async importCollection(@Body('collectionId', ParseCollectionIdPipe) collectionId: number): Promise<ImportCollectionResult> {
     const { message } = await this.collectionsService.importById(collectionId, CollectionImportType.Api);
 
@@ -128,9 +131,9 @@ export class AdminController {
     description: fs.readFileSync('docs/admin_tokens_allowed.md').toString(),
   })
   @ApiBearerAuth()
-  @ApiOperation({ description: 'Add allowed tokens' })
   @UseGuards(AuthGuard)
-  async addTokens(@Param('collectionId') collectionId: string, @Body() data: AddTokensDto): Promise<ResponseCreateDto> {
+  @ApiResponse({ status: HttpStatus.OK, type: ResponseTokenDto })
+  async addTokens(@Param('collectionId') collectionId: string, @Body() data: AddTokensDto): Promise<ResponseTokenDto> {
     return await this.tokenService.addTokens(collectionId, data);
   }
 }

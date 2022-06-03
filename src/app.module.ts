@@ -46,7 +46,7 @@ const config = getConfig();
     AuctionModule,
     BroadcastModule,
   ],
-  controllers: [OffersController, TradesController, SettingsController, AdminController, HealthController, MetricsController],
+  controllers: [OffersController, TradesController, AdminController, SettingsController, HealthController, MetricsController],
   providers: [
     OffersService,
     TradesService,
