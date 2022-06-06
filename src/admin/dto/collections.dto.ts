@@ -4,6 +4,7 @@ import { Collection } from '../../entity/collection';
 import { IsInt, IsOptional, IsPositive, Max } from 'class-validator';
 import { U32_MAX_VALUE } from '../constants';
 import { Transform } from 'class-transformer';
+import { UNIQUE } from 'src/utils/blockchain/web3';
 
 export class ListCollectionResult {
   @ApiProperty({ default: HttpStatus.OK })
@@ -89,12 +90,12 @@ export class MassFixPriceSaleResult {
 }
 
 export class MassFixPriceSaleDTO {
-  @ApiProperty()
+  @ApiProperty({ example: 5 })
   @Max(U32_MAX_VALUE)
   @IsPositive()
   @IsInt()
   collectionId: number;
-  @ApiProperty()
+  @ApiProperty({ example: UNIQUE.toString() })
   @Transform(({ value }) => BigInt(value))
   price: bigint;
 }
