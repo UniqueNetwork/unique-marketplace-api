@@ -49,6 +49,10 @@ class Auction {
 
 export class SettingsDto {
   @ApiProperty({})
+  marketType: string;
+  @ApiProperty({})
+  mainSaleSeedAddress: string;
+  @ApiProperty({})
   blockchain: SettingBlockchain;
 
   @ApiProperty({ required: false })
