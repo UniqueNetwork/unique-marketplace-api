@@ -229,20 +229,16 @@ export class CollectionsService implements OnModuleInit {
       Substrate: signer.address,
     });
 
-    const tokenIds = accountTokens.toHuman().map((i: string) => Number(i));
+    const tokenIds = accountTokens.sort((a, b) => a - b);
 
     for (const tokenId of tokenIds) {
-      const nonce = await this.unique.rpc.system.accountNextIndex(signer.address);
+      const transferTxHash = await this.unique.tx.unique
+        .transfer({ Ethereum: subToEth(signer.address) }, collectionId, tokenId, 1)
+        .signAndSend(signer, { nonce: -1 });
 
-      const txHash = await this.unique.tx.unique.transfer({ Ethereum: subToEth(signer.address) }, collectionId, tokenId, 1).signAndSend(signer, { nonce });
+      this.logger.debug(`massFixPriceSale: Token #${tokenId} transfer: ${transferTxHash.toHuman()}`);
 
-      this.logger.debug(`massFixPriceSale: Transfer token #${tokenId}: ${txHash.toHuman()}`);
-    }
-
-    for (const tokenId of tokenIds) {
-      const nonce = await this.unique.rpc.system.accountNextIndex(signer.address);
-
-      const txHash = await this.unique.tx.evm
+      const approveTxHash = await this.unique.tx.evm
         .call(
           subToEth(signer.address),
           collectionContract.options.address,
@@ -254,15 +250,11 @@ export class CollectionsService implements OnModuleInit {
           null,
           [],
         )
-        .signAndSend(signer, { nonce });
+        .signAndSend(signer, { nonce: -1 });
 
-      this.logger.debug(`massFixPriceSale: Approve token #${tokenId}: ${txHash.toHuman()}`);
-    }
+      this.logger.debug(`massFixPriceSale: Token #${tokenId} approve: ${approveTxHash.toHuman()}`);
 
-    for (const tokenId of tokenIds) {
-      const nonce = await this.unique.rpc.system.accountNextIndex(signer.address);
-
-      const txHash = await this.unique.tx.evm
+      const askTxHash = await this.unique.tx.evm
         .call(
           subToEth(signer.address),
           marketContract.options.address,
@@ -274,9 +266,9 @@ export class CollectionsService implements OnModuleInit {
           null,
           [],
         )
-        .signAndSend(signer, { nonce });
+        .signAndSend(signer, { nonce: -1 });
 
-      this.logger.debug(`massFixPriceSale: Add ask for token #${tokenId}: ${txHash.toHuman()}`);
+      this.logger.debug(`massFixPriceSale: Token #${tokenId} add ask: ${askTxHash.toHuman()}`);
     }
 
     return {
