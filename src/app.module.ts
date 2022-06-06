@@ -26,6 +26,7 @@ import { SignatureVerifier } from './auction/services/helpers/signature-verifier
 import { AdminService } from './admin/admin.service';
 import { AdminController } from './admin/admin.controller';
 import { CollectionsService, TokenService } from './admin/servises';
+import { Web3Service } from './admin/servises/web3.service';
 
 const config = getConfig();
 
@@ -59,6 +60,7 @@ const config = getConfig();
     PrometheusService,
     CollectionsService,
     TokenService,
+    Web3Service,
   ],
 })
 export class AppModule implements NestModule {

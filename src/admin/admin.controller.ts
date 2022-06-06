@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import {
   ApiBadRequestResponse,
@@ -13,7 +13,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AuthGuard } from './guards/auth.guard';
+import { AuthGuard, MainSaleSeedGuard } from './guards';
 import { Request } from 'express';
 import {
   AddTokensDto,
@@ -30,6 +30,9 @@ import {
   DisableCollectionNotFoundError,
   DisableCollectionBadRequestError,
   ResponseTokenDto,
+  MassFixPriceSaleResult,
+  MassFixPriceSaleDTO,
+  MassFixPriceSaleBadRequestError,
 } from './dto';
 import { ParseCollectionIdPipe, CollectionsFilterPipe } from './pipes';
 import { CollectionsService, TokenService } from './servises';
@@ -117,5 +120,24 @@ export class AdminController {
   @ApiResponse({ status: HttpStatus.OK, type: ResponseTokenDto })
   async addTokens(@Param('collectionId') collectionId: string, @Body() data: AddTokensDto): Promise<ResponseTokenDto> {
     return await this.tokenService.addTokens(collectionId, data);
+  }
+
+  @Post('/collections/fixprice')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Mass fix price sale',
+    description: fs.readFileSync('docs/mass_fixprice_sale.md').toString(),
+  })
+  @ApiBearerAuth()
+  @ApiResponse({ status: HttpStatus.OK, type: MassFixPriceSaleResult })
+  @ApiBadRequestResponse({ type: MassFixPriceSaleBadRequestError })
+  @UseGuards(AuthGuard, MainSaleSeedGuard)
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+    }),
+  )
+  async massFixPriceSale(@Body() data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResult> {
+    return await this.collectionsService.massFixPriceSale(data);
   }
 }
