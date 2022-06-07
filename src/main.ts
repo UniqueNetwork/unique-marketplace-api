@@ -34,10 +34,16 @@ async function bootstrap() {
   if (config.autoDBMigrations) await runMigrations(config, 'migrations');
 
   if (config.disableSecurity) {
+    app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS,HEAD');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+      next();
+    });
+
     app.enableCors({
-      allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe',
-      methods: 'GET,PUT,POST,DELETE,UPDATE,OPTIONS',
-      origin: true,
+      allowedHeaders: '*',
+      origin: '*',
       credentials: true,
     });
   }
