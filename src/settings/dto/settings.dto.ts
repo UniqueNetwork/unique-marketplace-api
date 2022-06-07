@@ -51,6 +51,8 @@ export class SettingsDto {
   @ApiProperty({})
   marketType: string;
   @ApiProperty({})
+  administrators: string;
+  @ApiProperty({})
   mainSaleSeedAddress: string;
   @ApiProperty({})
   blockchain: SettingBlockchain;
