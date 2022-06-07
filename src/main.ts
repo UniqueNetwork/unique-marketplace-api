@@ -20,6 +20,14 @@ const initSwagger = (app: INestApplication, config, pkg) => {
     .setTitle(config.swagger.title)
     .setDescription(fs.readFileSync('docs/description.md').toString())
     .addBearerAuth()
+    .addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: 'Authorization',
+      },
+      'address:signature',
+    )
     .setVersion(pkg.version)
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConf);

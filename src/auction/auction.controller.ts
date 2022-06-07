@@ -6,14 +6,16 @@ import {
   Delete,
   Get,
   Headers,
-  Inject, Logger,
+  HttpStatus,
+  Inject,
+  Logger,
   Post,
   Query,
   Req,
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiConflictResponse, ApiOperation, ApiResponse, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { Request } from 'express';
 import { convertAddress } from '../utils/blockchain/util';
 import { AuctionCreationService } from './services/auction-creation.service';
@@ -33,16 +35,9 @@ import { TxDecoder } from './services/helpers/tx-decoder';
 import { SignatureVerifier } from './services/helpers/signature-verifier';
 import { AuctionCancelingService } from './services/auction-canceling.service';
 import { BidWithdrawService } from './services/bid-withdraw.service';
-import { TraceInterceptor } from "../utils/sentry";
-import { BidsWitdrawByOwnerDto } from './responses';
+import { TraceInterceptor } from '../utils/sentry';
+import { BadRequestResponse, BidsWitdrawByOwnerDto, ConflictResponse, UnauthorizedResponse } from './responses';
 import * as fs from 'fs';
-
-const WithSignature = ApiHeader({
-  name: 'Authorization',
-  allowEmptyValue: false,
-  example: 'address:signature',
-  description: 'address:signature',
-});
 
 @ApiTags('Auction')
 @Controller('auction')
@@ -59,7 +54,7 @@ export class AuctionController {
     @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
     @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
   ) {
-    this.logger = new Logger(AuctionController.name)
+    this.logger = new Logger(AuctionController.name);
   }
 
   @Post('create_auction')
@@ -67,12 +62,16 @@ export class AuctionController {
     summary: 'Create an auction',
     description: fs.readFileSync('docs/create_auction.md').toString(),
   })
-  @ApiResponse({ type: OfferContractAskDto })
+  @ApiResponse({ status: HttpStatus.CREATED, type: OfferContractAskDto })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
+  @ApiConflictResponse({ type: ConflictResponse })
   async createAuction(@Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
     try {
       const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
 
-      this.logger.debug(`Create an auction - collectionId: ${txInfo.args.collection_id},ownerAddress: ${txInfo.signerAddress}, tokenId: ${txInfo.args.item_id}`)
+      this.logger.debug(
+        `Create an auction - collectionId: ${txInfo.args.collection_id},ownerAddress: ${txInfo.signerAddress}, tokenId: ${txInfo.args.item_id}`,
+      );
       return await this.auctionCreationService.create({
         ...createAuctionRequest,
         collectionId: txInfo.args.collection_id,
@@ -80,7 +79,6 @@ export class AuctionController {
         tokenId: txInfo.args.item_id,
       });
     } catch (error) {
-
       await this.auctionCreationService.saveFailedAuction(createAuctionRequest);
 
       throw new BadRequestException(error.message);
@@ -88,11 +86,12 @@ export class AuctionController {
   }
 
   @Post('place_bid')
-  @ApiResponse({ type: OfferContractAskDto })
+  @ApiResponse({ status: HttpStatus.CREATED, type: OfferContractAskDto })
   @ApiOperation({
     summary: 'Placing a bid in an auction',
     description: fs.readFileSync('docs/place_bid_auction.md').toString(),
   })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
   async placeBid(@Body() placeBidRequest: PlaceBidRequestDto): Promise<OfferContractAskDto> {
     const txInfo = await this.txDecoder.decodeBalanceTransfer(placeBidRequest.tx);
 
@@ -104,11 +103,12 @@ export class AuctionController {
   }
 
   @Post('calculate')
-  @ApiResponse({ type: CalculationInfoResponseDto })
+  @ApiResponse({ status: HttpStatus.CREATED, type: CalculationInfoResponseDto })
   @ApiOperation({
     summary: 'Calculation',
     description: fs.readFileSync('docs/calculation.md').toString(),
   })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
   async calculate(@Body() calculationRequest: CalculationRequestDto): Promise<CalculationInfoResponseDto> {
     try {
       const bidderAddress = await convertAddress(calculationRequest.bidderAddress, this.kusamaApi.registry.chainSS58);
@@ -122,17 +122,15 @@ export class AuctionController {
   }
 
   @Delete('cancel_auction')
-  @ApiResponse({ type: OfferContractAskDto })
+  @ApiResponse({ status: HttpStatus.OK, type: OfferContractAskDto })
   @ApiOperation({
     summary: 'Canceled an auction',
     description: fs.readFileSync('docs/cancel_auction.md').toString(),
   })
-  @WithSignature
-  async cancelAuction(
-    @Query() query: CancelAuctionQueryDto,
-    @Headers('Authorization') authorization = '',
-    @Req() req: Request,
-  ): Promise<OfferContractAskDto> {
+  @ApiUnauthorizedResponse({ type: UnauthorizedResponse })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
+  @ApiSecurity('address:signature')
+  async cancelAuction(@Query() query: CancelAuctionQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<OfferContractAskDto> {
     AuctionController.checkRequestTimestamp(query.timestamp);
     const [signerAddress = '', signature = ''] = authorization.split(':');
     const queryString = req.originalUrl.split('?')[1];
@@ -144,7 +142,7 @@ export class AuctionController {
     });
 
     const ownerAddress = await convertAddress(signerAddress, this.uniqueApi.registry.chainSS58);
-    this.logger.debug
+    this.logger.debug;
     return await this.auctionCancellingService.tryCancelAuction({
       collectionId: query.collectionId,
       tokenId: query.tokenId,
@@ -157,7 +155,10 @@ export class AuctionController {
     summary: 'Withdraw bid',
     description: fs.readFileSync('docs/withdraw_bid.md').toString(),
   })
-  @WithSignature
+  @ApiResponse({ status: HttpStatus.OK })
+  @ApiUnauthorizedResponse({ type: UnauthorizedResponse })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
+  @ApiSecurity('address:signature')
   async withdrawBid(@Query() query: WithdrawBidQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<void> {
     AuctionController.checkRequestTimestamp(query.timestamp);
     const [signerAddress = '', signature = ''] = authorization.split(':');
@@ -183,6 +184,8 @@ export class AuctionController {
     summary: 'Get bids',
     description: fs.readFileSync('docs/list_withdraw_bid.md').toString(),
   })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
+  @ApiResponse({ status: HttpStatus.OK, type: BidsWitdrawByOwnerDto })
   async getTokenWithdrawBid(@Query() query: OwnerWithdrawBidQueryDto): Promise<BidsWitdrawByOwnerDto> {
     return this.bidWithdrawService.getBidsForWithdraw(query.owner);
   }
@@ -192,7 +195,10 @@ export class AuctionController {
     summary: 'Withdraw choose bid',
     description: fs.readFileSync('docs/withdraw_choose_bid.md').toString(),
   })
-  @WithSignature
+  @ApiResponse({ status: HttpStatus.OK })
+  @ApiUnauthorizedResponse({ type: UnauthorizedResponse })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
+  @ApiSecurity('address:signature')
   async withdrawChooseBid(@Query() query: WithdrawBidChosenQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<void> {
     AuctionController.checkRequestTimestamp(query.timestamp);
     const [signerAddress = '', signature = ''] = authorization.split(':');
@@ -208,7 +214,7 @@ export class AuctionController {
 
     await this.bidWithdrawService.withdrawBidsByBidder({
       bidderAddress,
-      auctionIds: Array.isArray(query.auctionId) ? query.auctionId : [query.auctionId]
+      auctionIds: Array.isArray(query.auctionId) ? query.auctionId : [query.auctionId],
     });
   }
 
