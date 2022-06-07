@@ -1,4 +1,4 @@
-import * as request from 'supertest';
+import request from 'supertest';
 
 import * as util from '../../src/utils/blockchain/util';
 import { OfferContractAskDto } from '../../src/offers/dto/offer-dto';
