@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedExceptio
 import { JwtService } from '@nestjs/jwt';
 import { MarketConfig } from '../../config/market-config';
 import { Keyring } from '@polkadot/api';
+import { UNAUTHORIZED_ADMIN_ERROR_MESSAGE } from '../constants';
 
 @Injectable()
 export class MainSaleSeedGuard implements CanActivate {
@@ -14,14 +15,16 @@ export class MainSaleSeedGuard implements CanActivate {
 
     const { mainSaleSeed } = this.config;
 
+    if (!mainSaleSeed) throw new UnauthorizedException(UNAUTHORIZED_ADMIN_ERROR_MESSAGE);
+
     const keyring = new Keyring({ type: 'sr25519' });
 
     const signer = keyring.addFromUri(mainSaleSeed);
 
     const mainSaleSeedAddress = signer.address;
 
-    if (mainSaleSeedAddress === adminAddress) return true;
+    if (mainSaleSeedAddress !== adminAddress) throw new UnauthorizedException(UNAUTHORIZED_ADMIN_ERROR_MESSAGE);
 
-    throw new UnauthorizedException(`Only for ${mainSaleSeedAddress}`);
+    return true;
   }
 }
