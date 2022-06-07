@@ -58,6 +58,17 @@ export class CreateCollectionsTable_20220530000000 implements MigrationInterface
             default: "''",
           },
           {
+            name: 'status',
+            type: 'enum',
+            enum: ['Enabled', 'Disabled'],
+            default: "'Enabled'",
+          },
+          {
+            name: 'import_type',
+            type: 'enum',
+            enum: ['Env', 'Api'],
+          },
+          {
             name: 'created_at',
             type: 'timestamp without time zone',
             default: 'CURRENT_TIMESTAMP',
