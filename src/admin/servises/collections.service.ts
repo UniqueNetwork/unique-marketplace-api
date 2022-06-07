@@ -65,14 +65,18 @@ export class CollectionsService implements OnModuleInit {
     const existing = await this.findById(id);
 
     if (existing) {
-      const collection = await this.collectionsRepository.save({ id: existing.id, ...entity });
+      await this.collectionsRepository.save({ id: existing.id, ...entity });
+
+      const collection = { ...existing, ...entity };
 
       return {
         collection,
         message: `Collection #${id} already exists`,
       };
     } else {
-      const collection = await this.collectionsRepository.save({ id, importType, ...entity });
+      await this.collectionsRepository.save({ id, importType, ...entity });
+
+      const collection = { ...existing, ...entity, importType };
 
       return {
         collection,
@@ -87,9 +91,11 @@ export class CollectionsService implements OnModuleInit {
    * @return ({Promise<EnableCollectionResult>})
    */
   async enableById(id: number): Promise<EnableCollectionResult> {
-    const { message, collection } = await this.importById(id, CollectionImportType.Api);
+    const { collection } = await this.importById(id, CollectionImportType.Api);
 
     await this.collectionsRepository.update(id, { status: CollectionStatus.Enabled });
+
+    const message = collection.status === CollectionStatus.Enabled ? `Collection #${id} has already enabled` : `Collection #${id} successfully enabled`;
 
     return {
       statusCode: HttpStatus.OK,
@@ -108,11 +114,16 @@ export class CollectionsService implements OnModuleInit {
 
     if (!collection) throw new NotFoundException(`Collection #${id} not found`);
 
+    const message =
+      collection.status === CollectionStatus.Disabled
+        ? `Сollection #${collection.id} has already disabled`
+        : `Сollection #${collection.id} successfully disabled`;
+
     await this.collectionsRepository.update(id, { status: CollectionStatus.Disabled });
 
     return {
       statusCode: HttpStatus.OK,
-      message: `Сollection #${collection.id} successfully disabled`,
+      message,
       data: { ...collection, status: CollectionStatus.Disabled },
     };
   }
@@ -218,20 +229,16 @@ export class CollectionsService implements OnModuleInit {
       Substrate: signer.address,
     });
 
-    const tokenIds = accountTokens.toHuman().map((i: string) => Number(i));
+    const tokenIds = accountTokens.sort((a, b) => a - b);
 
     for (const tokenId of tokenIds) {
-      const nonce = await this.unique.rpc.system.accountNextIndex(signer.address);
+      const transferTxHash = await this.unique.tx.unique
+        .transfer({ Ethereum: subToEth(signer.address) }, collectionId, tokenId, 1)
+        .signAndSend(signer, { nonce: -1 });
 
-      const txHash = await this.unique.tx.unique.transfer({ Ethereum: subToEth(signer.address) }, collectionId, tokenId, 1).signAndSend(signer, { nonce });
+      this.logger.debug(`massFixPriceSale: Token #${tokenId} transfer: ${transferTxHash.toHuman()}`);
 
-      this.logger.debug(`massFixPriceSale: Transfer token #${tokenId}: ${txHash.toHuman()}`);
-    }
-
-    for (const tokenId of tokenIds) {
-      const nonce = await this.unique.rpc.system.accountNextIndex(signer.address);
-
-      const txHash = await this.unique.tx.evm
+      const approveTxHash = await this.unique.tx.evm
         .call(
           subToEth(signer.address),
           collectionContract.options.address,
@@ -243,15 +250,11 @@ export class CollectionsService implements OnModuleInit {
           null,
           [],
         )
-        .signAndSend(signer, { nonce });
+        .signAndSend(signer, { nonce: -1 });
 
-      this.logger.debug(`massFixPriceSale: Approve token #${tokenId}: ${txHash.toHuman()}`);
-    }
+      this.logger.debug(`massFixPriceSale: Token #${tokenId} approve: ${approveTxHash.toHuman()}`);
 
-    for (const tokenId of tokenIds) {
-      const nonce = await this.unique.rpc.system.accountNextIndex(signer.address);
-
-      const txHash = await this.unique.tx.evm
+      const askTxHash = await this.unique.tx.evm
         .call(
           subToEth(signer.address),
           marketContract.options.address,
@@ -263,9 +266,9 @@ export class CollectionsService implements OnModuleInit {
           null,
           [],
         )
-        .signAndSend(signer, { nonce });
+        .signAndSend(signer, { nonce: -1 });
 
-      this.logger.debug(`massFixPriceSale: Add ask for token #${tokenId}: ${txHash.toHuman()}`);
+      this.logger.debug(`massFixPriceSale: Token #${tokenId} add ask: ${askTxHash.toHuman()}`);
     }
 
     return {
