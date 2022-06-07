@@ -51,7 +51,7 @@ export class SettingsDto {
   @ApiProperty({})
   marketType: string;
   @ApiProperty({})
-  administrators: string;
+  administrators: string[];
   @ApiProperty({})
   mainSaleSeedAddress: string;
   @ApiProperty({})
