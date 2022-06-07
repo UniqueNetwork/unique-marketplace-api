@@ -33,8 +33,12 @@ async function bootstrap() {
   const pkg = JSON.parse(await promises.readFile(join('.', 'package.json'), 'utf8'));
   if (config.autoDBMigrations) await runMigrations(config, 'migrations');
 
-  if (config.disableSecurity) app.enableCors();
-
+  if (config.disableSecurity) {
+    app.enableCors({
+      origin: true,
+      credentials: true,
+    });
+  }
   app.use(
     prometheusMiddleware({
       additionalLabels: ['app'],
