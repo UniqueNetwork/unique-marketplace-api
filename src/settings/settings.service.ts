@@ -27,10 +27,10 @@ export class SettingsService {
 
     const collectionIds = await this.getCollectionIds();
     const allowedTokens = await this.getAllowedTokens();
-
+    const administrators = adminList.split(',').map((value) => value.trim());
     const settings: SettingsDto = {
       marketType: marketType,
-      administrators: adminList,
+      administrators: administrators,
       mainSaleSeedAddress: await seedToAddress(mainSaleSeed),
       blockchain: {
         escrowAddress: await seedToAddress(blockchain.escrowSeed),
