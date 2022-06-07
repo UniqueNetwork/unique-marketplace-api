@@ -32,20 +32,11 @@ export class AdminService {
    * @param signature
    * @param queryString
    */
-  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto> {
-    this.checkAdministratorAddress(signerAddress, signature);
-    try {
-      await this.signatureVerifier.verify({
-        payload: queryString,
-        signature,
-        signerAddress,
-      });
-    } catch (e) {
-      throw new UnauthorizedException({ statusCode: e.status, message: e, error: e.response?.error || 'Unauthorized address or bad signature' });
-    }
+  async login(signerAddress: string): Promise<ResponseAdminDto> {
+    this.checkAdministratorAddress(signerAddress);
 
     const substrateAddress = util.normalizeAccountId(signerAddress);
-    const token = await this.generateToken(signerAddress, signature);
+    const token = await this.generateToken(signerAddress);
     const session = await this.adminRepository.create({
       id: uuid(),
       address: signerAddress,
@@ -67,10 +58,9 @@ export class AdminService {
   /**
    * JWT token generator creates temporary keys
    * @param substrateAddress
-   * @param pid
    * @private
    */
-  private async generateToken(substrateAddress: string, pid: string): Promise<ResponseAdminDto> {
+  private async generateToken(substrateAddress: string): Promise<ResponseAdminDto> {
     const payload = { address: substrateAddress };
     const access = this.jwtService.sign(payload, {
       expiresIn: this.config.jwt.access,
@@ -92,7 +82,7 @@ export class AdminService {
     }
   }
 
-  private checkAdministratorAddress(signerAddress: string, signature: string) {
+  private checkAdministratorAddress(signerAddress: string) {
     if (signerAddress === undefined) {
       throw new UnauthorizedException('Unauthorized! Enter your address.');
     }

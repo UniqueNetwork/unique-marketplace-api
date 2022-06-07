@@ -37,21 +37,21 @@ const initSwagger = (app: INestApplication, config, pkg) => {
 let app: INestApplication;
 
 async function bootstrap() {
-  app = await NestFactory.create(AppModule, { logger: ['log', 'error', 'warn', 'debug'], cors: true });
+  app = await NestFactory.create(AppModule, { logger: ['log', 'error', 'warn', 'debug'] });
   const config = app.get('CONFIG');
   const pkg = JSON.parse(await promises.readFile(join('.', 'package.json'), 'utf8'));
   if (config.autoDBMigrations) await runMigrations(config, 'migrations');
 
   if (config.disableSecurity) {
-    app.use((req, res, next) => {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS,HEAD');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Signature, Authorization');
-      next();
-    });
+    // app.use((req, res, next) => {
+    //   res.header('Access-Control-Allow-Origin', '*');
+    //   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS,HEAD');
+    //   res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Signature, Authorization');
+    //   next();
+    // });
 
     app.enableCors({
-      allowedHeaders: '*',
+      allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe, Signature, Authorization',
       origin: true,
       credentials: true,
     });
