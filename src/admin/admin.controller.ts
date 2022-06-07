@@ -1,11 +1,10 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiForbiddenResponse,
-  ApiHeader,
   ApiNotFoundResponse,
   ApiOperation,
   ApiQuery,
@@ -14,31 +13,32 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthGuard, MainSaleSeedGuard } from './guards';
-import { Request } from 'express';
 import {
   AddTokensDto,
+  CollectionsFilter,
+  DisableCollectionBadRequestError,
+  DisableCollectionNotFoundError,
   DisableCollectionResult,
+  EnableCollectionBadRequestError,
   EnableCollectionDTO,
   EnableCollectionResult,
+  ListCollectionBadRequestError,
   ListCollectionResult,
+  MassFixPriceSaleBadRequestError,
+  MassFixPriceSaleDTO,
+  MassFixPriceSaleResult,
   ResponseAdminDto,
   ResponseAdminForbiddenDto,
   ResponseAdminUnauthorizedDto,
-  CollectionsFilter,
-  ListCollectionBadRequestError,
-  EnableCollectionBadRequestError,
-  DisableCollectionNotFoundError,
-  DisableCollectionBadRequestError,
   ResponseTokenDto,
-  MassFixPriceSaleResult,
-  MassFixPriceSaleDTO,
-  MassFixPriceSaleBadRequestError,
 } from './dto';
-import { ParseCollectionIdPipe, CollectionsFilterPipe } from './pipes';
+import { CollectionsFilterPipe, ParseCollectionIdPipe } from './pipes';
 import { CollectionsService, TokenService } from './servises';
 import * as fs from 'fs';
+import { LoginGuard } from './guards/login.guard';
 
 @ApiTags('Administration')
+@ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Unauthorized address or bad signature', type: ResponseAdminUnauthorizedDto })
 @ApiForbiddenResponse({ description: 'Forbidden. Marketplace disabled management for administrators.', type: ResponseAdminForbiddenDto })
 @Controller('admin')
@@ -55,12 +55,11 @@ export class AdminController {
     summary: 'User authorization',
     description: fs.readFileSync('docs/admin_login.md').toString(),
   })
-  @ApiHeader({ name: 'Signature', description: 'signature' })
+  @UseGuards(LoginGuard)
   @ApiQuery({ name: 'account', description: 'Substrate account', example: '5EsQUxc6FLEJKgCwWbiC4kBuCbBt6ePtdKLvVP5gfpXkrztf' })
   @ApiResponse({ status: HttpStatus.OK, type: ResponseAdminDto })
-  async login(@Headers('Signature') signature = '', @Query('account') signerAddress: string, @Req() req: Request): Promise<ResponseAdminDto> {
-    const queryString = req.originalUrl.split('?')[0];
-    return await this.adminService.login(signerAddress, signature, queryString);
+  async login(@Query('account') signerAddress: string): Promise<ResponseAdminDto> {
+    return await this.adminService.login(signerAddress);
   }
 
   @Get('/collections')
@@ -69,7 +68,6 @@ export class AdminController {
     summary: 'List collections',
     description: fs.readFileSync('docs/admin_collection_list.md').toString(),
   })
-  @ApiBearerAuth()
   @ApiOperation({ description: 'List collection' })
   @ApiResponse({ status: HttpStatus.OK, type: ListCollectionResult })
   @ApiBadRequestResponse({ type: ListCollectionBadRequestError })
@@ -80,7 +78,6 @@ export class AdminController {
 
   @Post('/collections')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Import collection',
     description: fs.readFileSync('docs/admin_collection_import.md').toString(),
@@ -103,7 +100,6 @@ export class AdminController {
   @ApiResponse({ status: HttpStatus.OK, type: DisableCollectionResult })
   @ApiNotFoundResponse({ type: DisableCollectionNotFoundError })
   @ApiBadRequestResponse({ type: DisableCollectionBadRequestError })
-  @ApiBearerAuth()
   @UseGuards(AuthGuard)
   async disableCollection(@Param('id', ParseCollectionIdPipe) collectionId: number): Promise<DisableCollectionResult> {
     return await this.collectionsService.disableById(collectionId);
@@ -115,7 +111,6 @@ export class AdminController {
     summary: 'Adding tokens to allowed',
     description: fs.readFileSync('docs/admin_tokens_allowed.md').toString(),
   })
-  @ApiBearerAuth()
   @UseGuards(AuthGuard)
   @ApiResponse({ status: HttpStatus.OK, type: ResponseTokenDto })
   async addTokens(@Param('collectionId') collectionId: string, @Body() data: AddTokensDto): Promise<ResponseTokenDto> {
@@ -128,7 +123,6 @@ export class AdminController {
     summary: 'Mass fix price sale',
     description: fs.readFileSync('docs/mass_fixprice_sale.md').toString(),
   })
-  @ApiBearerAuth()
   @ApiResponse({ status: HttpStatus.OK, type: MassFixPriceSaleResult })
   @ApiBadRequestResponse({ type: MassFixPriceSaleBadRequestError })
   @UseGuards(AuthGuard, MainSaleSeedGuard)
