@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, HttpStatus, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MarketConfig } from '../../config/market-config';
+import { UNAUTHORIZED_ADMIN_ERROR_MESSAGE } from '../constants';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -23,7 +24,7 @@ export class AuthGuard implements CanActivate {
 
       return true;
     } catch (e) {
-      throw new UnauthorizedException('Access is denied');
+      throw new UnauthorizedException(UNAUTHORIZED_ADMIN_ERROR_MESSAGE);
     }
   }
   async verifyAddress(signerAddress) {

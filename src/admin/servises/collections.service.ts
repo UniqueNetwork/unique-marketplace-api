@@ -219,7 +219,11 @@ export class CollectionsService implements OnModuleInit {
 
     const { mainSaleSeed } = this.config;
 
+    if (!mainSaleSeed) throw new BadRequestException('Main sale seed not set');
+
     const marketContractAddress = this.config.blockchain.unique.contractAddress;
+
+    if (!marketContractAddress) throw new BadRequestException('Market contract address not set');
 
     const collectionContract = this.web3.getCollectionContract(collectionId);
     const marketContract = this.web3.getMarketContract(marketContractAddress);
@@ -272,9 +276,13 @@ export class CollectionsService implements OnModuleInit {
       this.logger.debug(`massFixPriceSale: Token #${tokenId} add ask: ${askTxHash.toHuman()}`);
     }
 
+    const tokensCount = tokenIds.length;
+
+    const message = `${tokensCount} tokens successfully offered for fix price sale`;
+
     return {
       statusCode: HttpStatus.OK,
-      message: '',
+      message,
       data: tokenIds,
     };
   }
