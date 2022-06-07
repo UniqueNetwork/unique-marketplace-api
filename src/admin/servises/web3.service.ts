@@ -2,8 +2,8 @@ import { Injectable, Inject } from '@nestjs/common';
 import { MarketConfig } from '../../config/market-config';
 
 import * as Web3_ from 'web3';
-import { collectionIdToAddress } from 'src/utils/blockchain/web3';
-import { blockchainStaticFile } from 'src/utils/blockchain/util';
+import { collectionIdToAddress } from '../../utils/blockchain/web3';
+import { blockchainStaticFile } from '../../utils/blockchain/util';
 const Web3 = Web3_ as any;
 
 const CollectionABI = JSON.parse(blockchainStaticFile('nonFungibleAbi.json'));

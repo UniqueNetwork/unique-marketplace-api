@@ -4,7 +4,7 @@ import { Collection } from '../../entity/collection';
 import { IsInt, IsOptional, IsPositive, Max } from 'class-validator';
 import { U32_MAX_VALUE } from '../constants';
 import { Transform } from 'class-transformer';
-import { UNIQUE } from 'src/utils/blockchain/web3';
+import { UNIQUE } from '../../utils/blockchain/web3';
 
 export class ListCollectionResult {
   @ApiProperty({ default: HttpStatus.OK })

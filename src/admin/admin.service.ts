@@ -1,14 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { MarketConfig } from '../config/market-config';
@@ -17,12 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 import { v4 as uuid } from 'uuid';
 import * as util from '../utils/blockchain/util';
 import { SignatureVerifier } from '../auction/services/helpers/signature-verifier';
-import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
+import { ResponseAdminDto } from './dto/response-admin.dto';
 import { AdminSessionEntity } from '../entity/adminsession-entity';
-import { CollectionsService } from './servises/collections.service';
-import { Collection } from 'src/entity';
-import { IsNumber } from 'class-validator';
-import { TokenService } from './servises/tokens.service';
 
 @Injectable()
 export class AdminService {

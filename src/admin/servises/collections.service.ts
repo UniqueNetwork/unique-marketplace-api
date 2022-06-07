@@ -1,13 +1,14 @@
 import { Inject, Injectable, Logger, NotFoundException, OnModuleInit, HttpStatus, BadRequestException } from '@nestjs/common';
 import { MarketConfig } from 'src/config/market-config';
-import { Collection } from 'src/entity';
+
 import { Connection, Repository } from 'typeorm';
 import { decodeCollection } from '../utils';
 import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from '../types';
 import { CollectionsFilter, EnableCollectionResult, ListCollectionResult, DisableCollectionResult, MassFixPriceSaleResult, MassFixPriceSaleDTO } from '../dto';
 import { Web3Service } from './web3.service';
-import { subToEth } from 'src/utils/blockchain/web3';
+import { subToEth } from '../../utils/blockchain/web3';
 import { Keyring } from '@polkadot/api';
+import { Collection } from '../../entity';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
