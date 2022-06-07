@@ -1,4 +1,4 @@
-import { vec2str } from 'src/utils/blockchain/util';
+import { vec2str } from '../../utils/blockchain/util';
 import { DecodedCollection, HumanizedCollection } from '../types/collection';
 
 export const decodeCollection = (collection: HumanizedCollection): DecodedCollection => ({

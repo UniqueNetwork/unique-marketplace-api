@@ -4,8 +4,9 @@ import { SettingsDto } from './dto/settings.dto';
 import { convertAddress, seedToAddress } from '../utils/blockchain/util';
 import { MarketConfig } from '../config/market-config';
 import { Connection, Not, Repository } from 'typeorm';
-import { Collection } from 'src/entity';
-import { CollectionStatus } from 'src/admin/types/collection';
+
+import { Collection } from '../entity';
+import { CollectionStatus } from '../admin/types';
 
 @Injectable()
 export class SettingsService {

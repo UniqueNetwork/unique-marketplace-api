@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CollectionImportType, CollectionMode, CollectionStatus } from 'src/admin/types/collection';
+import { CollectionImportType, CollectionMode, CollectionStatus } from '../admin/types/collection';
 import { Column, CreateDateColumn, Entity, UpdateDateColumn } from 'typeorm';
 
 @Entity('collections', { schema: 'public' })
