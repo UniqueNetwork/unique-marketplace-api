@@ -2,8 +2,6 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import * as defs from '@unique-nft/types/definitions'
 
 import * as logging from '../logging';
-import { transactionStatus, signTransaction } from './polka';
-
 
 const connectApi = async function (opalUrl, exitOnDisconnect=true) {
   const wsProvider = new WsProvider(opalUrl);
@@ -31,4 +29,4 @@ const connectApi = async function (opalUrl, exitOnDisconnect=true) {
 
 
 
-export { transactionStatus, signTransaction, connectApi }
+export { connectApi }
