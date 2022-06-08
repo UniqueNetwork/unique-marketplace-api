@@ -2,7 +2,7 @@ import { ApiPromise } from '@polkadot/api';
 import { addressToEvm, evmToAddress } from '@polkadot/util-crypto';
 import Web3 from 'web3';
 
-import { signTransaction } from './polka';
+import { signTransaction } from './signTransaction'
 import { privateKey, blockchainStaticFile } from './util';
 
 const contractHelpersAbi = JSON.parse(blockchainStaticFile('contractHelpersAbi.json'));

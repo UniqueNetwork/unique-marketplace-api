@@ -4,7 +4,8 @@ import * as unique from '../blockchain/unique';
 import * as lib from '../blockchain/web3';
 import * as util from '../blockchain/util';
 
-import { signTransaction, transactionStatus } from '../blockchain/polka';
+import { TransactionStatus } from '../blockchain';
+import { signTransaction } from '../blockchain';
 import * as logging from '../logging'
 
 
@@ -13,7 +14,7 @@ const CONTRACT_MIN_BALANCE = 40n * lib.UNIQUE;
 const ESCROW_MIN_BALANCE = (5n * lib.UNIQUE) / 10n;
 
 export const main = async(moduleRef, args: string[]) => {
-  let summary = [];
+  const summary: string[] = [];
   const config = moduleRef.get('CONFIG', {strict: false});
   if(config.blockchain.escrowSeed === null) {
     logging.log('You need to set ESCROW_SEED env or override config "blockchain.escrowSeed" section');
@@ -47,21 +48,21 @@ export const main = async(moduleRef, args: string[]) => {
 
   logging.log(['Escrow substrate address:', escrow.address]);
   {
-    let balance = await getBalance(escrow.address);
+    const balance = await getBalance(escrow.address);
     logging.log(['Balance on escrow:', balance.toString()]);
   }
   if(config.blockchain.unique.contractOwnerSeed === null) {
     logging.log('No existed CONTRACT_ETH_OWNER_SEED, creating new eth account');
-    let balance = await getBalance(escrow.address);
-    let minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE + DEPLOY_COST;
+    const balance = await getBalance(escrow.address);
+    const minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE + DEPLOY_COST;
     if (balance < minBalance) {
       logging.log(['Balance on account', escrow.address, 'too low to create eth account. Need at least', minBalance.toString()])
       return await disconnect();
     }
     const account = web3.eth.accounts.create();
 
-    let result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(account.address), DEPLOY_COST), 'api.tx.balances.transfer') as any;
-    if(result.status !== transactionStatus.SUCCESS) {
+    const result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(account.address), DEPLOY_COST), 'api.tx.balances.transfer');
+    if(result.status !== TransactionStatus.SUCCESS) {
       logging.log(['Unable to transfer', DEPLOY_COST.toString(), 'from', escrow.address, 'to', evmToAddress(account.address)], logging.level.ERROR);
       logging.log(result.result.toHuman(), logging.level.ERROR);
       return await disconnect();
@@ -81,8 +82,8 @@ export const main = async(moduleRef, args: string[]) => {
 
     return await disconnect();
   }
-  let balance = await getBalance(escrow.address);
-  let minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE;
+  const balance = await getBalance(escrow.address);
+  const minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE;
   if (balance < minBalance) {
     logging.log(['Balance on account', escrow.address, 'too low to deploy contract. Need at least', minBalance.toString()], logging.level.WARNING)
     return await disconnect();
@@ -104,8 +105,8 @@ export const main = async(moduleRef, args: string[]) => {
   logging.log('Set sponsoring rate limit...')
   await helpers.methods.setSponsoringRateLimit(contract.options.address, 0).send({from: account.address});
   logging.log('Transfer balance...');
-  let result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(contract.options.address), CONTRACT_MIN_BALANCE), 'api.tx.balances.transfer') as any;
-  if(result.status !== transactionStatus.SUCCESS) {
+  const result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(contract.options.address), CONTRACT_MIN_BALANCE), 'api.tx.balances.transfer');
+  if(result.status !== TransactionStatus.SUCCESS) {
     logging.log(['Unable to transfer', CONTRACT_MIN_BALANCE.toString(), 'from', escrow.address, 'to', evmToAddress(contract.options.address)], logging.level.ERROR);
     logging.log(result.result.toHuman(), logging.level.ERROR);
     return await disconnect();
