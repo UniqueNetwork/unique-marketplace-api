@@ -14,9 +14,9 @@ export class SearchIndexController {
     @Param('collectionId', ParseIntPipe) collectionId: number,
     @Param('tokenId', ParseIntPipe) tokenId: number,
   ): Promise<any> {
-    await this.searchIndex.addSearchIndexIfNotExists({
+    /*await this.searchIndex.addSearchIndexIfNotExists({
       collectionId, tokenId
-    });
+    });*/
     return this.searchIndex.getTokenInfoItems({collectionId, tokenId});
   }
 

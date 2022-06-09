@@ -7,6 +7,7 @@ import { IKeyringPair } from '@polkadot/types/types';
 
 import { signTransaction, transactionStatus } from './polka';
 import * as tokenUtil from './token'
+import { ProxyCollection } from './collection';
 
 
 const vec2str = arr => {
@@ -40,33 +41,43 @@ interface CollectionParams {
 
 class UniqueExplorer {
   api;
+  collection;
   admin: IKeyringPair;
 
   constructor(api: ApiPromise, admin: IKeyringPair) {
     this.api = api;
     this.admin = admin;
+    this.collection = ProxyCollection.getInstance(this.api);
   }
 
   async getCollectionSchema(collectionId) {
-    const collection = await this.api.query.common.collectionById(collectionId);
-    return {collection, schema: tokenUtil.decodeSchema(collection.toHuman().constOnChainSchema)};
+    return this.collection.getById(collectionId);
   }
 
   async getTokenData(tokenId, collectionId, schema?) {
-    if(!schema) schema = await this.getCollectionSchema(collectionId);
+    if(!schema) {
+      schema = await this.getCollectionSchema(collectionId);
+    }
     const constDataRaw = (await this.api.rpc.unique.constMetadata(collectionId, tokenId)).toHuman();
     return {...schema, data: tokenUtil.decodeData(constDataRaw, schema.schema)};
   }
 
   async getCollectionData (collectionId: bigint) {
-    const collection = await this.api.query.common.collectionById(collectionId);
-    let humanCollection = collection.toHuman(), collectionData = {id: collectionId, raw: humanCollection};
-    if(humanCollection === null) return null;
-    for(let key of ['name', 'description']) {
-      collectionData[key] = vec2str(humanCollection[key]);
+    const collection = await this.collection.getById(collectionId);
+
+    if(collection === null) return null;
+
+    const humanCollection = collection.collection.toHuman(),
+    collectionData = {id: collectionId, raw: humanCollection};
+
+    const tokensCount = (await this.api.rpc.unique.lastTokenId(collectionId)).toJSON();
+
+    return {
+      name: collection.name,
+      description: collection.description,
+      tokensCount,
+      ...collectionData
     }
-    collectionData['tokensCount'] = (await this.api.rpc.unique.lastTokenId(collectionId)).toJSON();
-    return collectionData;
   }
 
   /**
@@ -76,8 +87,9 @@ class UniqueExplorer {
    * @param tokenId
    * @return Promise({constData: string, variableData: string, owner: { substrate?: string, ethereum?: string }})
    */
-  async tokenData(collectionId: bigint, tokenId: bigint) {
-    return (await this.api.query.nonfungible.tokenData(collectionId, tokenId)).toJSON()
+  async tokenData(collectionId: number, tokenId: number) {
+    const token = tokenUtil.ProxyToken.getInstance(this.api);
+    return token.tokenId(collectionId, tokenId);
   }
 
   /**
@@ -88,14 +100,15 @@ class UniqueExplorer {
    * @param tokenId
    * @return Promise({ substrate?: string, ethereum?: string })
    */
-  async getTokenOwner(collectionId: bigint, tokenId: bigint) {
-    const owner = (await this.api.query.nonfungible.tokenData(collectionId, tokenId)).toJSON()
-    return owner.owner
+  async getTokenOwner(collectionId: number, tokenId: number) {
+    const token = tokenUtil.ProxyToken.getInstance(this.api);
+    const _token = await token.tokenId(collectionId, tokenId);
+    return _token.owner
   }
 
   async createCollection(options: CollectionParams, label='new collection') {
     if(typeof options.modeprm === 'undefined') options.modeprm = {nft: null};
-    let creationResult = await signTransaction(
+    const creationResult = await signTransaction(
       this.admin,
       this.api.tx.unique.createCollection(str2vec(options.name), str2vec(options.description), str2vec(options.tokenPrefix), options.modeprm),
       'api.tx.unique.createCollection'
@@ -119,7 +132,7 @@ class UniqueExplorer {
   }
 
   async createToken(options: TokenParams, label='new token') {
-    let creationResult = await signTransaction(
+    const creationResult = await signTransaction(
       this.admin,
       this.api.tx.unique.createItem(options.collectionId, (typeof options.owner === 'string') ? { Substrate: options.owner } : options.owner, { nft: { const_data: options.constData, variable_data: options.variableData } }),
       'api.tx.unique.createItem'
@@ -225,7 +238,13 @@ const convertAddress = async (address: string, ss58Format?: number): Promise<str
   return encodeAddress(decodeAddress(address), ss58Format);
 };
 
+const mapProperties = (obj: any): any => {
+  let mapped = {};
+  obj['properties'].forEach(prop => mapped[prop.key.startsWith('_old_') ? prop.key.slice(5) : prop.key] = prop.value);
+  return mapped;
+}
+
 export {
   vec2str, str2vec, UniqueExplorer, normalizeAccountId, privateKey, extractCollectionIdFromAddress,
-  blockchainStaticFile, seedToAddress, convertAddress,
+  blockchainStaticFile, seedToAddress, convertAddress, mapProperties
 }

@@ -16,6 +16,7 @@ import { SearchIndexService } from './search-index.service';
 import { AuctionCredentials } from '../providers';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 import { subToEth } from '../../utils/blockchain/web3';
+import { ProxyToken } from '../../utils/blockchain';
 
 export type CreateAuctionArgs = {
   collectionId: string;
@@ -60,7 +61,9 @@ export class AuctionCreationService {
 
   async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
 
-    const token = (await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId)).toJSON();
+    const _tokenInstance = ProxyToken.getInstance(this.uniqueApi);
+
+    const token = await _tokenInstance.tokenId(collectionId, tokenId);
     const owner = token['owner'];
 
     const auctionSubstract = encodeAddress(this.auctionCredentials.uniqueAddress);

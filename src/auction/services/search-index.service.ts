@@ -1,4 +1,4 @@
-import { decodeData, decodeSchema } from './../../utils/blockchain/token';
+import { decodeData, decodeSchema, ProxyToken } from './../../utils/blockchain/token';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
@@ -8,6 +8,8 @@ import { SearchIndex } from '../../entity';
 import { v4 as uuid } from 'uuid';
 import { CollectionToken, TokenInfo, TypeAttributToken, TypeConstSchema } from '../types';
 import { vec2str } from './../../utils/blockchain/util';
+import { ProxyCollection } from '../../utils/blockchain';
+import { CollectionType } from '../../utils/blockchain/collection';
 
 
 @Injectable()
@@ -74,7 +76,7 @@ export class SearchIndexService {
     return acc;
   }
 
-  private getCollectionCover(collection: TypeConstSchema): string {
+  private getCollectionCover(collection: CollectionType): string {
     if (collection?.collectionCover) {
       return JSON.parse(collection?.collectionCover)?.collectionCover
     }
@@ -83,10 +85,10 @@ export class SearchIndexService {
 
   async getTokenInfoItems({ collectionId, tokenId }: CollectionToken): Promise<TokenInfo[]> {
     const keywords = [];
-    const collection = await this.schema(collectionId);
-    const schema = collection.constOnChainSchema;
-    const token = await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId);
-    const constData = token.toHuman()['constData'] || null;
+    const collectionInstance = ProxyCollection.getInstance(this.uniqueApi);
+    const tokenInstance = ProxyToken.getInstance(this.uniqueApi);
+    const collection = await collectionInstance.getById(collectionId);
+    const token = await tokenInstance.tokenIdCollection(tokenId, collection);
 
     keywords.push({
       locale: null,
@@ -129,10 +131,10 @@ export class SearchIndexService {
       })
     }
 
-    if (constData) {
-      const tokenData = decodeData(constData, schema);
+    if (token.constData) {
+      const tokenData = token.constData;
       try {
-        for (let k of this.getKeywords(schema.NFTMeta, tokenData.human)) {
+        for (let k of this.getKeywords(collection.schema.NFTMeta, tokenData.human)) {
           keywords.push(k);
         }
       } catch (e) {
@@ -197,7 +199,7 @@ export class SearchIndexService {
   }
 
   async saveSearchIndex(collectionToken: CollectionToken, items: TokenInfo[]): Promise<void> {
-    const searchIndexItems: SearchIndex[] = items.map((item) => this.repository.create({
+  /*  const searchIndexItems: SearchIndex[] = items.map((item) => this.repository.create({
         id: uuid(),
         collection_id: String(collectionToken.collectionId),
         token_id: String(collectionToken.tokenId),
@@ -209,7 +211,7 @@ export class SearchIndexService {
         type: item.type
       }));
 
-    await this.repository.save(searchIndexItems);
+    await this.repository.save(searchIndexItems);*/
   }
 
   async updateSearchIndex(): Promise<void> {
