@@ -33,10 +33,14 @@ export class MarketTypeService implements OnModuleInit {
     if (!Object.values(MarketTypeStatusEnum).includes(status)) {
       throw new BadRequestException(`You can not change the marketplace to the specified status ${status}`);
     }
+    let messsageChangeType = `Marketplace has changed status into ${status}`;
     try {
       const marketStatus = await this.checkMarketTypeStatus();
+      if (marketStatus.property === status) {
+        messsageChangeType = `Marketplace has already changed status into ${status}`;
+      }
       await this.settingsRepository.update({ id: marketStatus.id, name: marketStatus.name }, { property: status });
-      return { statusCode: HttpStatus.OK, message: `Marketplace change status into ${status}` };
+      return { statusCode: HttpStatus.OK, message: messsageChangeType };
     } catch (e) {
       throw new BadRequestException(`Something went wrong! ${e.message}`);
     }
