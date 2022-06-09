@@ -199,7 +199,7 @@ export class SearchIndexService {
   }
 
   async saveSearchIndex(collectionToken: CollectionToken, items: TokenInfo[]): Promise<void> {
-  /*  const searchIndexItems: SearchIndex[] = items.map((item) => this.repository.create({
+    const searchIndexItems: SearchIndex[] = items.map((item) => this.repository.create({
         id: uuid(),
         collection_id: String(collectionToken.collectionId),
         token_id: String(collectionToken.tokenId),
@@ -211,7 +211,7 @@ export class SearchIndexService {
         type: item.type
       }));
 
-    await this.repository.save(searchIndexItems);*/
+    await this.repository.save(searchIndexItems);
   }
 
   async updateSearchIndex(): Promise<void> {
