@@ -37,3 +37,8 @@ export type ImportByIdResult = {
   collection: Collection;
   message: string;
 };
+
+export type TransferResult = {
+  tokenId: bigint;
+  blockNumber: bigint;
+};

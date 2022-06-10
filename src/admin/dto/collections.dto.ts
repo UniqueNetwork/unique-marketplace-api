@@ -1,10 +1,21 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Collection } from '../../entity/collection';
-import { IsInt, IsOptional, IsPositive, Max } from 'class-validator';
+import { IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
 import { U32_MAX_VALUE } from '../constants';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { UNIQUE } from '../../utils/blockchain/web3';
+import { IsBigInt } from '../../offers/decorators/is-bigint.decorator';
+import { BigIntGte } from '../../offers/decorators/bigint-gte.decorator';
+
+const ToBigInt = () =>
+  Transform(({ value }: { value: any }): BigInt | any => {
+    try {
+      return BigInt(value);
+    } catch (error) {
+      return value;
+    }
+  });
 
 export class ListCollectionResult {
   @ApiProperty({ default: HttpStatus.OK })
@@ -13,15 +24,6 @@ export class ListCollectionResult {
   message: string;
   @ApiProperty()
   data: Collection[];
-}
-
-export class ListCollectionBadRequestError {
-  @ApiProperty({ default: HttpStatus.BAD_REQUEST })
-  statusCode = HttpStatus.BAD_REQUEST;
-  @ApiProperty()
-  message: string;
-  @ApiProperty()
-  error: string;
 }
 
 export class CollectionsFilter {
@@ -44,15 +46,6 @@ export class EnableCollectionResult {
   data: Collection;
 }
 
-export class EnableCollectionBadRequestError {
-  @ApiProperty({ default: HttpStatus.BAD_REQUEST })
-  statusCode = HttpStatus.BAD_REQUEST;
-  @ApiProperty()
-  message: string;
-  @ApiProperty()
-  error: string;
-}
-
 export class DisableCollectionResult {
   @ApiProperty({ default: HttpStatus.OK })
   statusCode = HttpStatus.OK;
@@ -60,24 +53,6 @@ export class DisableCollectionResult {
   message: string;
   @ApiProperty()
   data: Collection;
-}
-
-export class DisableCollectionNotFoundError {
-  @ApiProperty({ default: HttpStatus.NOT_FOUND })
-  statusCode = HttpStatus.NOT_FOUND;
-  @ApiProperty()
-  message: string;
-  @ApiProperty()
-  error: string;
-}
-
-export class DisableCollectionBadRequestError {
-  @ApiProperty({ default: HttpStatus.BAD_REQUEST })
-  statusCode = HttpStatus.BAD_REQUEST;
-  @ApiProperty()
-  message: string;
-  @ApiProperty()
-  error: string;
 }
 
 export class MassFixPriceSaleResult {
@@ -96,15 +71,50 @@ export class MassFixPriceSaleDTO {
   @IsInt()
   collectionId: number;
   @ApiProperty({ example: UNIQUE.toString() })
-  @Transform(({ value }) => BigInt(value))
+  @ToBigInt()
   price: bigint;
 }
 
-export class MassFixPriceSaleBadRequestError {
-  @ApiProperty({ default: HttpStatus.BAD_REQUEST })
-  statusCode = HttpStatus.BAD_REQUEST;
+export class MassAuctionSaleResult {
+  @ApiProperty({ default: HttpStatus.OK })
+  statusCode = HttpStatus.OK;
   @ApiProperty()
   message: string;
   @ApiProperty()
-  error: string;
+  data: number[];
+}
+
+export class MassAuctionSaleDTO {
+  @ApiProperty({ example: 5 })
+  @Max(U32_MAX_VALUE)
+  @IsPositive()
+  @IsInt()
+  collectionId: number;
+
+  @ApiProperty({ example: '100' })
+  @ToBigInt()
+  @IsBigInt()
+  @BigIntGte(1n)
+  startPrice: bigint;
+
+  @ApiProperty({ example: '10' })
+  @ToBigInt()
+  @IsBigInt()
+  @BigIntGte(1n)
+  priceStep: bigint;
+
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(21)
+  days: number;
+
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(59)
+  minutes: number;
 }
