@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { initApp, runMigrations, searchByFilterOffers } from './data';
 import { prepareTokenData, prepareBlockData, prepareOfferData, prepareAuctionData } from './data/offers';
-import * as request from 'supertest';
+import request from 'supertest';
 
 describe('Offers service', () => {
   let app: INestApplication;
@@ -256,7 +256,7 @@ describe('Offers service', () => {
         {
           collectionId: [562],
           numberOfAttributes: [],
-          attributes: ['Up%20Hair'],
+          attributes: [{ key: 'Up', attribute: 'Hair' }],
         },
         { sort: [{ order: 1, column: '' }] }
       );
@@ -272,7 +272,10 @@ describe('Offers service', () => {
         {
           collectionId: [562],
           numberOfAttributes: [],
-          attributes: ['Up%20Hair', 'Teeth%20Smile'],
+          attributes: [
+            { key: 'Up', attribute: 'Hair' },
+            { key: 'Teeth', attribute: 'Smile' },
+          ],
         },
         { sort: [{ order: 1, column: '' }] }
       );

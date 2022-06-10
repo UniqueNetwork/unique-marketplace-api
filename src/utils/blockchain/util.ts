@@ -5,8 +5,9 @@ import { ApiPromise, Keyring } from '@polkadot/api';
 import { cryptoWaitReady, decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { IKeyringPair } from '@polkadot/types/types';
 
-import { signTransaction, transactionStatus } from './polka';
+import { TransactionStatus } from './signTransaction';
 import * as tokenUtil from './token'
+import { signTransaction } from './signTransaction'
 
 
 const vec2str = arr => {
@@ -60,9 +61,10 @@ class UniqueExplorer {
 
   async getCollectionData (collectionId: bigint) {
     const collection = await this.api.query.common.collectionById(collectionId);
-    let humanCollection = collection.toHuman(), collectionData = {id: collectionId, raw: humanCollection};
+    const humanCollection = collection.toHuman()
+    const collectionData = {id: collectionId, raw: humanCollection};
     if(humanCollection === null) return null;
-    for(let key of ['name', 'description']) {
+    for(const key of ['name', 'description']) {
       collectionData[key] = vec2str(humanCollection[key]);
     }
     collectionData['tokensCount'] = (await this.api.rpc.unique.lastTokenId(collectionId)).toJSON();
@@ -95,12 +97,12 @@ class UniqueExplorer {
 
   async createCollection(options: CollectionParams, label='new collection') {
     if(typeof options.modeprm === 'undefined') options.modeprm = {nft: null};
-    let creationResult = await signTransaction(
+    const creationResult = await signTransaction(
       this.admin,
       this.api.tx.unique.createCollection(str2vec(options.name), str2vec(options.description), str2vec(options.tokenPrefix), options.modeprm),
       'api.tx.unique.createCollection'
-    ) as any;
-    if(creationResult.status !== transactionStatus.SUCCESS) {
+    );
+    if(creationResult.status !== TransactionStatus.SUCCESS) {
       throw Error(`Unable to create collection for ${label}`);
     }
 
@@ -119,12 +121,12 @@ class UniqueExplorer {
   }
 
   async createToken(options: TokenParams, label='new token') {
-    let creationResult = await signTransaction(
+    const creationResult = await signTransaction(
       this.admin,
       this.api.tx.unique.createItem(options.collectionId, (typeof options.owner === 'string') ? { Substrate: options.owner } : options.owner, { nft: { const_data: options.constData, variable_data: options.variableData } }),
       'api.tx.unique.createItem'
-    ) as any;
-    if(creationResult.status !== transactionStatus.SUCCESS) {
+    );
+    if(creationResult.status !== TransactionStatus.SUCCESS) {
       throw Error(`Unable to create token for ${label}`);
     }
     let success = false, createdCollectionId = null, tokenId = null, recipient = null;

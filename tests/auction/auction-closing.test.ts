@@ -9,7 +9,7 @@ import { AuctionStatus, Bid, BidStatus } from '../../src/auction/types';
 import { AuctionClosingService } from '../../src/auction/services/closing/auction-closing.service';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { TxDecoder } from '../../src/auction/services/helpers/tx-decoder';
-import * as request from 'supertest';
+import request from 'supertest';
 import { DateHelper } from '../../src/utils/date-helper';
 import { BroadcastService } from "../../src/broadcast/services/broadcast.service";
 import { encodeAddress } from '@polkadot/util-crypto';

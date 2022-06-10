@@ -1,4 +1,4 @@
-import * as request from 'supertest';
+import request from 'supertest';
 
 import { AuctionTestEntities, getAuctionTestEntities } from './base';
 import { AuctionCreationService } from '../../src/auction/services/auction-creation.service';

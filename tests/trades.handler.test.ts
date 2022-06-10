@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 
 import { initApp, runMigrations, prepareTradesData, sortToString, searchByFilterOffers } from './data';
 import { PaginationRequest } from '../src/utils/pagination/pagination-request';
