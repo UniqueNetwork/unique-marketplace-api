@@ -1,7 +1,10 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Collection } from '../../entity/collection';
-import { IsOptional } from 'class-validator';
+import { IsInt, IsOptional, IsPositive, Max } from 'class-validator';
+import { U32_MAX_VALUE } from '../constants';
+import { Transform } from 'class-transformer';
+import { UNIQUE } from '../../utils/blockchain/web3';
 
 export class ListCollectionResult {
   @ApiProperty({ default: HttpStatus.OK })
@@ -69,8 +72,37 @@ export class DisableCollectionNotFoundError {
 }
 
 export class DisableCollectionBadRequestError {
-  @ApiProperty({ default: HttpStatus.NOT_FOUND })
-  statusCode = HttpStatus.NOT_FOUND;
+  @ApiProperty({ default: HttpStatus.BAD_REQUEST })
+  statusCode = HttpStatus.BAD_REQUEST;
+  @ApiProperty()
+  message: string;
+  @ApiProperty()
+  error: string;
+}
+
+export class MassFixPriceSaleResult {
+  @ApiProperty({ default: HttpStatus.OK })
+  statusCode = HttpStatus.OK;
+  @ApiProperty()
+  message: string;
+  @ApiProperty()
+  data: number[];
+}
+
+export class MassFixPriceSaleDTO {
+  @ApiProperty({ example: 5 })
+  @Max(U32_MAX_VALUE)
+  @IsPositive()
+  @IsInt()
+  collectionId: number;
+  @ApiProperty({ example: UNIQUE.toString() })
+  @Transform(({ value }) => BigInt(value))
+  price: bigint;
+}
+
+export class MassFixPriceSaleBadRequestError {
+  @ApiProperty({ default: HttpStatus.BAD_REQUEST })
+  statusCode = HttpStatus.BAD_REQUEST;
   @ApiProperty()
   message: string;
   @ApiProperty()

@@ -1,11 +1,14 @@
-import { Inject, Injectable, Logger, NotFoundException, OnModuleInit, HttpStatus } from '@nestjs/common';
-import { ApiPromise } from '@polkadot/api';
+import { Inject, Injectable, Logger, NotFoundException, OnModuleInit, HttpStatus, BadRequestException } from '@nestjs/common';
 import { MarketConfig } from 'src/config/market-config';
-import { Collection } from 'src/entity';
+
 import { Connection, Repository } from 'typeorm';
 import { decodeCollection } from '../utils';
 import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from '../types';
-import { CollectionsFilter, EnableCollectionResult, ListCollectionResult, DisableCollectionResult } from '../dto';
+import { CollectionsFilter, EnableCollectionResult, ListCollectionResult, DisableCollectionResult, MassFixPriceSaleResult, MassFixPriceSaleDTO } from '../dto';
+import { Web3Service } from './web3.service';
+import { subToEth } from '../../utils/blockchain/web3';
+import { Keyring } from '@polkadot/api';
+import { Collection } from '../../entity';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
@@ -14,8 +17,9 @@ export class CollectionsService implements OnModuleInit {
 
   constructor(
     @Inject('DATABASE_CONNECTION') private db: Connection,
-    @Inject('UNIQUE_API') private unique: ApiPromise,
+    @Inject('UNIQUE_API') private unique,
     @Inject('CONFIG') private config: MarketConfig,
+    private readonly web3: Web3Service,
   ) {
     this.collectionsRepository = db.getRepository(Collection);
     this.logger = new Logger(CollectionsService.name);
@@ -62,16 +66,18 @@ export class CollectionsService implements OnModuleInit {
     const existing = await this.findById(id);
 
     if (existing) {
-      this.logger.debug(`Collection #${id} already exists`);
+      await this.collectionsRepository.save({ id: existing.id, ...entity });
 
-      const collection = await this.collectionsRepository.save({ id: existing.id, ...entity });
+      const collection = { ...existing, ...entity };
 
       return {
         collection,
         message: `Collection #${id} already exists`,
       };
     } else {
-      const collection = await this.collectionsRepository.save({ id, importType, ...entity });
+      await this.collectionsRepository.save({ id, importType, ...entity });
+
+      const collection = { ...existing, ...entity, importType };
 
       return {
         collection,
@@ -86,9 +92,11 @@ export class CollectionsService implements OnModuleInit {
    * @return ({Promise<EnableCollectionResult>})
    */
   async enableById(id: number): Promise<EnableCollectionResult> {
-    const { message, collection } = await this.importById(id, CollectionImportType.Api);
+    const { collection } = await this.importById(id, CollectionImportType.Api);
 
     await this.collectionsRepository.update(id, { status: CollectionStatus.Enabled });
+
+    const message = collection.status === CollectionStatus.Enabled ? `Collection #${id} has already enabled` : `Collection #${id} successfully enabled`;
 
     return {
       statusCode: HttpStatus.OK,
@@ -107,11 +115,16 @@ export class CollectionsService implements OnModuleInit {
 
     if (!collection) throw new NotFoundException(`Collection #${id} not found`);
 
+    const message =
+      collection.status === CollectionStatus.Disabled
+        ? `Сollection #${collection.id} has already disabled`
+        : `Сollection #${collection.id} successfully disabled`;
+
     await this.collectionsRepository.update(id, { status: CollectionStatus.Disabled });
 
     return {
       statusCode: HttpStatus.OK,
-      message: `Сollection #${collection.id} successfully disabled`,
+      message,
       data: { ...collection, status: CollectionStatus.Disabled },
     };
   }
@@ -165,12 +178,112 @@ export class CollectionsService implements OnModuleInit {
   }
 
   /**
-   * Get collections ids in database
+   * Get ALL collections ids in database
    * @return ({Promise<number[]>})
    */
   async getCollectionIds(): Promise<number[]> {
     const collections = await this.collectionsRepository.find();
 
     return collections.map((i) => Number(i.id));
+  }
+
+  /**
+   * Get Enabled collections ids in database
+   * @return ({Promise<number[]>})
+   */
+  async getEnabledCollectionIds(): Promise<number[]> {
+    const collections = await this.collectionsRepository.find({ where: { status: CollectionStatus.Enabled } });
+
+    return collections.map((i) => Number(i.id));
+  }
+
+  /**
+   * Mass fix price sale
+   * @param {MassFixPriceSaleDTO} data - collectionId and price
+   * @return ({Promise<MassFixPriceSaleResult>})
+   */
+  async massFixPriceSale(data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResult> {
+    const { collectionId, price } = data;
+
+    const enabledIds = await this.getEnabledCollectionIds();
+
+    if (!enabledIds.includes(collectionId)) throw new BadRequestException(`Collection #${collectionId} not enabled`);
+
+    const collectionById = await this.unique.rpc.unique.collectionById(collectionId);
+
+    const collectionInChain = collectionById.unwrapOr(null);
+
+    if (collectionInChain === null) throw new BadRequestException(`Collection #${collectionId} not found in chain`);
+
+    const keyring = new Keyring({ type: 'sr25519' });
+
+    const { mainSaleSeed } = this.config;
+
+    if (!mainSaleSeed) throw new BadRequestException('Main sale seed not set');
+
+    const marketContractAddress = this.config.blockchain.unique.contractAddress;
+
+    if (!marketContractAddress) throw new BadRequestException('Market contract address not set');
+
+    const collectionContract = this.web3.getCollectionContract(collectionId);
+    const marketContract = this.web3.getMarketContract(marketContractAddress);
+
+    const signer = keyring.addFromUri(mainSaleSeed);
+
+    const accountTokens = await this.unique.rpc.unique.accountTokens(collectionId, {
+      Substrate: signer.address,
+    });
+
+    const tokenIds = accountTokens.sort((a, b) => a - b);
+
+    for (const tokenId of tokenIds) {
+      const transferTxHash = await this.unique.tx.unique
+        .transfer({ Ethereum: subToEth(signer.address) }, collectionId, tokenId, 1)
+        .signAndSend(signer, { nonce: -1 });
+
+      this.logger.debug(`massFixPriceSale: Token #${tokenId} transfer: ${transferTxHash.toHuman()}`);
+
+      const approveTxHash = await this.unique.tx.evm
+        .call(
+          subToEth(signer.address),
+          collectionContract.options.address,
+          collectionContract.methods.approve(marketContract.options.address, tokenId).encodeABI(),
+          0, // value
+          2_500_000, // gas
+          await this.web3.getGasPrice(),
+          null,
+          null,
+          [],
+        )
+        .signAndSend(signer, { nonce: -1 });
+
+      this.logger.debug(`massFixPriceSale: Token #${tokenId} approve: ${approveTxHash.toHuman()}`);
+
+      const askTxHash = await this.unique.tx.evm
+        .call(
+          subToEth(signer.address),
+          marketContract.options.address,
+          marketContract.methods.addAsk(price, '0x0000000000000000000000000000000000000001', collectionContract.options.address, tokenId).encodeABI(),
+          0, // value
+          2_500_000, // gas
+          await this.web3.getGasPrice(),
+          null,
+          null,
+          [],
+        )
+        .signAndSend(signer, { nonce: -1 });
+
+      this.logger.debug(`massFixPriceSale: Token #${tokenId} add ask: ${askTxHash.toHuman()}`);
+    }
+
+    const tokensCount = tokenIds.length;
+
+    const message = `${tokensCount} tokens successfully offered for fix price sale`;
+
+    return {
+      statusCode: HttpStatus.OK,
+      message,
+      data: tokenIds,
+    };
   }
 }

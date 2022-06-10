@@ -1,30 +1,34 @@
 import { CanActivate, ExecutionContext, ForbiddenException, HttpStatus, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { MarketConfig } from '../../config/market-config';
-import { UNAUTHORIZED_ADMIN_ERROR_MESSAGE } from '../constants';
+import { hexToU8a } from '@polkadot/util';
+import { signatureVerify } from '@polkadot/util-crypto';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService, @Inject('CONFIG') private config: MarketConfig) {}
+export class LoginGuard implements CanActivate {
+  constructor(@Inject('CONFIG') private config: MarketConfig) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
     try {
       const authHeader = req.headers.authorization;
       const bearer = authHeader.split(' ')[0];
-      const token = authHeader.split(' ')[1];
+      const signature = authHeader.split(' ')[1];
+      const signerAddress = req.query.account;
+      const payload = req.originalUrl.split('?')[0];
 
-      if (bearer !== 'Bearer' || !token) {
+      if (bearer !== 'Bearer' || !signature || !signerAddress) {
         throw new UnauthorizedException('Authorization required');
       }
-      const user = this.jwtService.verify(token);
-      await this.verifyAddress(user.address);
 
-      req.adminAddress = user.address;
+      const signatureU8a = hexToU8a(signature);
+      const verificationResult = await signatureVerify(payload, signatureU8a, signerAddress);
 
+      if (!verificationResult.isValid) {
+        throw new Error('Bad signature');
+      }
       return true;
     } catch (e) {
-      throw new UnauthorizedException(UNAUTHORIZED_ADMIN_ERROR_MESSAGE);
+      throw new UnauthorizedException('Access denied');
     }
   }
   async verifyAddress(signerAddress) {

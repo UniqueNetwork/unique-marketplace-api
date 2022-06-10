@@ -1,14 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { MarketConfig } from '../config/market-config';
@@ -17,12 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 import { v4 as uuid } from 'uuid';
 import * as util from '../utils/blockchain/util';
 import { SignatureVerifier } from '../auction/services/helpers/signature-verifier';
-import { ResponseAdminDto, ResponseAdminErrorDto } from './dto/response-admin.dto';
+import { ResponseAdminDto } from './dto/response-admin.dto';
 import { AdminSessionEntity } from '../entity/adminsession-entity';
-import { CollectionsService } from './servises/collections.service';
-import { Collection } from 'src/entity';
-import { IsNumber } from 'class-validator';
-import { TokenService } from './servises/tokens.service';
 
 @Injectable()
 export class AdminService {
@@ -46,20 +32,11 @@ export class AdminService {
    * @param signature
    * @param queryString
    */
-  async login(signerAddress: string, signature: string, queryString: string): Promise<ResponseAdminDto> {
-    this.checkAdministratorAddress(signerAddress, signature);
-    try {
-      await this.signatureVerifier.verify({
-        payload: queryString,
-        signature,
-        signerAddress,
-      });
-    } catch (e) {
-      throw new UnauthorizedException({ statusCode: e.status, message: e, error: e.response?.error || 'Unauthorized address or bad signature' });
-    }
+  async login(signerAddress: string): Promise<ResponseAdminDto> {
+    this.checkAdministratorAddress(signerAddress);
 
     const substrateAddress = util.normalizeAccountId(signerAddress);
-    const token = await this.generateToken(signerAddress, signature);
+    const token = await this.generateToken(signerAddress);
     const session = await this.adminRepository.create({
       id: uuid(),
       address: signerAddress,
@@ -81,10 +58,9 @@ export class AdminService {
   /**
    * JWT token generator creates temporary keys
    * @param substrateAddress
-   * @param pid
    * @private
    */
-  private async generateToken(substrateAddress: string, pid: string): Promise<ResponseAdminDto> {
+  private async generateToken(substrateAddress: string): Promise<ResponseAdminDto> {
     const payload = { address: substrateAddress };
     const access = this.jwtService.sign(payload, {
       expiresIn: this.config.jwt.access,
@@ -106,7 +82,7 @@ export class AdminService {
     }
   }
 
-  private checkAdministratorAddress(signerAddress: string, signature: string) {
+  private checkAdministratorAddress(signerAddress: string) {
     if (signerAddress === undefined) {
       throw new UnauthorizedException('Unauthorized! Enter your address.');
     }

@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import { promises } from 'fs';
 import { join } from 'path';
 import { PostgresIoAdapter } from './broadcast/services/postgres-io.adapter';
+import helmet from 'helmet';
 
 const APP_NAME_PREFIX = 'unique-marketplace-api';
 const logger = new Logger('NestApplication');
@@ -19,6 +20,14 @@ const initSwagger = (app: INestApplication, config, pkg) => {
     .setTitle(config.swagger.title)
     .setDescription(fs.readFileSync('docs/description.md').toString())
     .addBearerAuth()
+    .addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: 'Authorization',
+      },
+      'address:signature',
+    )
     .setVersion(pkg.version)
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConf);
@@ -33,8 +42,21 @@ async function bootstrap() {
   const pkg = JSON.parse(await promises.readFile(join('.', 'package.json'), 'utf8'));
   if (config.autoDBMigrations) await runMigrations(config, 'migrations');
 
-  if (config.disableSecurity) app.enableCors();
+  if (config.disableSecurity) {
+    // app.use((req, res, next) => {
+    //   res.header('Access-Control-Allow-Origin', '*');
+    //   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS,HEAD');
+    //   res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Signature, Authorization');
+    //   next();
+    // });
 
+    app.enableCors({
+      allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe, Signature, Authorization',
+      origin: true,
+      credentials: true,
+    });
+    app.use(helmet());
+  }
   app.use(
     prometheusMiddleware({
       additionalLabels: ['app'],

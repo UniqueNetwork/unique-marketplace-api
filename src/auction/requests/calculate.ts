@@ -11,7 +11,7 @@ export class CalculationRequestDto implements CalculateArgs {
   @IsInt()
   tokenId: number;
 
-  @ApiProperty({ example: 'bidderAddress' })
+  @ApiProperty({ example: '5G4M7RCt8PvtFPFm4XSwu85eK9Z8n9c6rygHZawHVALUvgcd' })
   @IsString()
   bidderAddress: string;
 }

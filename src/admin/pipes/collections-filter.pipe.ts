@@ -3,6 +3,7 @@ import { TransformationResult } from '../../utils/type-generators/transformation
 import { CollectionsFilter } from '../dto/collections.dto';
 import { UntypedRequest } from '../../utils/type-generators/untyped-request';
 import { isInt, isPositive } from 'class-validator';
+import { U32_MAX_VALUE } from '../constants';
 
 @Injectable()
 export class CollectionsFilterPipe implements PipeTransform<any, TransformationResult<CollectionsFilter>> {
@@ -16,7 +17,7 @@ export class CollectionsFilterPipe implements PipeTransform<any, TransformationR
     if (params.collectionId) {
       const collectionId = Number(params.collectionId);
 
-      if (!isInt(collectionId) || !isPositive(collectionId) || collectionId > 4294967295) throw new BadRequestException('Please enter valid ID');
+      if (!isInt(collectionId) || !isPositive(collectionId) || collectionId > U32_MAX_VALUE) throw new BadRequestException('Please enter valid ID');
 
       value.collectionId = collectionId;
     }

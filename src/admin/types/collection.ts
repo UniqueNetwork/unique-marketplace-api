@@ -1,5 +1,5 @@
 import type { Vec, u16 } from '@polkadot/types-codec';
-import { Collection } from 'src/entity';
+import { Collection } from '../../entity';
 
 export enum CollectionMode {
   NFT = 'NFT',
