@@ -31,20 +31,11 @@ export class TokenService {
     if (!reg.test(data.tokens)) {
       throw new BadRequestException('Wrong format insert tokens');
     }
+    await this.checkoutTokens(data.tokens, reg);
     // Checkout collection
     const collectionId = await this.collectionsService.findById(+collection);
     if (collectionId === undefined) throw new NotFoundException('Collection not found');
-    // Create list tokens
-    const tokenList = await this.calculateTokens(data.tokens, reg, collectionId.id);
-    let collectionTokens = [];
-    for (let token of tokenList.values()) {
-      collectionTokens.push(`INSERT INTO "public"."tokens" (collection_id, token_id, owner_token) VALUES (${+collectionId.id},${token},'');`);
-    }
-    collectionTokens.sort((a, b) => a.token_id - b.token_id);
-    let saveTokensString = collectionTokens.toString().split(';,').join(';\n');
-    await this.createTokens(saveTokensString, collectionId.id);
     await this.collectionsService.updateAllowedTokens(+collection, data.tokens);
-
     return { statusCode: HttpStatus.OK, message: `Add allowed tokens: ${data.tokens} for collection: ${collectionId.id}` };
   }
 
@@ -75,20 +66,28 @@ export class TokenService {
     return await this.tokensRepository.clear();
   }
 
-  private async calculateTokens(tokens: string, regex: RegExp, collectionId: string): Promise<Set<number>> {
+  private async checkoutTokens(tokens: string, regex: RegExp): Promise<void> {
     const array = tokens.match(regex)[0];
     const arr = array.split(',');
-    const allTokens = new Set<number>();
     arr.forEach((token) => {
       let rangeNum = token.split('-');
       if (rangeNum.length > 1) {
-        for (let i = parseInt(rangeNum[0]); i < parseInt(rangeNum[1]) + 1; i++) {
-          allTokens.add(i);
+        if (rangeNum[0] === '' || rangeNum[1] === '') {
+          let rangeLeft = rangeNum[0] === '' ? 'null' : rangeNum[0];
+          let rangeRight = rangeNum[1] === '' ? 'null' : rangeNum[1];
+          throw new BadRequestException(`WTF ? ${rangeLeft} - ${rangeRight}`);
+        }
+        if (parseInt(rangeNum[0]) === 0 || parseInt(rangeNum[1]) === 0) {
+          throw new BadRequestException('Not null range');
+        }
+        if (parseInt(rangeNum[0]) > parseInt(rangeNum[1])) {
+          throw new BadRequestException(`WTF range: ${parseInt(rangeNum[0])} > ${parseInt(rangeNum[1])}? Really? `);
         }
       } else {
-        allTokens.add(parseInt(token));
+        if (parseInt(token) === 0) {
+          throw new BadRequestException('Is Not Zero');
+        }
       }
     });
-    return allTokens;
   }
 }
