@@ -346,4 +346,10 @@ export class EscrowService {
 
     return collections.map((i) => Number(i.id));
   }
+
+  async setCollectionIds(id: string, data: any) {
+    const entity = this.collectionsRepository.create({ id: id, ...data });
+    await this.collectionsRepository.save(entity);
+    logging.log(`Adding #${id} to collection table`);
+  }
 }

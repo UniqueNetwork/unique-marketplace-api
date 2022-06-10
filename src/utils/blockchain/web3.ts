@@ -1,11 +1,8 @@
 import { ApiPromise } from '@polkadot/api';
 import { addressToEvm, evmToAddress } from '@polkadot/util-crypto';
+import Web3 from 'web3';
 
-// TODO: WTF??? oO
-import * as Web3_ from 'web3';
-const Web3 = Web3_ as any;
-
-import { signTransaction } from './polka';
+import { signTransaction } from './signTransaction'
 import { privateKey, blockchainStaticFile } from './util';
 
 const contractHelpersAbi = JSON.parse(blockchainStaticFile('contractHelpersAbi.json'));

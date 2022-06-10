@@ -1,7 +1,6 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 
 import * as logging from '../logging';
-import { transactionStatus, signTransaction } from './polka';
 
 const connectApi = async function (kusamaUrl, exitOnDisconnect=true) {
   const wsProvider = new WsProvider(kusamaUrl);
@@ -28,4 +27,4 @@ const connectApi = async function (kusamaUrl, exitOnDisconnect=true) {
 
 
 
-export { transactionStatus, signTransaction, connectApi }
+export { connectApi }
