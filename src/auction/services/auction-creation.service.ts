@@ -8,7 +8,6 @@ import { BlockchainBlock, ContractAsk } from '../../entity';
 import { v4 as uuid } from 'uuid';
 import { ASK_STATUS } from '../../escrow/constants';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
-import { ApiPromise } from '@polkadot/api';
 import { DateHelper } from '../../utils/date-helper';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { MarketConfig } from '../../config/market-config';
@@ -16,6 +15,7 @@ import { SearchIndexService } from './search-index.service';
 import { AuctionCredentials } from '../providers';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 import { subToEth } from '../../utils/blockchain/web3';
+import { CreateAskAndBroadcastArgs } from '../types/auction';
 
 export type CreateAuctionArgs = {
   collectionId: string;
@@ -99,9 +99,25 @@ export class AuctionCreationService {
       });
     }
 
+    const offer = await this.createAskAndBroadcast({
+      blockNumber: block.block_number,
+      collectionId,
+      tokenId,
+      ownerAddress,
+      priceStep,
+      startPrice,
+      stopAt,
+    });
+
+    return offer;
+  }
+
+  async createAskAndBroadcast(data: CreateAskAndBroadcastArgs): Promise<OfferContractAskDto> {
+    const { blockNumber, collectionId, tokenId, ownerAddress, startPrice, priceStep, stopAt } = data;
+
     const contractAsk = await this.contractAskRepository.create({
       id: uuid(),
-      block_number_ask: block.block_number,
+      block_number_ask: blockNumber,
       network: this.config.blockchain.unique.network,
       collection_id: collectionId,
       token_id: tokenId,
@@ -133,7 +149,7 @@ export class AuctionCreationService {
       collection: collectionId,
       token: tokenId,
       price: startPrice.toString(),
-      block: block.block_number,
+      block: blockNumber,
       auction: {
         stopAt: `${stopAt}`,
         startPrice: startPrice.toString(),

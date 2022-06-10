@@ -12,7 +12,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AuthGuard, MainSaleSeedGuard } from './guards';
+import { AuthGuard, MainSaleSeedGuard, LoginGuard } from './guards';
 import {
   AddTokensDto,
   CollectionsFilter,
@@ -34,7 +34,6 @@ import {
 import { CollectionsFilterPipe, ParseCollectionIdPipe } from './pipes';
 import { CollectionsService, TokenService, MassSaleService } from './servises';
 import * as fs from 'fs';
-import { LoginGuard } from './guards/login.guard';
 
 @ApiTags('Administration')
 @ApiBearerAuth()

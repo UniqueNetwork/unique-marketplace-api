@@ -2,28 +2,21 @@ import { Injectable, BadRequestException, Inject, HttpStatus, Logger } from '@ne
 import { MassFixPriceSaleDTO, MassFixPriceSaleResult, MassAuctionSaleDTO, MassAuctionSaleResult } from '../dto/collections.dto';
 import { CollectionsService } from './collections.service';
 import { Keyring } from '@polkadot/api';
-import { v4 as uuid } from 'uuid';
 import { Observable, Subscriber } from 'rxjs';
 import { Connection, Repository } from 'typeorm';
+import { BnList } from '@polkadot/util/types';
 import { MarketConfig } from '../../config/market-config';
 import { Web3Service } from './web3.service';
 import { subToEth } from 'src/utils/blockchain/web3';
 import { BlockchainBlock } from '../../entity/blockchain-block';
-import { ContractAsk } from '../../entity/contract-ask';
-import { encodeAddress } from '@polkadot/util-crypto';
-import { AuctionStatus } from '../../auction/types/auction';
 import { DateHelper } from 'src/utils/date-helper';
-import { ASK_STATUS } from '../../escrow/constants';
-import { OfferContractAskDto } from 'src/offers/dto';
-import { SearchIndexService } from '../../auction/services/search-index.service';
-import { BroadcastService } from '../../broadcast/services/broadcast.service';
-import { TransferResult } from '../types/collection';
+import { AuctionCreationService } from 'src/auction/services/auction-creation.service';
+import { PrepareMassSaleResult, TransferResult } from '../types';
 
 @Injectable()
 export class MassSaleService {
   private readonly logger: Logger;
   private readonly blockchainBlockRepository: Repository<BlockchainBlock>;
-  private readonly contractAskRepository: Repository<ContractAsk>;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
@@ -31,12 +24,10 @@ export class MassSaleService {
     @Inject('CONFIG') private config: MarketConfig,
     private readonly collections: CollectionsService,
     private readonly web3: Web3Service,
-    private readonly searchIndexService: SearchIndexService,
-    private broadcastService: BroadcastService,
+    private readonly auctionCreationService: AuctionCreationService,
   ) {
     this.logger = new Logger(MassSaleService.name);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
-    this.contractAskRepository = connection.getRepository(ContractAsk);
   }
 
   /**
@@ -126,6 +117,8 @@ export class MassSaleService {
     const ownerAddress = signer.address;
 
     const transfers: TransferResult[] = await new Promise(async (resolve) => {
+      if (tokenIds.length === 0) resolve([]);
+
       let i = 0;
       let subscriber: Subscriber<unknown>;
       const result = [];
@@ -162,41 +155,19 @@ export class MassSaleService {
       await this.blockchainBlockRepository.save(block);
     }
 
-    await Promise.all(
-      transfers.map(({ blockNumber, tokenId }) => {
-        return new Promise(async (resolve) => {
-          const contractAsk = this.contractAskRepository.create({
-            id: uuid(),
-            block_number_ask: blockNumber.toString(),
-            network: this.config.blockchain.unique.network,
-            collection_id: collectionId.toString(),
-            token_id: tokenId.toString(),
-            address_from: encodeAddress(ownerAddress),
-            address_to: '',
-            status: ASK_STATUS.ACTIVE, // todo - add appropriate status
-            price: startPrice.toString(),
-            currency: '',
-            auction: {
-              stopAt,
-              status: AuctionStatus.active,
-              startPrice: startPrice.toString(),
-              priceStep: priceStep.toString(),
-            },
-          });
+    for (const transfer of transfers) {
+      const { blockNumber, tokenId } = transfer;
 
-          await this.contractAskRepository.save(contractAsk);
-          const offer = OfferContractAskDto.fromContractAsk(contractAsk);
-          await this.searchIndexService.addSearchIndexIfNotExists({
-            collectionId: Number(collectionId),
-            tokenId: Number(tokenId),
-          });
-
-          this.broadcastService.sendAuctionStarted(offer);
-
-          resolve(offer);
-        });
-      }),
-    );
+      await this.auctionCreationService.createAskAndBroadcast({
+        blockNumber: blockNumber.toString(),
+        collectionId: collectionId.toString(),
+        tokenId: tokenId.toString(),
+        ownerAddress,
+        priceStep,
+        startPrice,
+        stopAt,
+      });
+    }
 
     const tokensCount = tokenIds.length;
 
@@ -209,7 +180,12 @@ export class MassSaleService {
     };
   }
 
-  private async prepareMassSale(collectionId: number) {
+  /**
+   * Mass auction sale
+   * @param {Number} collectionId - collection id
+   * @return ({Promise<PrepareMassSaleResult>})
+   */
+  private async prepareMassSale(collectionId: number): Promise<PrepareMassSaleResult> {
     const enabledIds = await this.collections.getEnabledCollectionIds();
 
     if (!enabledIds.includes(collectionId)) throw new BadRequestException(`Collection #${collectionId} not enabled`);
@@ -232,7 +208,7 @@ export class MassSaleService {
       Substrate: signer.address,
     });
 
-    const tokenIds = accountTokens.sort((a, b) => a - b);
+    const tokenIds: BnList = accountTokens.sort((a, b) => a - b);
 
     return {
       tokenIds,
