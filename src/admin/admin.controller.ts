@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards, ValidationPipe } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import {
   ApiBadRequestResponse,
@@ -12,30 +12,28 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AuthGuard, MainSaleSeedGuard } from './guards';
+import { AuthGuard, MainSaleSeedGuard, LoginGuard } from './guards';
 import {
   AddTokensDto,
   CollectionsFilter,
-  DisableCollectionBadRequestError,
-  DisableCollectionNotFoundError,
   DisableCollectionResult,
-  EnableCollectionBadRequestError,
   EnableCollectionDTO,
   EnableCollectionResult,
-  ListCollectionBadRequestError,
   ListCollectionResult,
-  MassFixPriceSaleBadRequestError,
+  MassAuctionSaleResult,
   MassFixPriceSaleDTO,
   MassFixPriceSaleResult,
   ResponseAdminDto,
   ResponseAdminForbiddenDto,
   ResponseAdminUnauthorizedDto,
   ResponseTokenDto,
+  MassAuctionSaleDTO,
+  BadRequestResponse,
+  NotFoundResponse,
 } from './dto';
 import { CollectionsFilterPipe, ParseCollectionIdPipe } from './pipes';
-import { CollectionsService, TokenService } from './servises';
+import { CollectionsService, TokenService, MassSaleService } from './servises';
 import * as fs from 'fs';
-import { LoginGuard } from './guards/login.guard';
 
 @ApiTags('Administration')
 @ApiBearerAuth()
@@ -47,6 +45,7 @@ export class AdminController {
     private readonly adminService: AdminService,
     private readonly collectionsService: CollectionsService,
     private readonly tokenService: TokenService,
+    private readonly massSaleService: MassSaleService,
   ) {}
 
   @Post('/login')
@@ -70,7 +69,7 @@ export class AdminController {
   })
   @ApiOperation({ description: 'List collection' })
   @ApiResponse({ status: HttpStatus.OK, type: ListCollectionResult })
-  @ApiBadRequestResponse({ type: ListCollectionBadRequestError })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
   @UseGuards(AuthGuard)
   async listCollection(@Query(CollectionsFilterPipe) filter: CollectionsFilter): Promise<ListCollectionResult> {
     return await this.collectionsService.findAll(filter);
@@ -84,7 +83,7 @@ export class AdminController {
   })
   @ApiResponse({ status: HttpStatus.OK, type: EnableCollectionResult })
   @ApiBody({ type: EnableCollectionDTO })
-  @ApiBadRequestResponse({ type: EnableCollectionBadRequestError })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
   @UseGuards(AuthGuard)
   async enableCollection(@Body('collectionId', ParseCollectionIdPipe) collectionId: number): Promise<EnableCollectionResult> {
     return await this.collectionsService.enableById(collectionId);
@@ -98,8 +97,8 @@ export class AdminController {
   })
   @ApiOperation({ description: 'Disable collection' })
   @ApiResponse({ status: HttpStatus.OK, type: DisableCollectionResult })
-  @ApiNotFoundResponse({ type: DisableCollectionNotFoundError })
-  @ApiBadRequestResponse({ type: DisableCollectionBadRequestError })
+  @ApiNotFoundResponse({ type: NotFoundResponse })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
   @UseGuards(AuthGuard)
   async disableCollection(@Param('id', ParseCollectionIdPipe) collectionId: number): Promise<DisableCollectionResult> {
     return await this.collectionsService.disableById(collectionId);
@@ -124,14 +123,22 @@ export class AdminController {
     description: fs.readFileSync('docs/mass_fixprice_sale.md').toString(),
   })
   @ApiResponse({ status: HttpStatus.OK, type: MassFixPriceSaleResult })
-  @ApiBadRequestResponse({ type: MassFixPriceSaleBadRequestError })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
   @UseGuards(AuthGuard, MainSaleSeedGuard)
-  @UsePipes(
-    new ValidationPipe({
-      transform: true,
-    }),
-  )
-  async massFixPriceSale(@Body() data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResult> {
-    return await this.collectionsService.massFixPriceSale(data);
+  async massFixPriceSale(@Body(new ValidationPipe({ transform: true })) data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResult> {
+    return await this.massSaleService.massFixPriceSale(data);
+  }
+
+  @Post('/collections/auction')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Mass auction sale',
+    description: fs.readFileSync('docs/mass_auction_sale.md').toString(),
+  })
+  @ApiResponse({ status: HttpStatus.OK, type: MassAuctionSaleResult })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
+  @UseGuards(AuthGuard, MainSaleSeedGuard)
+  async massAuctionSale(@Body(new ValidationPipe({ transform: true })) data: MassAuctionSaleDTO): Promise<MassAuctionSaleResult> {
+    return await this.massSaleService.massAuctionSale(data);
   }
 }

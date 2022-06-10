@@ -36,11 +36,7 @@ const isAuctionTestingStage = process.env.IS_AUCTION_TESTING_STAGE === 'true' ||
     ForceClosingService,
     SearchIndexService,
   ],
-  controllers: [
-    AuctionController,
-    SearchIndexController,
-    ...isAuctionTestingStage ? [AuctionForceCloseController] : [],
-  ],
-  exports: ['KUSAMA_API', 'UNIQUE_API', AuctionClosingScheduler, SearchIndexService],
+  controllers: [AuctionController, SearchIndexController, ...(isAuctionTestingStage ? [AuctionForceCloseController] : [])],
+  exports: ['KUSAMA_API', 'UNIQUE_API', AuctionClosingScheduler, SearchIndexService, AuctionCreationService],
 })
 export class AuctionModule {}
