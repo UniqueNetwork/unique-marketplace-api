@@ -36,7 +36,7 @@ import { CollectionsService, TokenService, MassSaleService } from './servises';
 import * as fs from 'fs';
 
 @ApiTags('Administration')
-//@ApiBearerAuth()
+@ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Unauthorized address or bad signature', type: ResponseAdminUnauthorizedDto })
 @ApiForbiddenResponse({ description: 'Forbidden. Marketplace disabled management for administrators.', type: ResponseAdminForbiddenDto })
 @Controller('admin')
@@ -110,7 +110,7 @@ export class AdminController {
     summary: 'Adding tokens to allowed',
     description: fs.readFileSync('docs/admin_tokens_allowed.md').toString(),
   })
-  //@UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
   @ApiResponse({ status: HttpStatus.OK, type: ResponseTokenDto })
   async addTokens(@Param('collectionId') collectionId: string, @Body() data: AddTokensDto): Promise<ResponseTokenDto> {
     return await this.tokenService.addTokens(collectionId, data);
