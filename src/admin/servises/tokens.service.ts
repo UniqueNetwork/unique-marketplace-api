@@ -11,6 +11,7 @@ export class TokenService {
   private readonly collectionsRepository: Repository<Collection>;
   private readonly tokensRepository: Repository<Tokens>;
   private readonly logger: Logger;
+  private readonly MAX_TOKEN_NUMBER = 2147483647;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private db: Connection,
@@ -66,26 +67,45 @@ export class TokenService {
     return await this.tokensRepository.clear();
   }
 
-  private async checkoutTokens(tokens: string, regex: RegExp): Promise<void> {
+  /**
+   * Checking tokens. Check the input range. It is forbidden to enter a token with a null value. Checking the data format.
+   * @param {string} tokens - tokens format
+   * @param {RegExp} regex
+   * @private
+   * @return ({Promise<void | BadRequestException>})
+   */
+  private async checkoutTokens(tokens: string, regex: RegExp): Promise<void | BadRequestException> {
     const array = tokens.match(regex)[0];
     const arr = array.split(',');
     arr.forEach((token) => {
       let rangeNum = token.split('-');
       if (rangeNum.length > 1) {
+        if (parseInt(rangeNum[0]) > this.MAX_TOKEN_NUMBER) {
+          throw new BadRequestException(
+            `Wrong token in the first range: [ ${rangeNum[0]} ] - ${rangeNum[1]}! Maximum ${this.MAX_TOKEN_NUMBER}. The start number in the range cannot be greater than the end number!`,
+          );
+        }
+        if (parseInt(rangeNum[1]) > this.MAX_TOKEN_NUMBER) {
+          throw new BadRequestException(`Wrong token in the last range: ${rangeNum[0]} - [ ${rangeNum[1]} ]! Maximum ${this.MAX_TOKEN_NUMBER}`);
+        }
+
         if (rangeNum[0] === '' || rangeNum[1] === '') {
           let rangeLeft = rangeNum[0] === '' ? 'null' : rangeNum[0];
           let rangeRight = rangeNum[1] === '' ? 'null' : rangeNum[1];
-          throw new BadRequestException(`WTF ? ${rangeLeft} - ${rangeRight}`);
+          throw new BadRequestException(`Wrong tokens range! Set the correct range! Example: 2-300`);
         }
         if (parseInt(rangeNum[0]) === 0 || parseInt(rangeNum[1]) === 0) {
-          throw new BadRequestException('Not null range');
+          throw new BadRequestException('Wrong tokens range! There is no zero token!');
         }
         if (parseInt(rangeNum[0]) > parseInt(rangeNum[1])) {
-          throw new BadRequestException(`WTF range: ${parseInt(rangeNum[0])} > ${parseInt(rangeNum[1])}? Really? `);
+          throw new BadRequestException(`Wrong tokens range! Set the correct range! Example: 1-10 or 42-1337 `);
         }
       } else {
         if (parseInt(token) === 0) {
-          throw new BadRequestException('Is Not Zero');
+          throw new BadRequestException('Wrong token! There is no zero token!');
+        }
+        if (parseInt(token) > 2147483647) {
+          throw new BadRequestException(`Wrong token > ${parseInt(token)} ! Maximum ${this.MAX_TOKEN_NUMBER}`);
         }
       }
     });
