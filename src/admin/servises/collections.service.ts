@@ -5,6 +5,7 @@ import { decodeCollection } from '../utils';
 import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from '../types';
 import { CollectionsFilter, EnableCollectionResult, ListCollectionResult, DisableCollectionResult } from '../dto';
 import { Collection } from '../../entity';
+import { ProxyCollection } from '../../utils/blockchain';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
@@ -44,13 +45,16 @@ export class CollectionsService implements OnModuleInit {
    * @return ({Promise<ImportByIdResult>})
    */
   async importById(id: number, importType: CollectionImportType): Promise<ImportByIdResult> {
-    const query = await this.unique.query.common.collectionById(id);
+    const _collection = ProxyCollection.getInstance(this.unique);
+    const query = await _collection.getById(id);
 
-    const humanized = query.toHuman() as any as HumanizedCollection;
-
-    if (humanized === null) this.logger.warn(`Collection #${id} not found in chain`);
-
-    const decoded: DecodedCollection = decodeCollection(humanized);
+    const decoded: DecodedCollection = {
+      owner: query?.collection?.owner,
+      mode: query?.collection?.mode,
+      tokenPrefix: query.tokenPrefix,
+      name: query.name,
+      description: query.description
+    }
 
     const entity = this.collectionsRepository.create(decoded);
 
