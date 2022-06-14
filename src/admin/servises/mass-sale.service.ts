@@ -7,11 +7,12 @@ import { Connection, Repository } from 'typeorm';
 import { BnList } from '@polkadot/util/types';
 import { MarketConfig } from '../../config/market-config';
 import { Web3Service } from './web3.service';
-import { subToEth } from 'src/utils/blockchain/web3';
+import { subToEth } from '../../utils/blockchain/web3';
 import { BlockchainBlock } from '../../entity/blockchain-block';
-import { DateHelper } from 'src/utils/date-helper';
-import { AuctionCreationService } from 'src/auction/services/auction-creation.service';
+import { DateHelper } from '../../utils/date-helper';
+import { AuctionCreationService } from '../../auction/services/auction-creation.service';
 import { PrepareMassSaleResult, TransferResult } from '../types';
+import '@polkadot/api-augment/polkadot';
 
 @Injectable()
 export class MassSaleService {

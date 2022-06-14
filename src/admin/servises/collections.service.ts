@@ -1,10 +1,11 @@
-import { Inject, Injectable, Logger, NotFoundException, OnModuleInit, HttpStatus } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { MarketConfig } from 'src/config/market-config';
 import { Connection, Repository } from 'typeorm';
-import { decodeCollection } from '../utils';
 import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from '../types';
-import { CollectionsFilter, EnableCollectionResult, ListCollectionResult, DisableCollectionResult } from '../dto';
+import { CollectionsFilter, DisableCollectionResult, EnableCollectionResult, ListCollectionResult } from '../dto';
 import { Collection } from '../../entity';
+import { ProxyCollection } from '../../utils/blockchain';
+import '@polkadot/api-augment/polkadot';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
@@ -44,13 +45,16 @@ export class CollectionsService implements OnModuleInit {
    * @return ({Promise<ImportByIdResult>})
    */
   async importById(id: number, importType: CollectionImportType): Promise<ImportByIdResult> {
-    const query = await this.unique.query.common.collectionById(id);
+    const proxyCollection = ProxyCollection.getInstance(this.unique);
+    const collection = await proxyCollection.getById(id);
 
-    const humanized = query.toHuman() as any as HumanizedCollection;
-
-    if (humanized === null) this.logger.warn(`Collection #${id} not found in chain`);
-
-    const decoded: DecodedCollection = decodeCollection(humanized);
+    const decoded: DecodedCollection = {
+      owner: collection?.collection?.owner,
+      mode: collection?.collection?.mode,
+      tokenPrefix: collection.tokenPrefix,
+      name: collection.name,
+      description: collection.description,
+    };
 
     const entity = this.collectionsRepository.create(decoded);
 
