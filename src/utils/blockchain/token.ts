@@ -1,18 +1,15 @@
+const protobuf = require('protobufjs');
 import { hexToU8a } from '@polkadot/util';
 
 import * as logging from '../logging'
-import { CollectionType, TypeAPI } from './collection';
-import { ApiPromise } from '@polkadot/api';
-import { mapProperties } from './util';
 
-import * as protobuf from 'protobufjs';
 
 export const decodeSchema = schema => {
-  const protoJson = JSON.parse(schema);
+  let protoJson = JSON.parse(schema);
 
-  const root = protobuf.Root.fromJSON(protoJson);
+  let root = protobuf.Root.fromJSON(protoJson);
 
-  const data = {json: protoJson, NFTMeta: null}
+  let data = {json: protoJson, NFTMeta: null}
 
   try {
     data.NFTMeta = root.lookupType("onChainMetaData.NFTMeta");
@@ -33,9 +30,9 @@ export const decodeData = (data, schema) => {
     return {data: data, human: null}
   }
 
-  const message = schema.NFTMeta.decode(tokenDataBuffer), humanObj = message.toJSON();
+  let message = schema.NFTMeta.decode(tokenDataBuffer), humanObj = message.toJSON();
   // Maybe convert the message back to a plain object
-  const obj = schema.NFTMeta.toObject(message, {
+  let obj = schema.NFTMeta.toObject(message, {
     longs: String,  // longs as strings (requires long.js)
     bytes: String,  // bytes as base64 encoded strings
     defaults: true, // includes default values
@@ -71,94 +68,4 @@ const encodeDataBuffer = (schema, payload) => {
 
 export const encodeData = (schema, payload) => {
   return '0x' + Buffer.from(encodeDataBuffer(schema, payload)).toString('hex');
-}
-
-type TokenType = {
-  collectionId: number;
-  tokenId: number;
-  owner: any;
-  constData: any;
-  variableData: any;
-  image: string;
-  originalToken: any;
-}
-
-interface TokenInterface {
-  tokenId(tokenId: number, collectionId: number): Promise<Partial<TokenType>>
-  tokenIdSchema(tokenId: number, collectionId:number, schema: any): Promise<Partial<TokenType>>
-  tokenIdCollection(tokenId: number, collection: Partial<CollectionType>): Promise<Partial<TokenType>>
-}
-
-
-export class ProxyToken implements TokenInterface {
-
-  static instance: ProxyToken;
-
-  protected api;
-  protected type;
-
-  constructor(api: ApiPromise, type = TypeAPI.properties) {
-    this.api = api;
-    this.type = type;
-  }
-
-  static getInstance(api: ApiPromise, type = TypeAPI.properties): ProxyToken {
-    if (!ProxyToken.instance) {
-      ProxyToken.instance = new ProxyToken(api, type);
-    }
-    return ProxyToken.instance;
-  }
-
-  async tokenId(tokenId: number, collectionId: number): Promise<Partial<TokenType>> {
-
-    let _token = null;
-    let _tokenHuman = null;
-    let _data = null;
-    let _variableData = null;
-
-    if (this.type === TypeAPI.properties) {
-      try {
-        _token = await this.api.rpc?.unique?.tokenData(collectionId, tokenId) || null;
-        _tokenHuman = _token.toHuman();
-        const property = mapProperties(_tokenHuman);
-        _data = property['constData'] || null;
-        _variableData = property['variableData'] || null;
-      } catch (error) {
-        this.type = TypeAPI.old;
-        _token = null;
-      }
-    }
-
-    if (this.type === TypeAPI.old) {
-      _token = await this.api.query.nonfungible.tokenData(collectionId, tokenId);
-      _tokenHuman = _token.toHuman();
-      _data = _tokenHuman['constData'] || null;
-      _variableData = _tokenHuman['variableData'] || null;
-      this.type = TypeAPI.old;
-    }
-
-    return {
-      collectionId: collectionId,
-      tokenId: tokenId,
-      owner: _tokenHuman['owner'],
-      constData: _data,
-      variableData: _variableData,
-      image: null,
-      originalToken: _token,
-    }
-  }
-
-  async tokenIdSchema(tokenId: number, collectionId: number, schema: any): Promise<Partial<TokenType>> {
-    const _token = await this.tokenId(tokenId, collectionId);
-    const _data = decodeData(_token.constData, schema);
-    return {
-      ..._token,
-      constData: _data,
-      image: JSON.parse(_data.human?.ipfsJson)?.ipfs || null,
-    }
-  }
-
-  async tokenIdCollection(tokenId: number, collection: CollectionType): Promise<Partial<TokenType>> {
-    return this.tokenIdSchema(tokenId, collection.collectionId, collection.schema);
-  }
 }
