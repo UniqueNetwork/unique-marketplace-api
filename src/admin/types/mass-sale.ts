@@ -1,4 +1,3 @@
-import { BnList } from '@polkadot/util/types';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { BN } from '@polkadot/util';
 
@@ -8,6 +7,6 @@ export type TransferResult = {
 };
 
 export type PrepareMassSaleResult = {
-  tokenIds: BnList;
+  tokenIds: number[];
   signer: KeyringPair;
 };
