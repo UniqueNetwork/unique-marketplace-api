@@ -1,13 +1,9 @@
-import { Inject, Injectable, Logger, NotFoundException, OnModuleInit, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, OnModuleInit, HttpStatus } from '@nestjs/common';
 import { MarketConfig } from 'src/config/market-config';
-
 import { Connection, Repository } from 'typeorm';
 import { decodeCollection } from '../utils';
 import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from '../types';
-import { CollectionsFilter, EnableCollectionResult, ListCollectionResult, DisableCollectionResult, MassFixPriceSaleResult, MassFixPriceSaleDTO } from '../dto';
-import { Web3Service } from './web3.service';
-import { subToEth } from '../../utils/blockchain/web3';
-import { Keyring } from '@polkadot/api';
+import { CollectionsFilter, EnableCollectionResult, ListCollectionResult, DisableCollectionResult } from '../dto';
 import { Collection } from '../../entity';
 
 @Injectable()
@@ -15,12 +11,7 @@ export class CollectionsService implements OnModuleInit {
   private readonly collectionsRepository: Repository<Collection>;
   private readonly logger: Logger;
 
-  constructor(
-    @Inject('DATABASE_CONNECTION') private db: Connection,
-    @Inject('UNIQUE_API') private unique,
-    @Inject('CONFIG') private config: MarketConfig,
-    private readonly web3: Web3Service,
-  ) {
+  constructor(@Inject('DATABASE_CONNECTION') private db: Connection, @Inject('UNIQUE_API') private unique, @Inject('CONFIG') private config: MarketConfig) {
     this.collectionsRepository = db.getRepository(Collection);
     this.logger = new Logger(CollectionsService.name);
   }
@@ -195,95 +186,5 @@ export class CollectionsService implements OnModuleInit {
     const collections = await this.collectionsRepository.find({ where: { status: CollectionStatus.Enabled } });
 
     return collections.map((i) => Number(i.id));
-  }
-
-  /**
-   * Mass fix price sale
-   * @param {MassFixPriceSaleDTO} data - collectionId and price
-   * @return ({Promise<MassFixPriceSaleResult>})
-   */
-  async massFixPriceSale(data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResult> {
-    const { collectionId, price } = data;
-
-    const enabledIds = await this.getEnabledCollectionIds();
-
-    if (!enabledIds.includes(collectionId)) throw new BadRequestException(`Collection #${collectionId} not enabled`);
-
-    const collectionById = await this.unique.rpc.unique.collectionById(collectionId);
-
-    const collectionInChain = collectionById.unwrapOr(null);
-
-    if (collectionInChain === null) throw new BadRequestException(`Collection #${collectionId} not found in chain`);
-
-    const keyring = new Keyring({ type: 'sr25519' });
-
-    const { mainSaleSeed } = this.config;
-
-    if (!mainSaleSeed) throw new BadRequestException('Main sale seed not set');
-
-    const marketContractAddress = this.config.blockchain.unique.contractAddress;
-
-    if (!marketContractAddress) throw new BadRequestException('Market contract address not set');
-
-    const collectionContract = this.web3.getCollectionContract(collectionId);
-    const marketContract = this.web3.getMarketContract(marketContractAddress);
-
-    const signer = keyring.addFromUri(mainSaleSeed);
-
-    const accountTokens = await this.unique.rpc.unique.accountTokens(collectionId, {
-      Substrate: signer.address,
-    });
-
-    const tokenIds = accountTokens.sort((a, b) => a - b);
-
-    for (const tokenId of tokenIds) {
-      const transferTxHash = await this.unique.tx.unique
-        .transfer({ Ethereum: subToEth(signer.address) }, collectionId, tokenId, 1)
-        .signAndSend(signer, { nonce: -1 });
-
-      this.logger.debug(`massFixPriceSale: Token #${tokenId} transfer: ${transferTxHash.toHuman()}`);
-
-      const approveTxHash = await this.unique.tx.evm
-        .call(
-          subToEth(signer.address),
-          collectionContract.options.address,
-          collectionContract.methods.approve(marketContract.options.address, tokenId).encodeABI(),
-          0, // value
-          2_500_000, // gas
-          await this.web3.getGasPrice(),
-          null,
-          null,
-          [],
-        )
-        .signAndSend(signer, { nonce: -1 });
-
-      this.logger.debug(`massFixPriceSale: Token #${tokenId} approve: ${approveTxHash.toHuman()}`);
-
-      const askTxHash = await this.unique.tx.evm
-        .call(
-          subToEth(signer.address),
-          marketContract.options.address,
-          marketContract.methods.addAsk(price, '0x0000000000000000000000000000000000000001', collectionContract.options.address, tokenId).encodeABI(),
-          0, // value
-          2_500_000, // gas
-          await this.web3.getGasPrice(),
-          null,
-          null,
-          [],
-        )
-        .signAndSend(signer, { nonce: -1 });
-
-      this.logger.debug(`massFixPriceSale: Token #${tokenId} add ask: ${askTxHash.toHuman()}`);
-    }
-
-    const tokensCount = tokenIds.length;
-
-    const message = `${tokensCount} tokens successfully offered for fix price sale`;
-
-    return {
-      statusCode: HttpStatus.OK,
-      message,
-      data: tokenIds,
-    };
   }
 }

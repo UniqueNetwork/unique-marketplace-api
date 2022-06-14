@@ -4,7 +4,8 @@ import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 
 import { Escrow } from './base';
 import * as logging from '../utils/logging';
-import { transactionStatus, signTransaction } from '../utils/blockchain/polka';
+import { TransactionStatus } from '../utils/blockchain';
+import { signTransaction } from '../utils/blockchain';
 import { MONEY_TRANSFER_STATUS } from './constants';
 import * as kusama from '../utils/blockchain/kusama';
 import * as util from '../utils/blockchain/util';
@@ -59,7 +60,7 @@ export class KusamaEscrow extends Escrow {
 
     const balanceTransaction = this.api.tx.balances.transfer(recipient, amountBN.toString());
     const result = (await signTransaction(sender, balanceTransaction, 'api.tx.balances.transfer')) as any;
-    if (result.status !== transactionStatus.SUCCESS) throw Error('Transfer failed');
+    if (result.status !== TransactionStatus.SUCCESS) throw Error('Transfer failed');
     logging.log([
       'Transfer successful. Sender balance:',
       (await this.getBalance(sender.address)).toString(),
