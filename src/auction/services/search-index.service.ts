@@ -66,7 +66,10 @@ export class SearchIndexService {
     if (collection?.collectionCover) {
       return JSON.parse(collection?.collectionCover)?.collectionCover
     }
-    return collection.offchainSchema.replace('{id}', '1');
+    if (collection?.offchainSchema) {
+      return collection.offchainSchema.replace('{id}', '1');
+    }
+    return '';
   }
 
   async getTokenInfoItems({ collectionId, tokenId }: CollectionToken): Promise<TokenInfo[]> {

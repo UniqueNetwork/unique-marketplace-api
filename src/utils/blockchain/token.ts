@@ -32,6 +32,10 @@ export const decodeSchema = schema => {
 }
 
 export const decodeData = (data, schema) => {
+  if (!schema) {
+    return {data: data, human: null};
+  }
+
   if (schema?.NFTMeta === null) return {data: data, human: null}
   let tokenDataBuffer;
   try {
