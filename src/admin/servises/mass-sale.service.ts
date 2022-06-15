@@ -50,6 +50,10 @@ export class MassSaleService {
     const { collectionId, price } = data;
     const { signer, tokenIds } = await this.prepareMassSale(collectionId);
 
+    const tokensCount = tokenIds.length;
+
+    if (tokensCount === 0) throw new BadRequestException('No tokens for sale');
+
     const collectionContractAddress = collectionIdToAddress(collectionId);
     const marketContractAddress = this.config.blockchain.unique.contractAddress;
     if (!marketContractAddress) throw new BadRequestException('Market contract address not set');
@@ -94,8 +98,6 @@ export class MassSaleService {
       this.logger.debug(`massFixPriceSale: Token #${tokenId} add ask: ${askTxHash.toHuman()}`);
     }
 
-    const tokensCount = tokenIds.length;
-
     const message = `${tokensCount} tokens successfully offered for fix price sale`;
 
     return {
@@ -113,6 +115,10 @@ export class MassSaleService {
   async massAuctionSale(data: MassAuctionSaleDTO): Promise<MassAuctionSaleResult> {
     const { collectionId, startPrice, priceStep, days, minutes } = data;
     const { signer, tokenIds } = await this.prepareMassSale(collectionId);
+
+    const tokensCount = tokenIds.length;
+
+    // if (tokensCount === 0) throw new BadRequestException('No tokens for sale');
 
     let stopAt = DateHelper.addDays(days);
     if (minutes) stopAt = DateHelper.addMinutes(minutes, stopAt);
@@ -178,9 +184,7 @@ export class MassSaleService {
       });
     }
 
-    const tokensCount = tokenIds.length;
-
-    const message = `${tokensCount} tokens successfully offered for fix price sale`;
+    const message = `${tokensCount} tokens successfully offered for auction sale`;
 
     return {
       statusCode: HttpStatus.OK,

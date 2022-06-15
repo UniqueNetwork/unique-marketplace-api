@@ -2,11 +2,10 @@ import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Collection } from '../../entity/collection';
 import { IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
-import { U32_MAX_VALUE } from '../constants';
+import { BIGINT_MAX_VALUE, U32_MAX_VALUE } from '../constants';
 import { Transform, Type } from 'class-transformer';
 import { UNIQUE } from '../../utils/blockchain/web3';
-import { IsBigInt } from '../../offers/decorators/is-bigint.decorator';
-import { BigIntGte } from '../../offers/decorators/bigint-gte.decorator';
+import { IsBigInt, BigIntGte, BigIntLte } from '../../offers/decorators';
 
 const ToBigInt = () =>
   Transform(({ value }: { value: any }): BigInt | any => {
@@ -71,6 +70,8 @@ export class MassFixPriceSaleDTO {
   @IsInt()
   collectionId: number;
   @ApiProperty({ example: UNIQUE.toString() })
+  @BigIntLte(BIGINT_MAX_VALUE)
+  @IsBigInt()
   @ToBigInt()
   price: bigint;
 }
@@ -92,15 +93,17 @@ export class MassAuctionSaleDTO {
   collectionId: number;
 
   @ApiProperty({ example: '100' })
-  @ToBigInt()
-  @IsBigInt()
+  @BigIntLte(BIGINT_MAX_VALUE)
   @BigIntGte(1n)
+  @IsBigInt()
+  @ToBigInt()
   startPrice: bigint;
 
   @ApiProperty({ example: '10' })
-  @ToBigInt()
-  @IsBigInt()
+  @BigIntLte(BIGINT_MAX_VALUE)
   @BigIntGte(1n)
+  @IsBigInt()
+  @ToBigInt()
   priceStep: bigint;
 
   @ApiProperty({ example: 1 })
