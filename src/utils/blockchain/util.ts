@@ -89,7 +89,7 @@ class UniqueExplorer {
    */
   async tokenData(collectionId: number, tokenId: number) {
     const token = tokenUtil.ProxyToken.getInstance(this.api);
-    return token.tokenId(collectionId, tokenId);
+    return token.tokenId(tokenId, collectionId);
   }
 
   /**
@@ -102,7 +102,7 @@ class UniqueExplorer {
    */
   async getTokenOwner(collectionId: number, tokenId: number) {
     const token = tokenUtil.ProxyToken.getInstance(this.api);
-    const _token = await token.tokenId(collectionId, tokenId);
+    const _token = await token.tokenId(tokenId, collectionId);
     return _token.owner
   }
 

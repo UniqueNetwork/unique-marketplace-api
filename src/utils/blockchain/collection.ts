@@ -21,6 +21,7 @@ export type CollectionType = {
   [propName: string]: any;
 };
 
+
 interface CollectionInterface {
   getById(id: number): Promise<CollectionType>;
 }
@@ -38,7 +39,6 @@ class CollectionOld extends CollectionBase implements CollectionInterface {
     try {
       const collection = await this.api.query.common.collectionById(id);
       const humanCollection = collection.toHuman();
-      let schema = null;
 
       if (humanCollection === null || humanCollection === undefined) {
         return null;
@@ -48,14 +48,10 @@ class CollectionOld extends CollectionBase implements CollectionInterface {
         return null;
       }
 
-      if (humanCollection['constOnChainSchema']) {
-        schema = decodeSchema(humanCollection['constOnChainSchema']);
-      }
-
       return {
         collection: humanCollection,
         collectionId: id,
-        schema,
+        schema: decodeSchema(humanCollection['constOnChainSchema']),
         tokenPrefix: humanCollection['tokenPrefix'],
         offchainSchema: humanCollection['offchainSchema'] || null,
         name: vec2str(humanCollection['name']) || null,
