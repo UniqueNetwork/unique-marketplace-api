@@ -1,7 +1,7 @@
 import { HttpStatus, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
-import { MarketConfig } from 'src/config/market-config';
+import { MarketConfig } from '../../config/market-config';
 import { Connection, Repository } from 'typeorm';
-import { CollectionImportType, CollectionStatus, DecodedCollection, HumanizedCollection, ImportByIdResult } from '../types';
+import { CollectionImportType, CollectionStatus, DecodedCollection, ImportByIdResult } from '../types';
 import { CollectionsFilter, DisableCollectionResult, EnableCollectionResult, ListCollectionResult } from '../dto';
 import { Collection } from '../../entity';
 import { ProxyCollection } from '../../utils/blockchain';
@@ -51,9 +51,9 @@ export class CollectionsService implements OnModuleInit {
     const decoded: DecodedCollection = {
       owner: collection?.collection?.owner,
       mode: collection?.collection?.mode,
-      tokenPrefix: collection.tokenPrefix,
-      name: collection.name,
-      description: collection.description,
+      tokenPrefix: collection?.tokenPrefix,
+      name: collection?.name,
+      description: collection?.description,
     };
 
     const entity = this.collectionsRepository.create(decoded);
@@ -112,8 +112,8 @@ export class CollectionsService implements OnModuleInit {
 
     const message =
       collection.status === CollectionStatus.Disabled
-        ? `Сollection #${collection.id} has already disabled`
-        : `Сollection #${collection.id} successfully disabled`;
+        ? `Collection #${collection.id} has already disabled`
+        : `Collection #${collection.id} successfully disabled`;
 
     await this.collectionsRepository.update(id, { status: CollectionStatus.Disabled });
 

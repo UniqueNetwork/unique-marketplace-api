@@ -1,4 +1,3 @@
-import type { Vec, u16 } from '@polkadot/types-codec';
 import { Collection } from '../../entity';
 
 export enum CollectionMode {
@@ -16,14 +15,6 @@ export enum CollectionImportType {
   Env = 'Env',
   Api = 'Api',
 }
-
-export type HumanizedCollection = {
-  owner: string;
-  mode: CollectionMode;
-  tokenPrefix: string;
-  name: Vec<u16>;
-  description: Vec<u16>;
-};
 
 export type DecodedCollection = {
   owner: string;
