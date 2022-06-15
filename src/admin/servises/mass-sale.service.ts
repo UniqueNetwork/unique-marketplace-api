@@ -4,31 +4,41 @@ import { CollectionsService } from './collections.service';
 import { Keyring } from '@polkadot/api';
 import { Observable, Subscriber } from 'rxjs';
 import { Connection, Repository } from 'typeorm';
-import { BnList } from '@polkadot/util/types';
 import { MarketConfig } from '../../config/market-config';
-import { Web3Service } from './web3.service';
-import { subToEth } from '../../utils/blockchain/web3';
+import { collectionIdToAddress, subToEth } from '../../utils/blockchain/web3';
 import { BlockchainBlock } from '../../entity/blockchain-block';
 import { DateHelper } from '../../utils/date-helper';
 import { AuctionCreationService } from '../../auction/services/auction-creation.service';
 import { PrepareMassSaleResult, TransferResult } from '../types';
 import '@polkadot/api-augment/polkadot';
+import { Interface } from 'ethers/lib/utils';
+import { blockchainStaticFile } from '../../utils/blockchain/util';
+import { GAS_LIMIT } from '../constants';
+import { BN } from '@polkadot/util';
+import { BnList } from '@polkadot/util/types';
 
 @Injectable()
 export class MassSaleService {
   private readonly logger: Logger;
   private readonly blockchainBlockRepository: Repository<BlockchainBlock>;
+  private readonly collectionContractInterface: Interface;
+  private readonly marketContractInterface: Interface;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     @Inject('UNIQUE_API') private unique,
     @Inject('CONFIG') private config: MarketConfig,
     private readonly collections: CollectionsService,
-    private readonly web3: Web3Service,
     private readonly auctionCreationService: AuctionCreationService,
   ) {
     this.logger = new Logger(MassSaleService.name);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
+
+    const CollectionABI = JSON.parse(blockchainStaticFile('nonFungibleAbi.json'));
+    const MarketABI = JSON.parse(blockchainStaticFile('MarketPlace.json')).abi;
+
+    this.collectionContractInterface = new Interface(CollectionABI);
+    this.marketContractInterface = new Interface(MarketABI);
   }
 
   /**
@@ -40,11 +50,9 @@ export class MassSaleService {
     const { collectionId, price } = data;
     const { signer, tokenIds } = await this.prepareMassSale(collectionId);
 
+    const collectionContractAddress = collectionIdToAddress(collectionId);
     const marketContractAddress = this.config.blockchain.unique.contractAddress;
     if (!marketContractAddress) throw new BadRequestException('Market contract address not set');
-
-    const marketContract = this.web3.getMarketContract(marketContractAddress);
-    const collectionContract = this.web3.getCollectionContract(collectionId);
 
     for (const tokenId of tokenIds) {
       const transferTxHash = await this.unique.tx.unique
@@ -56,11 +64,11 @@ export class MassSaleService {
       const approveTxHash = await this.unique.tx.evm
         .call(
           subToEth(signer.address),
-          collectionContract.options.address,
-          collectionContract.methods.approve(marketContract.options.address, tokenId).encodeABI(),
-          0, // value
-          2_500_000, // gas
-          await this.web3.getGasPrice(),
+          collectionContractAddress,
+          this.collectionContractInterface.encodeFunctionData('approve', [marketContractAddress, tokenId]),
+          0,
+          GAS_LIMIT,
+          await this.getGasPrice(),
           null,
           null,
           [],
@@ -72,11 +80,11 @@ export class MassSaleService {
       const askTxHash = await this.unique.tx.evm
         .call(
           subToEth(signer.address),
-          marketContract.options.address,
-          marketContract.methods.addAsk(price, '0x0000000000000000000000000000000000000001', collectionContract.options.address, tokenId).encodeABI(),
-          0, // value
-          2_500_000, // gas
-          await this.web3.getGasPrice(),
+          marketContractAddress,
+          this.marketContractInterface.encodeFunctionData('addAsk', [price, '0x0000000000000000000000000000000000000001', collectionContractAddress, tokenId]),
+          0,
+          GAS_LIMIT,
+          await this.getGasPrice(),
           null,
           null,
           [],
@@ -205,15 +213,25 @@ export class MassSaleService {
 
     const signer = keyring.addFromUri(mainSaleSeed);
 
-    const accountTokens = await this.unique.rpc.unique.accountTokens(collectionId, {
+    const accountTokens: BnList = await this.unique.rpc.unique.accountTokens(collectionId, {
       Substrate: signer.address,
     });
 
-    const tokenIds: BnList = accountTokens.sort((a, b) => a - b);
+    const tokenIds = accountTokens.map((t) => t.toNumber()).sort((a, b) => a - b);
 
     return {
       tokenIds,
       signer,
     };
+  }
+
+  /**
+   * Get gas price for EVM call
+   * @return ({Promise<number>})
+   */
+  private async getGasPrice(): Promise<number> {
+    const gasPrice: BN = await this.unique.rpc.eth.gasPrice();
+
+    return gasPrice.toNumber();
   }
 }
