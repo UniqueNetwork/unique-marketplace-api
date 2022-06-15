@@ -2,7 +2,7 @@ import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { expressMiddleware as prometheusMiddleware } from 'prometheus-api-metrics';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { yellow } from 'cli-color';
+import { yellow, green } from 'cli-color';
 import { AppModule } from './app.module';
 import { runMigrations } from './database/migrations';
 import { ignoreQueryCase, useGlobalPipes } from './utils/application';
@@ -73,8 +73,11 @@ async function bootstrap() {
   ignoreQueryCase(app);
   useGlobalPipes(app);
 
+
+  console.log(pkg.version);
+
   await app.listen(config.listenPort, () => {
-    logger.log(`Nest application listening on port: ${yellow(config.listenPort)}`);
+    logger.log(`Nest application listening on port: ${yellow(config.listenPort)} ${green('version:')} ${(yellow(pkg.version))}`);
   });
 }
 
