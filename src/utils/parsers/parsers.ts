@@ -8,15 +8,15 @@ import { nullOrWhitespace } from '../string/null-or-white-space';
  * @param {Function} onError - anonymous function
  * @return {BigInt}
  */
-export function parseBigIntRequest(request: string | undefined, onError: () => void): BigInt | undefined {
-    if (request === undefined || request === null) {
-        return undefined;
-    }
-    try {
-        return BigInt(request);
-    } catch (e) {
-        onError();
-    }
+export function parseBigIntRequest(request: string | undefined, onError: () => void): bigint | undefined {
+  if (request === undefined || request === null) {
+    return undefined;
+  }
+  try {
+    return BigInt(request);
+  } catch (e) {
+    onError();
+  }
 }
 
 /**
@@ -26,15 +26,15 @@ export function parseBigIntRequest(request: string | undefined, onError: () => v
  * @see nullOrWhitespace
  */
 export function parseIntRequest(value: string | undefined | null, onError: () => void): number | undefined {
-    if (nullOrWhitespace(value)) {
-        return undefined;
-    }
+  if (nullOrWhitespace(value)) {
+    return undefined;
+  }
 
-    const int = parseInt(value as string);
-    if (Number.isNaN(int) || !Number.isFinite(int)) {
-        onError();
-    }
-    return int;
+  const int = parseInt(value as string);
+  if (Number.isNaN(int) || !Number.isFinite(int)) {
+    onError();
+  }
+  return int;
 }
 
 /**
@@ -45,9 +45,9 @@ export function parseIntRequest(value: string | undefined | null, onError: () =>
  * @see parseIntRequest
  */
 export function parseIntArrayRequest(request: QueryParamArray, onError: (badValue: string) => void): number[] {
-    return requestArray(request)
-        .map((v) => parseIntRequest(v, () => onError(v)))
-        .filter((v) => v != null) as number[];
+  return requestArray(request)
+    .map((v) => parseIntRequest(v, () => onError(v)))
+    .filter((v) => v != null) as number[];
 }
 
 /**
@@ -57,9 +57,9 @@ export function parseIntArrayRequest(request: QueryParamArray, onError: (badValu
  * @see parseIntArrayRequest
  */
 export function parseCollectionIdRequest(collectionId: QueryParamArray): number[] {
-    return parseIntArrayRequest(collectionId, (v) => {
-        throw new BadRequestException({}, `Failed to parse collection id from ${JSON.stringify(collectionId)}, unable to parse ${v} as integer.`);
-    });
+  return parseIntArrayRequest(collectionId, (v) => {
+    throw new BadRequestException({}, `Failed to parse collection id from ${JSON.stringify(collectionId)}, unable to parse ${v} as integer.`);
+  });
 }
 
 /**
@@ -67,31 +67,30 @@ export function parseCollectionIdRequest(collectionId: QueryParamArray): number[
  * @param {String} request
  * @return {Array}
  */
-export function requestArray(request: string | string[] | undefined | null ): string[] {
-    if (Array.isArray(request)) {
-        return request;
-    }
-
-    if (request == null) {
-        return [];
-    }
-
-    return [request];
-}
-
-
-/**
- * Parse incoming strings into an array of strings
- * @param {String} request
- * @return {Array}
- */
- export function requestArrayObject(request: any[] | undefined | null ): any[] {
+export function requestArray(request: string | string[] | undefined | null): string[] {
   if (Array.isArray(request)) {
-      return request;
+    return request;
   }
 
   if (request == null) {
-      return [];
+    return [];
+  }
+
+  return [request];
+}
+
+/**
+ * Parse incoming strings into an array of strings
+ * @param {String} request
+ * @return {Array}
+ */
+export function requestArrayObject(request: any[] | undefined | null): any[] {
+  if (Array.isArray(request)) {
+    return request;
+  }
+
+  if (request == null) {
+    return [];
   }
 
   return [request];

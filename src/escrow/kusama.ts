@@ -24,7 +24,10 @@ export class KusamaEscrow extends Escrow {
     this.initialized = true;
     this.api = await kusama.connectApi(this.config('kusama.wsEndpoint'), this.configMode === Escrow.MODE_PROD);
     this.admin = util.privateKey(this.config('escrowSeed'));
-    this.adminAddress = new Keyring({ type: 'sr25519', ss58Format: this.config('kusama.ss58Format') }).addFromUri(this.config('escrowSeed')).address;
+    this.adminAddress = new Keyring({
+      type: 'sr25519',
+      ss58Format: this.config('kusama.ss58Format'),
+    }).addFromUri(this.config('escrowSeed')).address;
   }
 
   async destroy() {
@@ -73,7 +76,7 @@ export class KusamaEscrow extends Escrow {
     return this.config('kusama.network');
   }
 
-  async extractBlockData(blockNum, isSuccess, rawExtrinsic, events) {
+  async extractBlockData(blockNum, isSuccess, rawExtrinsic) {
     if (rawExtrinsic.method.section !== this.SECTION_BALANCES) {
       return;
     }

@@ -21,7 +21,6 @@ export type CollectionType = {
   [propName: string]: any;
 };
 
-
 interface CollectionInterface {
   getById(id: number): Promise<CollectionType>;
 }

@@ -16,36 +16,36 @@ import { ParseTradesFilterPipe } from './pipes';
 @Controller('trades')
 @UseInterceptors(TraceInterceptor)
 export class TradesController {
-    constructor(private readonly tradesService: TradesService) {}
+  constructor(private readonly tradesService: TradesService) {}
 
-    @Get('/')
-    @ApiQuery(queryArray('collectionId', 'integer'))
-    @ApiOperation({
-        summary: 'Get trades with sort and filters',
-        description: fs.readFileSync('docs/trades.md').toString(),
-    })
-    @ApiResponse({ type: ResponseMarketTradeDto, status: HttpStatus.OK })
-    get(
-        @Query() pagination: PaginationRequest,
-        @Query() sort: TradeSortingRequest,
-        @Query(ParseTradesFilterPipe) tradesFilter: TradesFilter,
-    ): Promise<PaginationResult<MarketTradeDto>> {
-        return this.tradesService.get(tradesFilter, undefined, pagination, sort);
-    }
+  @Get('/')
+  @ApiQuery(queryArray('collectionId', 'integer'))
+  @ApiOperation({
+    summary: 'Get trades with sort and filters',
+    description: fs.readFileSync('docs/trades.md').toString(),
+  })
+  @ApiResponse({ type: ResponseMarketTradeDto, status: HttpStatus.OK })
+  get(
+    @Query() pagination: PaginationRequest,
+    @Query() sort: TradeSortingRequest,
+    @Query(ParseTradesFilterPipe) tradesFilter: TradesFilter,
+  ): Promise<PaginationResult<MarketTradeDto>> {
+    return this.tradesService.get(tradesFilter, undefined, pagination, sort);
+  }
 
-    @Get('/:accountId')
-    @ApiQuery(queryArray('collectionId', 'integer'))
-    @ApiOperation({
-        summary: 'Get trades with sort, filters and seller',
-        description: fs.readFileSync('docs/trades.md').toString(),
-    })
-    @ApiResponse({ type: MarketTradeDto, status: HttpStatus.OK })
-    getBySeller(
-        @Param('accountId') accountId: string,
-        @Query() sort: TradeSortingRequest,
-        @Query() pagination: PaginationRequest,
-        @Query(ParseTradesFilterPipe) tradesFilter: TradesFilter,
-    ): Promise<PaginationResult<MarketTradeDto>> {
-        return this.tradesService.get(tradesFilter, accountId, pagination, sort);
-    }
+  @Get('/:accountId')
+  @ApiQuery(queryArray('collectionId', 'integer'))
+  @ApiOperation({
+    summary: 'Get trades with sort, filters and seller',
+    description: fs.readFileSync('docs/trades.md').toString(),
+  })
+  @ApiResponse({ type: MarketTradeDto, status: HttpStatus.OK })
+  getBySeller(
+    @Param('accountId') accountId: string,
+    @Query() sort: TradeSortingRequest,
+    @Query() pagination: PaginationRequest,
+    @Query(ParseTradesFilterPipe) tradesFilter: TradesFilter,
+  ): Promise<PaginationResult<MarketTradeDto>> {
+    return this.tradesService.get(tradesFilter, accountId, pagination, sort);
+  }
 }

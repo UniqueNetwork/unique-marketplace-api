@@ -113,7 +113,10 @@ export class AuctionController {
     try {
       const bidderAddress = await convertAddress(calculationRequest.bidderAddress, this.kusamaApi.registry.chainSS58);
 
-      const [calculationInfo] = await this.bidPlacingService.getCalculationInfo({ ...calculationRequest, bidderAddress });
+      const [calculationInfo] = await this.bidPlacingService.getCalculationInfo({
+        ...calculationRequest,
+        bidderAddress,
+      });
 
       return CalculationInfoResponseDto.fromCalculationInfo(calculationInfo);
     } catch (error) {

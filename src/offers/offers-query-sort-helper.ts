@@ -1,5 +1,3 @@
-import { QueryRunner } from 'typeorm';
-import { query } from 'express';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 import { BlockchainBlock, ContractAsk } from '../entity';
@@ -9,20 +7,18 @@ import { SortingOrder } from '../utils/sorting/sorting-order';
 import { SortingParameter } from '../utils/sorting/sorting-parameter';
 
 type SortMapping<T> = Partial<Record<keyof OfferContractAskDto, keyof T>>;
-type QueryBuilder<T>  =  SelectQueryBuilder<T>;
 
 const prepareMapping = (input: Record<string, string>, columnMetadata: ColumnMetadata[]): Record<string, string> => {
-  return Object.entries(input).reduce(
-    (acc, [key, value]) => {
-      const meta = columnMetadata.find((m) => m.propertyName === value);
+  return Object.entries(input).reduce((acc, [key, value]) => {
+    const meta = columnMetadata.find((m) => m.propertyName === value);
 
-      return meta ? {
-        ...acc,
-        [key.toLowerCase()]: meta.databaseNameWithoutPrefixes,
-      } : acc;
-    },
-    {},
-  );
+    return meta
+      ? {
+          ...acc,
+          [key.toLowerCase()]: meta.databaseNameWithoutPrefixes,
+        }
+      : acc;
+  }, {});
 };
 
 const contractAskMapping: SortMapping<ContractAsk> = {
@@ -59,11 +55,11 @@ export class OffersQuerySortHelper {
   private getFlatSort(sortingParameter: SortingParameter): string | undefined {
     switch (sortingParameter.column.toLowerCase()) {
       case 'price':
-        return 'offer_price'
+        return 'offer_price';
       case 'tokenid':
-        return 'offer_token_id'
+        return 'offer_token_id';
       case 'creationdate':
-        return 'block_created_at'
+        return 'block_created_at';
     }
     return 'offer_block_number_ask';
   }
@@ -87,7 +83,7 @@ export class OffersQuerySortHelper {
     return query;
   }
 
-  applyFlatSort(query: SelectQueryBuilder<any>,  { sort = [] }: OfferSortingRequest) {
+  applyFlatSort(query: SelectQueryBuilder<any>, { sort = [] }: OfferSortingRequest) {
     if (sort.length == 0) {
       query.addOrderBy('offer_block_number_ask', 'DESC');
     }

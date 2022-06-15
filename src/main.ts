@@ -73,11 +73,10 @@ async function bootstrap() {
   ignoreQueryCase(app);
   useGlobalPipes(app);
 
-
   console.log(pkg.version);
 
   await app.listen(config.listenPort, () => {
-    logger.log(`Nest application listening on port: ${yellow(config.listenPort)} ${green('version:')} ${(yellow(pkg.version))}`);
+    logger.log(`Nest application listening on port: ${yellow(config.listenPort)} ${green('version:')} ${yellow(pkg.version)}`);
   });
 }
 

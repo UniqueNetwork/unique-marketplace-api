@@ -4,37 +4,33 @@ import * as unique from '../blockchain/unique';
 import * as lib from '../blockchain/web3';
 import { seedToAddress } from '../blockchain/util';
 
-
-const fail = (message, fatal=false, indent='') => {
+const fail = (message, fatal = false, indent = '') => {
   console.log(`${indent}${red('[x]')} ${message}`);
-  if(fatal) process.exit(0);
-}
-const success = (message, indent='') => {
+  if (fatal) process.exit(0);
+};
+const success = (message, indent = '') => {
   console.log(`${indent}${green('[v]')} ${message}`);
-}
+};
 
-const checkCollection = async (collectionId, api, indent='  ') => {
-  let collection = (await api.query.common.collectionById(collectionId)).toHuman();
-  if(collection === null) {
+const checkCollection = async (collectionId, api, indent = '  ') => {
+  const collection = (await api.query.common.collectionById(collectionId)).toHuman();
+  if (collection === null) {
     fail('Collection does not exists', false, indent);
     return;
   }
   let sponsorship = collection.sponsorship;
-  if(typeof collection.sponsorship !== 'string') {
-    sponsorship = {}
-    for(let key of Object.keys(collection.sponsorship)) {
+  if (typeof collection.sponsorship !== 'string') {
+    sponsorship = {};
+    for (const key of Object.keys(collection.sponsorship)) {
       sponsorship[key.toLocaleLowerCase()] = collection.sponsorship[key];
     }
   }
   if ((typeof sponsorship === 'string' && sponsorship.toLocaleLowerCase() === 'disabled') || sponsorship.disabled) {
     fail(`Sponsoring is disabled`, false, indent);
-  }
-  else if (sponsorship.pending) {
+  } else if (sponsorship.pending) {
     fail(`Sponsoring is pending. ${sponsorship.pending} should confirm sponsoring via confirmSponsorship`, false, indent);
-  }
-  else if (sponsorship.confirmed) {
+  } else if (sponsorship.confirmed) {
     const address = sponsorship.confirmed;
-    const evmAddress = lib.subToEth(address);
     success(`Sponsor is confirmed, ${address}`, indent);
     {
       const balance = (await api.query.system.account(address)).data.free.toBigInt();
@@ -53,14 +49,13 @@ const checkCollection = async (collectionId, api, indent='  ') => {
         success(`Sponsor has ${balanceString(balance)} on its ethereum wallet`, indent);
       }*/
     }
-  }
-  else {
+  } else {
     fail(`Unknown sponsorship state: ${Object.keys(collection.sponsorship)[0]}`, false, indent);
   }
 
   {
     const timeout = collection.limits.sponsorTransferTimeout;
-    if(timeout === null || timeout.toString() !== '0') {
+    if (timeout === null || timeout.toString() !== '0') {
       fail(`Transfer timeout is ${timeout || 'not set (default, non-zero is used)'}`, false, indent);
     } else {
       success(`Transfer timeout is zero blocks`, indent);
@@ -68,35 +63,33 @@ const checkCollection = async (collectionId, api, indent='  ') => {
   }
   {
     const timeout = collection.limits.sponsorApproveTimeout;
-    if(timeout === null || timeout.toString() !== '0') {
+    if (timeout === null || timeout.toString() !== '0') {
       fail(`Approve timeout is ${timeout || 'not set (default, non-zero is used)'}`, false, indent);
     } else {
       success(`Approve timeout is zero blocks`, indent);
     }
   }
-}
+};
 
-const balanceString = balance => `${balance / lib.UNIQUE} tokens (${balance})`;
+const balanceString = (balance) => `${balance / lib.UNIQUE} tokens (${balance})`;
 
-export const main = async (moduleRef, args: string[]) => {
-  const config = moduleRef.get('CONFIG', {strict: false});
+export const main = async (moduleRef) => {
+  const config = moduleRef.get('CONFIG', { strict: false });
   let api, web3, web3conn;
   try {
     web3conn = lib.connectWeb3(config.blockchain.unique.wsEndpoint);
     api = await unique.connectApi(config.blockchain.unique.wsEndpoint, false);
     web3 = web3conn.web3;
-  }
-  catch (e) {
+  } catch (e) {
     fail(`Unable to connect to UNIQUE_WS_ENDPOINT (${config.blockchain.unique.wsEndpoint})`, true);
   }
 
-  console.log(`UNIQUE_WS_ENDPOINT: ${config.blockchain.unique.wsEndpoint}`)
+  console.log(`UNIQUE_WS_ENDPOINT: ${config.blockchain.unique.wsEndpoint}`);
 
-  if(!config.blockchain.escrowSeed) {
-    fail('No ESCROW_SEED provided')
-  }
-  else {
-    let escrowAddress = await seedToAddress(config.blockchain.escrowSeed);
+  if (!config.blockchain.escrowSeed) {
+    fail('No ESCROW_SEED provided');
+  } else {
+    const escrowAddress = await seedToAddress(config.blockchain.escrowSeed);
     success(`Escrow address (Extracted from ESCROW_SEED): ${escrowAddress}`);
     {
       const balance = (await api.query.system.account(escrowAddress)).data.free.toBigInt();
@@ -108,7 +101,7 @@ export const main = async (moduleRef, args: string[]) => {
 
   let validContract = false;
 
-  if(config.blockchain.unique.contractAddress) {
+  if (config.blockchain.unique.contractAddress) {
     let code = '';
     try {
       code = await api.rpc.eth.getCode(config.blockchain.unique.contractAddress);
@@ -116,12 +109,11 @@ export const main = async (moduleRef, args: string[]) => {
       code = '';
     }
     validContract = code.length > 0;
-  }
-  else {
+  } else {
     fail('No contract address provided. You must set CONTRACT_ADDRESS env variable, or override blockchain.unique.contractAddress in config');
   }
   if (validContract) {
-    let address = config.blockchain.unique.contractAddress;
+    const address = config.blockchain.unique.contractAddress;
     success(`Contract address valid: ${address}`);
     const balance = (await api.rpc.eth.getBalance(config.blockchain.unique.contractAddress)).toBigInt();
     if (balance === 0n) {
@@ -131,7 +123,7 @@ export const main = async (moduleRef, args: string[]) => {
     }
     const sponsoring = (await api.query.evmContractHelpers.selfSponsoring(address)).toJSON();
     const sponsoringMode = (await api.query.evmContractHelpers.sponsoringMode(address)).toJSON();
-    const allowedModes = ["Generous", "Allowlisted"];
+    const allowedModes = ['Generous', 'Allowlisted'];
     if (allowedModes.indexOf(sponsoringMode) === -1 && !sponsoring) {
       fail(`Contract self-sponsoring is not enabled. You should call setSponsoringMode first`);
     } else {
@@ -143,31 +135,28 @@ export const main = async (moduleRef, args: string[]) => {
     } else {
       success(`Rate limit is zero blocks`);
     }
-  }
-  else if (config.blockchain.unique.contractAddress) {
+  } else if (config.blockchain.unique.contractAddress) {
     fail(`Contract address invalid: ${config.blockchain.unique.contractAddress}`);
   }
-  if(config.blockchain.unique.contractOwnerSeed) {
+  if (config.blockchain.unique.contractOwnerSeed) {
     try {
-      let account = web3.eth.accounts.privateKeyToAccount(config.blockchain.unique.contractOwnerSeed);
+      const account = web3.eth.accounts.privateKeyToAccount(config.blockchain.unique.contractOwnerSeed);
       success(`Contract owner valid, owner address: ${account.address}`);
-      let balance = (await api.rpc.eth.getBalance(account.address)).toBigInt();
-      console.log(`Contract owner balance is ${balanceString(balance)}`)
-    }
-    catch(e) {
+      const balance = (await api.rpc.eth.getBalance(account.address)).toBigInt();
+      console.log(`Contract owner balance is ${balanceString(balance)}`);
+    } catch (e) {
       fail(`Invalid contract owner seed (${config.blockchain.unique.contractOwnerSeed})`);
     }
-  }
-  else {
+  } else {
     fail('No contract owner seed provided. You must set CONTRACT_ETH_OWNER_SEED env variable or override blockchain.unique.contractOwnerSeed in config');
   }
 
   console.log('\nChecking UNIQUE_COLLECTION_IDS');
-  for(let collectionId of config.blockchain.unique.collectionIds) {
-    console.log(`Collection #${collectionId}`)
+  for (const collectionId of config.blockchain.unique.collectionIds) {
+    console.log(`Collection #${collectionId}`);
     await checkCollection(collectionId, api);
   }
 
-  web3conn.provider.connection.close()
+  web3conn.provider.connection.close();
   await api.disconnect();
-}
+};

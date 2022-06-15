@@ -1,86 +1,70 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { GqlContextType } from '@nestjs/graphql';
-import { tap } from "rxjs";
-import { InjectSentry } from "../decorators";
-import { TraceInterceptorService } from "../interfaces/trace-interceptor.interface";
-import { SentryService } from "../services";
-import { HttpInterceptorService } from "./http-interceptor.service";
-import { NoopInterceptorService } from "./noop-interceptor.service";
+import { tap } from 'rxjs';
+import { InjectSentry } from '../decorators';
+import { TraceInterceptorService } from '../interfaces/trace-interceptor.interface';
+import { SentryService } from '../services';
+import { HttpInterceptorService } from './http-interceptor.service';
+import { NoopInterceptorService } from './noop-interceptor.service';
 
 @Injectable()
 export class TraceInterceptor implements NestInterceptor {
+  constructor(
+    @InjectSentry() private readonly sentryService: SentryService,
+    private readonly httpInterceptorService: HttpInterceptorService,
+    private readonly noopInterceptorService: NoopInterceptorService,
+  ) {}
 
-    constructor(
-        @InjectSentry() private readonly sentryService: SentryService,
-        private readonly httpInterceptorService: HttpInterceptorService,
-        private readonly noopInterceptorService: NoopInterceptorService
-    ) { }
+  intercept(context: ExecutionContext, next: CallHandler) {
+    const contextType = context.getType<GqlContextType>();
 
-    intercept( context: ExecutionContext, next: CallHandler ) {
+    const interceptorService = this.getInterceptorForContext(contextType);
 
-        const contextType = context.getType<GqlContextType>()
+    const response = this.handleRequest(context, next);
 
-        const interceptorService = this.getInterceptorForContext( contextType )
+    return response.pipe(
+      tap({
+        next: (value) => interceptorService.onSuccess(value, context),
+        error: (exception) => interceptorService.onFailure(exception, context),
+      }),
+    );
+  }
 
-        const response = this.handleRequest( context, next )
+  handleRequest(context: ExecutionContext, next: CallHandler) {
+    // a transaction maybe present with express integrations
+    const maybeTransaction = Boolean(this.sentryService.currentTransaction);
 
-        return response.pipe(
-            tap( {
-                next: ( value ) => interceptorService.onSuccess( value, context ),
-                error: exception => interceptorService.onFailure( exception, context )
-            } )
+    const transaction = maybeTransaction
+      ? this.sentryService.currentTransaction
+      : this.sentryService.currentHub.startTransaction({ name: context.getHandler().name });
 
-        )
-
+    // if this is a custom transaction, we want to know so we can finish it
+    if (!maybeTransaction) {
+      (transaction as any).__customTrace = true;
     }
 
-    handleRequest( context: ExecutionContext, next: CallHandler ) {
+    const span = transaction.startChild();
 
-        // a transaction maybe present with express integrations
-        const maybeTransaction = Boolean( this.sentryService.currentTransaction )
+    this.sentryService.setSpanOnCurrentScope(span);
 
-        const transaction = maybeTransaction
-            ? this.sentryService.currentTransaction
-            : this.sentryService
-                .currentHub
-                .startTransaction( { name: context.getHandler().name } )
+    this.getInterceptorForContext(context.getType<GqlContextType>()).onRequest(context);
 
-        // if this is a custom transaction, we want to know so we can finish it
-        if ( !maybeTransaction ) {
+    return next.handle();
+  }
 
-            ( transaction as any ).__customTrace = true
+  private getInterceptorForContext(contextType: GqlContextType): TraceInterceptorService {
+    switch (contextType) {
+      case 'http':
+        return this.httpInterceptorService;
 
-        }
+      case 'rpc':
+        return this.noopInterceptorService;
 
-        const span = transaction.startChild()
+      case 'ws':
+        return this.noopInterceptorService;
 
-        this.sentryService.setSpanOnCurrentScope( span );
-
-        this.getInterceptorForContext( context.getType<GqlContextType>() ).onRequest( context )
-
-        return next.handle()
-
+      case 'graphql':
+        return this.noopInterceptorService;
     }
-
-    private getInterceptorForContext( contextType: GqlContextType ): TraceInterceptorService {
-
-        switch( contextType ) {
-
-            case 'http':
-                return this.httpInterceptorService
-
-            case 'rpc':
-                return this.noopInterceptorService
-
-            case 'ws':
-                return this.noopInterceptorService
-
-            case 'graphql':
-                return this.noopInterceptorService
-
-        }
-
-
-    }
-
+  }
 }

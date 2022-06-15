@@ -6,43 +6,43 @@ import * as util from '../blockchain/util';
 
 import { TransactionStatus } from '../blockchain';
 import { signTransaction } from '../blockchain';
-import * as logging from '../logging'
-
+import * as logging from '../logging';
 
 const DEPLOY_COST = 9n * lib.UNIQUE;
 const CONTRACT_MIN_BALANCE = 40n * lib.UNIQUE;
 const ESCROW_MIN_BALANCE = (5n * lib.UNIQUE) / 10n;
 
-export const main = async(moduleRef, args: string[]) => {
+export const main = async (moduleRef) => {
   const summary: string[] = [];
-  const config = moduleRef.get('CONFIG', {strict: false});
-  if(config.blockchain.escrowSeed === null) {
+  const config = moduleRef.get('CONFIG', { strict: false });
+  if (config.blockchain.escrowSeed === null) {
     logging.log('You need to set ESCROW_SEED env or override config "blockchain.escrowSeed" section');
     return;
   }
 
   logging.log(['WS endpoint:', config.blockchain.unique.wsEndpoint]);
   const web3conn = lib.connectWeb3(config.blockchain.unique.wsEndpoint);
-  const api = await unique.connectApi(config.blockchain.unique.wsEndpoint, false), web3 = web3conn.web3;
+  const api = await unique.connectApi(config.blockchain.unique.wsEndpoint, false),
+    web3 = web3conn.web3;
   let ownerSeed = config.blockchain.unique.contractOwnerSeed;
 
   const disconnect = async () => {
-    if(summary.length) {
+    if (summary.length) {
       console.log(`\n\n\nSUMMARY:\n\n${summary.join('\n')}`);
     }
-    web3conn.provider.connection.close()
+    web3conn.provider.connection.close();
     await api.disconnect();
     process.exit(0);
-  }
+  };
 
-  const getBalance = async address => {
+  const getBalance = async (address) => {
     return ((await api.query.system.account(address)) as any).data.free.toBigInt();
-  }
+  };
 
-  const addSubstrateMirror = async address => {
+  const addSubstrateMirror = async (address) => {
     summary.push(`\n\nSubstrate mirror of contract address (for balances): ${evmToAddress(address)}`);
     summary.push(`Current contract balance: ${await getBalance(evmToAddress(address))}`);
-  }
+  };
 
   const escrow = util.privateKey(config.blockchain.escrowSeed);
 
@@ -51,18 +51,18 @@ export const main = async(moduleRef, args: string[]) => {
     const balance = await getBalance(escrow.address);
     logging.log(['Balance on escrow:', balance.toString()]);
   }
-  if(config.blockchain.unique.contractOwnerSeed === null) {
+  if (config.blockchain.unique.contractOwnerSeed === null) {
     logging.log('No existed CONTRACT_ETH_OWNER_SEED, creating new eth account');
     const balance = await getBalance(escrow.address);
     const minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE + DEPLOY_COST;
     if (balance < minBalance) {
-      logging.log(['Balance on account', escrow.address, 'too low to create eth account. Need at least', minBalance.toString()])
+      logging.log(['Balance on account', escrow.address, 'too low to create eth account. Need at least', minBalance.toString()]);
       return await disconnect();
     }
     const account = web3.eth.accounts.create();
 
     const result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(account.address), DEPLOY_COST), 'api.tx.balances.transfer');
-    if(result.status !== TransactionStatus.SUCCESS) {
+    if (result.status !== TransactionStatus.SUCCESS) {
       logging.log(['Unable to transfer', DEPLOY_COST.toString(), 'from', escrow.address, 'to', evmToAddress(account.address)], logging.level.ERROR);
       logging.log(result.result.toHuman(), logging.level.ERROR);
       return await disconnect();
@@ -74,7 +74,7 @@ export const main = async(moduleRef, args: string[]) => {
     ownerSeed = account.privateKey;
   }
   summary.push(`CONTRACT_ETH_OWNER_SEED: '${ownerSeed}'`);
-  if(config.blockchain.unique.contractAddress !== null) {
+  if (config.blockchain.unique.contractAddress !== null) {
     logging.log('Contract already deployed. Check your CONTRACT_ADDRESS env or "blockchain.unique.contractAddress" config section', logging.level.WARNING);
 
     summary.push(`CONTRACT_ADDRESS: '${config.blockchain.unique.contractAddress}'`);
@@ -85,7 +85,7 @@ export const main = async(moduleRef, args: string[]) => {
   const balance = await getBalance(escrow.address);
   const minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE;
   if (balance < minBalance) {
-    logging.log(['Balance on account', escrow.address, 'too low to deploy contract. Need at least', minBalance.toString()], logging.level.WARNING)
+    logging.log(['Balance on account', escrow.address, 'too low to deploy contract. Need at least', minBalance.toString()], logging.level.WARNING);
     return await disconnect();
   }
   logging.log('Deploy contract...');
@@ -93,21 +93,29 @@ export const main = async(moduleRef, args: string[]) => {
   web3.eth.accounts.wallet.add(account.privateKey);
 
   const contractAbi = new web3.eth.Contract(JSON.parse(util.blockchainStaticFile('MarketPlace.abi')), undefined, {
-    from: account.address, ...lib.GAS_ARGS,
+    from: account.address,
+    ...lib.GAS_ARGS,
   });
-  const contract = await contractAbi.deploy({data: util.blockchainStaticFile('MarketPlace.bin')}).send({from: account.address, gas: 5_000_000});
+  const contract = await contractAbi.deploy({ data: util.blockchainStaticFile('MarketPlace.bin') }).send({ from: account.address, gas: 5_000_000 });
   logging.log('Set escrow...');
-  await contract.methods.setEscrow(account.address, true).send({from: account.address});
+  await contract.methods.setEscrow(account.address, true).send({ from: account.address });
   const helpers = lib.contractHelpers(web3, account.address);
   logging.log('Set sponsoring mode...');
   // await helpers.methods.toggleSponsoring(contract.options.address, true).send({from: account.address});
-  await helpers.methods.setSponsoringMode(contract.options.address, lib.SponsoringMode.Allowlisted).send({from: account.address});
-  logging.log('Set sponsoring rate limit...')
-  await helpers.methods.setSponsoringRateLimit(contract.options.address, 0).send({from: account.address});
+  await helpers.methods.setSponsoringMode(contract.options.address, lib.SponsoringMode.Allowlisted).send({ from: account.address });
+  logging.log('Set sponsoring rate limit...');
+  await helpers.methods.setSponsoringRateLimit(contract.options.address, 0).send({ from: account.address });
   logging.log('Transfer balance...');
-  const result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(contract.options.address), CONTRACT_MIN_BALANCE), 'api.tx.balances.transfer');
-  if(result.status !== TransactionStatus.SUCCESS) {
-    logging.log(['Unable to transfer', CONTRACT_MIN_BALANCE.toString(), 'from', escrow.address, 'to', evmToAddress(contract.options.address)], logging.level.ERROR);
+  const result = await signTransaction(
+    escrow,
+    api.tx.balances.transfer(evmToAddress(contract.options.address), CONTRACT_MIN_BALANCE),
+    'api.tx.balances.transfer',
+  );
+  if (result.status !== TransactionStatus.SUCCESS) {
+    logging.log(
+      ['Unable to transfer', CONTRACT_MIN_BALANCE.toString(), 'from', escrow.address, 'to', evmToAddress(contract.options.address)],
+      logging.level.ERROR,
+    );
     logging.log(result.result.toHuman(), logging.level.ERROR);
     return await disconnect();
   }
@@ -118,4 +126,4 @@ export const main = async(moduleRef, args: string[]) => {
   await addSubstrateMirror(contract.options.address);
 
   return await disconnect();
-}
+};

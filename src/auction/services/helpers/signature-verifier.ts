@@ -1,13 +1,13 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { signatureVerify } from '@polkadot/util-crypto';
 import { hexToU8a } from '@polkadot/util';
 
 type VerificationArgs = {
-  payload?: string,
-  signature?: string,
-  signerAddress?: string,
-}
+  payload?: string;
+  signature?: string;
+  signerAddress?: string;
+};
 
 @Injectable()
 export class SignatureVerifier {

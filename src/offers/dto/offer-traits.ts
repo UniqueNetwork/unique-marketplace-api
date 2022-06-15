@@ -19,5 +19,5 @@ export class OfferTraits {
 
   @Expose()
   @Type(() => TraitDto)
-  attributes: TraitDto[]
+  attributes: TraitDto[];
 }

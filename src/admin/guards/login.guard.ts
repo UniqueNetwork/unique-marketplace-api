@@ -35,7 +35,11 @@ export class LoginGuard implements CanActivate {
     let isAdmin = false;
     const list = this.config.adminList.split(',');
     if (list.length === 0 || this.config.adminList === null || this.config.adminList === '') {
-      throw new ForbiddenException({ statusCode: HttpStatus.FORBIDDEN, message: 'Marketplace disabled management for administrators.', error: 'Forbidden' });
+      throw new ForbiddenException({
+        statusCode: HttpStatus.FORBIDDEN,
+        message: 'Marketplace disabled management for administrators.',
+        error: 'Forbidden',
+      });
     }
     list.map((value) => {
       if (value.trim() === signerAddress) {
@@ -43,7 +47,11 @@ export class LoginGuard implements CanActivate {
       }
     });
     if (!isAdmin) {
-      throw new UnauthorizedException({ statusCode: HttpStatus.UNAUTHORIZED, message: 'Access denied', error: 'Unauthorized address' });
+      throw new UnauthorizedException({
+        statusCode: HttpStatus.UNAUTHORIZED,
+        message: 'Access denied',
+        error: 'Unauthorized address',
+      });
     }
   }
 }

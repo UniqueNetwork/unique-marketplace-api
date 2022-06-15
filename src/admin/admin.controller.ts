@@ -37,8 +37,14 @@ import * as fs from 'fs';
 
 @ApiTags('Administration')
 @ApiBearerAuth()
-@ApiUnauthorizedResponse({ description: 'Unauthorized address or bad signature', type: ResponseAdminUnauthorizedDto })
-@ApiForbiddenResponse({ description: 'Forbidden. Marketplace disabled management for administrators.', type: ResponseAdminForbiddenDto })
+@ApiUnauthorizedResponse({
+  description: 'Unauthorized address or bad signature',
+  type: ResponseAdminUnauthorizedDto,
+})
+@ApiForbiddenResponse({
+  description: 'Forbidden. Marketplace disabled management for administrators.',
+  type: ResponseAdminForbiddenDto,
+})
 @Controller('admin')
 export class AdminController {
   constructor(
@@ -55,7 +61,11 @@ export class AdminController {
     description: fs.readFileSync('docs/admin_login.md').toString(),
   })
   @UseGuards(LoginGuard)
-  @ApiQuery({ name: 'account', description: 'Substrate account', example: '5EsQUxc6FLEJKgCwWbiC4kBuCbBt6ePtdKLvVP5gfpXkrztf' })
+  @ApiQuery({
+    name: 'account',
+    description: 'Substrate account',
+    example: '5EsQUxc6FLEJKgCwWbiC4kBuCbBt6ePtdKLvVP5gfpXkrztf',
+  })
   @ApiResponse({ status: HttpStatus.OK, type: ResponseAdminDto })
   async login(@Query('account') signerAddress: string): Promise<ResponseAdminDto> {
     return await this.adminService.login(signerAddress);

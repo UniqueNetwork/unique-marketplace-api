@@ -17,12 +17,9 @@ export function BigIntGte(minValue: bigint, validationOptions?: ValidationOption
       constraints: [minValue],
       validator: {
         validate: (value, args): boolean => validateGte(value, args.constraints[0]),
-        defaultMessage: buildMessage(
-          eachPrefix => eachPrefix + '$property must not be less than $constraint1',
-          validationOptions
-        ),
+        defaultMessage: buildMessage((eachPrefix) => eachPrefix + '$property must not be less than $constraint1', validationOptions),
       },
     },
-    validationOptions
+    validationOptions,
   );
 }

@@ -14,7 +14,7 @@ export type CreateAuctionRequest = {
   minutes?: number;
 };
 
-const ToBigInt = Transform(({ value }: { value: any }): BigInt | any => {
+const ToBigInt = Transform(({ value }: { value: any }): bigint | any => {
   try {
     return BigInt(value);
   } catch (error) {

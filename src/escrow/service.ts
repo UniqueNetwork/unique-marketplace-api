@@ -81,7 +81,14 @@ export class EscrowService {
 
   async registerAsk(
     blockNum: bigint | number,
-    data: { collectionId: number; tokenId: number; addressFrom: string; addressTo: string; price: number; currency: string },
+    data: {
+      collectionId: number;
+      tokenId: number;
+      addressFrom: string;
+      addressTo: string;
+      price: number;
+      currency: string;
+    },
     network?: string,
   ) {
     const repository = this.db.getRepository(ContractAsk);
@@ -188,7 +195,11 @@ export class EscrowService {
 
   async getTokenTransfers(collectionId: number, tokenId: number, network: string) {
     const repository = this.db.getRepository(NFTTransfer);
-    return repository.find({ network: this.getNetwork(network), collection_id: collectionId.toString(), token_id: tokenId.toString() });
+    return repository.find({
+      network: this.getNetwork(network),
+      collection_id: collectionId.toString(),
+      token_id: tokenId.toString(),
+    });
   }
 
   async addBlock(blockNum: bigint | number, timestamp: number, network?: string) {
@@ -329,7 +340,12 @@ export class EscrowService {
 
   async getSearchIndexTraits(collectionId: number, tokenId: number, network?: string) {
     const repository = this.db.getRepository(SearchIndex);
-    return await repository.find({ collection_id: collectionId.toString(), token_id: tokenId.toString(), network: this.getNetwork(network), is_trait: true });
+    return await repository.find({
+      collection_id: collectionId.toString(),
+      token_id: tokenId.toString(),
+      network: this.getNetwork(network),
+      is_trait: true,
+    });
   }
 
   async addSearchIndexes(token: CollectionToken): Promise<void> {

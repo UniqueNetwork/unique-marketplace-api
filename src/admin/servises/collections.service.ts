@@ -187,7 +187,9 @@ export class CollectionsService implements OnModuleInit {
    * @return ({Promise<number[]>})
    */
   async getEnabledCollectionIds(): Promise<number[]> {
-    const collections = await this.collectionsRepository.find({ where: { status: CollectionStatus.Enabled } });
+    const collections = await this.collectionsRepository.find({
+      where: { status: CollectionStatus.Enabled },
+    });
 
     return collections.map((i) => Number(i.id));
   }
