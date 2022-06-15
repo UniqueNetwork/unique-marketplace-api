@@ -1,6 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { BnList } from '@polkadot/util/types';
 import { Collection } from '../../entity/collection';
 import { IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
 import { U32_MAX_VALUE } from '../constants';
@@ -62,7 +61,7 @@ export class MassFixPriceSaleResult {
   @ApiProperty()
   message: string;
   @ApiProperty()
-  data: BnList;
+  data: number[];
 }
 
 export class MassFixPriceSaleDTO {
@@ -82,7 +81,7 @@ export class MassAuctionSaleResult {
   @ApiProperty()
   message: string;
   @ApiProperty()
-  data: BnList;
+  data: number[];
 }
 
 export class MassAuctionSaleDTO {
