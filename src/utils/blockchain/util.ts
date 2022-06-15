@@ -89,7 +89,7 @@ class UniqueExplorer {
    */
   async tokenData(collectionId: number, tokenId: number) {
     const token = tokenUtil.ProxyToken.getInstance(this.api);
-    return token.tokenId(collectionId, tokenId);
+    return token.tokenId(tokenId, collectionId);
   }
 
   /**
@@ -102,7 +102,7 @@ class UniqueExplorer {
    */
   async getTokenOwner(collectionId: number, tokenId: number) {
     const token = tokenUtil.ProxyToken.getInstance(this.api);
-    const _token = await token.tokenId(collectionId, tokenId);
+    const _token = await token.tokenId(tokenId, collectionId);
     return _token.owner
   }
 
@@ -239,12 +239,12 @@ const convertAddress = async (address: string, ss58Format?: number): Promise<str
 };
 
 const mapProperties = (obj: any): any => {
-  let mapped = {};
+  const mapped = {};
   obj['properties'].forEach(prop => mapped[prop.key.startsWith('_old_') ? prop.key.slice(5) : prop.key] = prop.value);
   return mapped;
 }
 
 export {
   vec2str, str2vec, UniqueExplorer, normalizeAccountId, privateKey, extractCollectionIdFromAddress,
-  blockchainStaticFile, seedToAddress, convertAddress, mapProperties
+  blockchainStaticFile, seedToAddress, convertAddress, mapProperties,
 }

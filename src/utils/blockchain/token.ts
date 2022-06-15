@@ -1,30 +1,42 @@
 import { hexToU8a } from '@polkadot/util';
 
 import * as logging from '../logging'
+import * as protobuf from 'protobufjs';
 import { CollectionType, TypeAPI } from './collection';
 import { ApiPromise } from '@polkadot/api';
 import { mapProperties } from './util';
 
-import * as protobuf from 'protobufjs';
 
 export const decodeSchema = schema => {
-  const protoJson = JSON.parse(schema);
-
-  const root = protobuf.Root.fromJSON(protoJson);
-
-  const data = {json: protoJson, NFTMeta: null}
-
   try {
-    data.NFTMeta = root.lookupType("onChainMetaData.NFTMeta");
+
+    if (!schema) {
+      return null;
+    }
+
+    const protoJson = JSON.parse(schema);
+    const root = protobuf.Root.fromJSON(protoJson);
+    const data = {json: protoJson, NFTMeta: null}
+
+    try {
+      data.NFTMeta = root.lookupType("onChainMetaData.NFTMeta");
+    }
+    catch(e) {}
+
+    return data;
+  } catch (error) {
+    logging.log('decodeSchema error', logging.level.WARNING);
+    logging.log(error, logging.level.ERROR);
+    return null;
   }
-  catch(e) {}
-
-  return data;
-
 }
 
 export const decodeData = (data, schema) => {
-  if (schema.NFTMeta === null) return {data: data, human: null}
+  if (!schema) {
+    return {data: data, human: null};
+  }
+
+  if (schema?.NFTMeta === null) return {data: data, human: null}
   let tokenDataBuffer;
   try {
     tokenDataBuffer = hexToU8a(data);
@@ -121,8 +133,8 @@ export class ProxyToken implements TokenInterface {
         _token = await this.api.rpc?.unique?.tokenData(collectionId, tokenId) || null;
         _tokenHuman = _token.toHuman();
         const property = mapProperties(_tokenHuman);
-        _data = property['constData'] || null;
-        _variableData = property['variableData'] || null;
+        _data = property?.constData || null;
+        _variableData = property?.variableData || null;
       } catch (error) {
         this.type = TypeAPI.old;
         _token = null;
@@ -132,15 +144,15 @@ export class ProxyToken implements TokenInterface {
     if (this.type === TypeAPI.old) {
       _token = await this.api.query.nonfungible.tokenData(collectionId, tokenId);
       _tokenHuman = _token.toHuman();
-      _data = _tokenHuman['constData'] || null;
-      _variableData = _tokenHuman['variableData'] || null;
+      _data = _tokenHuman?.constData || null;
+      _variableData = _tokenHuman?.variableData || null;
       this.type = TypeAPI.old;
     }
 
     return {
       collectionId: collectionId,
       tokenId: tokenId,
-      owner: _tokenHuman['owner'],
+      owner: _tokenHuman?.owner || null,
       constData: _data,
       variableData: _variableData,
       image: null,
@@ -154,7 +166,7 @@ export class ProxyToken implements TokenInterface {
     return {
       ..._token,
       constData: _data,
-      image: JSON.parse(_data.human?.ipfsJson)?.ipfs || null,
+      image: _data.human?.ipfsJson ? JSON.parse(_data.human?.ipfsJson)?.ipfs : null
     }
   }
 

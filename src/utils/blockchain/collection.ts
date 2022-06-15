@@ -1,7 +1,6 @@
-import { ApiPromise } from "@polkadot/api";
-import { decodeSchema } from "./token";
-import { mapProperties, vec2str } from "./util";
-
+import { ApiPromise } from '@polkadot/api';
+import { decodeSchema } from './token';
+import { mapProperties, vec2str } from './util';
 
 export enum TypeAPI {
   old = 'old',
@@ -10,27 +9,27 @@ export enum TypeAPI {
 
 export type CollectionType = {
   schema: {
-    [propName: string]: any
-  },
-  name: string,
-  offchainSchema: string,
-  collectionCover: any,
-  tokenPrefix: string,
-  description: string,
-  typeAPI: TypeAPI,
-  collectionId: number,
-  [propName: string]: any
-}
+    [propName: string]: any;
+  };
+  name: string;
+  offchainSchema: string;
+  collectionCover: any;
+  tokenPrefix: string;
+  description: string;
+  typeAPI: TypeAPI;
+  collectionId: number;
+  [propName: string]: any;
+};
+
 
 interface CollectionInterface {
   getById(id: number): Promise<CollectionType>;
 }
 
 class CollectionBase {
-
   protected api;
 
-  constructor (api: ApiPromise) {
+  constructor(api: ApiPromise) {
     this.api = api;
   }
 }
@@ -40,7 +39,6 @@ class CollectionOld extends CollectionBase implements CollectionInterface {
     try {
       const collection = await this.api.query.common.collectionById(id);
       const humanCollection = collection.toHuman();
-      let schema = null;
 
       if (humanCollection === null || humanCollection === undefined) {
         return null;
@@ -50,37 +48,32 @@ class CollectionOld extends CollectionBase implements CollectionInterface {
         return null;
       }
 
-      if (humanCollection['constOnChainSchema']) {
-        schema = decodeSchema(humanCollection['constOnChainSchema']);
-      }
-
       return {
-        collection,
+        collection: humanCollection,
         collectionId: id,
-        schema,
+        schema: decodeSchema(humanCollection['constOnChainSchema']),
         tokenPrefix: humanCollection['tokenPrefix'],
         offchainSchema: humanCollection['offchainSchema'] || null,
         name: vec2str(humanCollection['name']) || null,
         description: vec2str(humanCollection['description']) || null,
         collectionCover: humanCollection['variableOnChainSchema'] || null,
-        typeAPI: TypeAPI.old
-      }
+        typeAPI: TypeAPI.old,
+      };
     } catch (error) {
-      console.error(error);
       return null;
     }
   }
 }
 
 class CollectionProperty extends CollectionBase implements CollectionInterface {
-  async getById(id:number): Promise<CollectionType> {
+  async getById(id: number): Promise<CollectionType> {
     try {
       const collection = await this.api.rpc.unique.collectionById(id);
       const humanCollection = collection.toHuman();
       const property = mapProperties(humanCollection);
       let schema = null;
 
-      if (humanCollection === null || humanCollection === undefined ) {
+      if (humanCollection === null || humanCollection === undefined) {
         return null;
       }
 
@@ -89,7 +82,7 @@ class CollectionProperty extends CollectionBase implements CollectionInterface {
       }
 
       return {
-        collection,
+        collection: humanCollection,
         collectionId: id,
         schema,
         tokenPrefix: humanCollection['tokenPrefix'],
@@ -97,24 +90,21 @@ class CollectionProperty extends CollectionBase implements CollectionInterface {
         name: vec2str(humanCollection['name']) || null,
         description: vec2str(humanCollection['description']) || null,
         collectionCover: property['variableOnChainSchema'] || null,
-        typeAPI: TypeAPI.properties
-      }
+        typeAPI: TypeAPI.properties,
+      };
     } catch (error) {
-      console.error(error);
       return null;
     }
   }
 }
 
 export class ProxyCollection implements CollectionInterface {
-
   private collectionOld: CollectionOld;
   private collectionProperty: CollectionProperty;
   private typeApi: TypeAPI;
   static instace: ProxyCollection;
 
   api: ApiPromise;
-
 
   constructor(api: ApiPromise, typeApi = TypeAPI.properties) {
     this.api = api;
@@ -128,8 +118,7 @@ export class ProxyCollection implements CollectionInterface {
     return this.instace;
   }
 
-  async getById(id :number): Promise<CollectionType> {
-
+  async getById(id: number): Promise<CollectionType> {
     let collection = null;
 
     if (this.typeApi === TypeAPI.properties) {
@@ -153,4 +142,3 @@ export class ProxyCollection implements CollectionInterface {
     return null;
   }
 }
-

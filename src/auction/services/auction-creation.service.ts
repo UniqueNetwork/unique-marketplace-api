@@ -34,7 +34,7 @@ type FailedAuctionArgs = {
   priceStep: bigint;
   days: number;
   minutes: number;
-}
+};
 
 @Injectable()
 export class AuctionCreationService {
@@ -60,11 +60,9 @@ export class AuctionCreationService {
   }
 
   async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
-
-    const _tokenInstance = ProxyToken.getInstance(this.uniqueApi);
-
-    const token = await _tokenInstance.tokenId(collectionId, tokenId);
-    const owner = token['owner'];
+    const tokenProxy = ProxyToken.getInstance(this.uniqueApi);
+    const token = await tokenProxy.tokenId(tokenId, collectionId);
+    const owner = token?.owner;
 
     const auctionSubstract = encodeAddress(this.auctionCredentials.uniqueAddress);
     const auctionEth = subToEth(auctionSubstract).toLowerCase();
