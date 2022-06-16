@@ -62,16 +62,19 @@ export class AuctionCreationService {
   async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
     const tokenProxy = ProxyToken.getInstance(this.uniqueApi);
     const token = await tokenProxy.tokenId(tokenId, collectionId);
+
     const owner = token?.owner;
+    const ownerSubstrate = owner?.substrate || owner?.Substrate;
+    const ownerEthereum = owner?.ethereum || owner?.Ethereum;
 
     const auctionSubstract = encodeAddress(this.auctionCredentials.uniqueAddress);
     const auctionEth = subToEth(auctionSubstract).toLowerCase();
 
-    if (owner?.substrate) {
-      return encodeAddress(owner.substrate) === auctionSubstract;
+    if (ownerSubstrate) {
+      return encodeAddress(ownerSubstrate) === auctionSubstract;
     }
 
-    if (owner?.ethereum) {
+    if (ownerEthereum) {
       return owner.ethereum === auctionEth;
     }
     return false;
