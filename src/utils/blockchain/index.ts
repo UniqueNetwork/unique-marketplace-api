@@ -1,3 +1,3 @@
-export * from './signTransaction'
+export * from './signTransaction';
 export { CollectionType, ProxyCollection } from './collection';
 export { ProxyToken } from './token';

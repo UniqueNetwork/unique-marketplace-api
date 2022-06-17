@@ -37,7 +37,10 @@ export class TokenService {
     const collectionId = await this.collectionsService.findById(+collection);
     if (collectionId === undefined) throw new NotFoundException('Collection not found');
     await this.collectionsService.updateAllowedTokens(+collection, data.tokens);
-    return { statusCode: HttpStatus.OK, message: `Add allowed tokens: ${data.tokens} for collection: ${collectionId.id}` };
+    return {
+      statusCode: HttpStatus.OK,
+      message: `Add allowed tokens: ${data.tokens} for collection: ${collectionId.id}`,
+    };
   }
 
   /**
@@ -52,7 +55,11 @@ export class TokenService {
         await entityManager.query(data);
       });
     } catch (e) {
-      throw new BadRequestException({ statusCode: HttpStatus.BAD_REQUEST, message: e.message, error: e.error });
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: e.message,
+        error: e.error,
+      });
     }
   }
 
@@ -78,7 +85,7 @@ export class TokenService {
     const array = tokens.match(regex)[0];
     const arr = array.split(',');
     arr.forEach((token) => {
-      let rangeNum = token.split('-');
+      const rangeNum = token.split('-');
       if (rangeNum.length > 1) {
         if (parseInt(rangeNum[0]) > this.MAX_TOKEN_NUMBER) {
           throw new BadRequestException(
@@ -90,8 +97,6 @@ export class TokenService {
         }
 
         if (rangeNum[0] === '' || rangeNum[1] === '') {
-          let rangeLeft = rangeNum[0] === '' ? 'null' : rangeNum[0];
-          let rangeRight = rangeNum[1] === '' ? 'null' : rangeNum[1];
           throw new BadRequestException(`Wrong tokens range! Set the correct range! Example: 2-300`);
         }
         if (parseInt(rangeNum[0]) === 0 || parseInt(rangeNum[1]) === 0) {

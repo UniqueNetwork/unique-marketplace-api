@@ -38,5 +38,5 @@ export class ResponseCreateDto {
   @ApiProperty({})
   message: string;
   @ApiProperty({})
-  data: {};
+  data: Object;
 }

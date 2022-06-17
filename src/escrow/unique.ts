@@ -1,5 +1,6 @@
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { Interface } from 'ethers/lib/utils';
+import InputDataDecoder from 'ethereum-input-data-decoder';
 
 import { Escrow } from './base';
 import * as logging from '../utils/logging';
@@ -41,7 +42,6 @@ export class UniqueEscrow extends Escrow {
   async init() {
     this.initialized = true;
     await this.connectApi();
-    const InputDataDecoder = require('ethereum-input-data-decoder');
     this.inputDecoder = new InputDataDecoder(this.getAbi());
     this.etherDecoder = new Interface(this.getAbi());
     this.explorer = new util.UniqueExplorer(this.api, this.admin);

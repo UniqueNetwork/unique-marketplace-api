@@ -77,7 +77,10 @@ export class SettingsService {
   }
 
   private async getAllowedTokens(): Promise<any> {
-    const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled, allowedTokens: Not('') });
+    const collections = await this.collectionsRepository.find({
+      status: CollectionStatus.Enabled,
+      allowedTokens: Not(''),
+    });
     return collections.map((i) => {
       return { collection: Number(i.id), tokens: i.allowedTokens };
     });

@@ -7,7 +7,6 @@ import { TradesHealthIndicator, TradesService } from '../../trades';
 import { AdminHealthIndicator } from '../../admin/admin.health';
 import { AdminService } from '../../admin/admin.service';
 
-
 @Injectable()
 export class HealthService {
   private readonly listOfThingsToMonitor: HealthIndicator[];

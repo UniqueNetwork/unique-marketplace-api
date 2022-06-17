@@ -5,7 +5,7 @@ import { Hash } from '@polkadot/types/interfaces';
 import { IExtrinsic } from '@polkadot/types/types';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { stringify } from '@polkadot/util';
-import '@polkadot/api-augment/polkadot'
+import '@polkadot/api-augment/polkadot';
 
 export type SubmitResult = {
   isSucceed: boolean;
@@ -26,10 +26,10 @@ export class ExtrinsicSubmitter {
     this.logger.debug(`${extrinsicHuman}; ${stringify(txResult)}`);
 
     if (!txResult.isSucceed) {
-      this.logger.warn(`Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`)
+      this.logger.warn(`Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`);
       throw new BadRequestException({
         statusCode: HttpStatus.CONFLICT,
-        message: `Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`
+        message: `Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`,
       });
     }
 

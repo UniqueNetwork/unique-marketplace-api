@@ -1,6 +1,6 @@
 import { BlockchainBlock } from '../../../src/entity';
 
-export const prepareBlockData  = async (queryBuilder) => {
+export const prepareBlockData = async (queryBuilder) => {
   await queryBuilder
     .insert()
     .values([
@@ -58,8 +58,8 @@ export const prepareBlockData  = async (queryBuilder) => {
         block_number: 1011,
         network: 'testnet',
         created_at: '2021-02-01 20:18:01.135',
-      }
+      },
     ])
     .into(BlockchainBlock)
-    .execute()
-}
+    .execute();
+};

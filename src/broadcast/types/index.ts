@@ -1,6 +1,6 @@
-import { Server, Socket } from "socket.io";
-import { Emitter } from "@socket.io/postgres-emitter";
-import { OfferContractAskDto } from "../../offers/dto/offer-dto";
+import { Server, Socket } from 'socket.io';
+import { Emitter } from '@socket.io/postgres-emitter';
+import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 
 export type ServerToClientEvents = {
   auctionStarted: (offer: OfferContractAskDto) => void;
@@ -9,7 +9,7 @@ export type ServerToClientEvents = {
   auctionClosed: (offer: OfferContractAskDto) => void;
 };
 
-export type TokenIds = { collectionId: number, tokenId: number };
+export type TokenIds = { collectionId: number; tokenId: number };
 
 export type ClientToServerEvents = {
   subscribeToAuction: (ids: TokenIds) => void;

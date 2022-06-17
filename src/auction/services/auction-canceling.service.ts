@@ -1,4 +1,4 @@
-import { BadRequestException, HttpStatus, Inject, Logger } from '@nestjs/common';
+import { BadRequestException, Inject, Logger } from '@nestjs/common';
 import { Connection, Not, Repository } from 'typeorm';
 import { AuctionEntity, BidEntity } from '../entities';
 import { BlockchainBlock, ContractAsk } from '../../entity';
@@ -33,7 +33,7 @@ export class AuctionCancelingService {
     @Inject('CONFIG') private config: MarketConfig,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
-    @InjectSentry() private readonly sentryService: SentryService
+    @InjectSentry() private readonly sentryService: SentryService,
   ) {
     this.contractAskRepository = connection.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
@@ -70,7 +70,7 @@ export class AuctionCancelingService {
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
       if (contractAsk.address_from !== encodeAddress(ownerAddress)) {
-        this.logger.error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`)
+        this.logger.error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`);
         throw new Error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`);
       }
 
@@ -79,17 +79,17 @@ export class AuctionCancelingService {
       });
 
       if (bidsCount !== 0) {
-        this.logger.error(`Unable to cancel auction, ${bidsCount} bids is placed already`)
+        this.logger.error(`Unable to cancel auction, ${bidsCount} bids is placed already`);
         throw new Error(`Unable to cancel auction, ${bidsCount} bids is placed already`);
       }
 
       contractAsk.status = ASK_STATUS.CANCELLED;
       await transactionEntityManager.update(ContractAsk, contractAsk.id, { status: ASK_STATUS.CANCELLED });
-      this.logger.debug(`Update offer id:${contractAsk.id}  status: 'CANCELLED' `)
+      this.logger.debug(`Update offer id:${contractAsk.id}  status: 'CANCELLED' `);
       await transactionEntityManager.update(AuctionEntity, contractAsk.auction.id, {
         stopAt: new Date(),
-        status: AuctionStatus.ended
-      })
+        status: AuctionStatus.ended,
+      });
 
       const canceledAuctionLog = {
         subject: 'Canceled auction',
@@ -102,12 +102,12 @@ export class AuctionCancelingService {
         ownerAddress: ownerAddress,
         n42: {
           address_from: encodeAddress(contractAsk.address_from),
-          ownerAddress: encodeAddress(ownerAddress)
+          ownerAddress: encodeAddress(ownerAddress),
         },
         contract_ask_auction: contractAsk.auction.id,
-      }
+      };
 
-      this.logger.debug(JSON.stringify(canceledAuctionLog))
+      this.logger.debug(JSON.stringify(canceledAuctionLog));
       return contractAsk;
     });
   }
@@ -121,18 +121,13 @@ export class AuctionCancelingService {
       const { address_from, collection_id, token_id } = contractAsk;
       const auctionKeyring = this.auctionCredentials.keyring;
 
-      const tx = await this.uniqueApi.tx.unique.transfer(
-        { Substrate: address_from },
-        collection_id,
-        token_id,
-        1,
-      ).signAsync(auctionKeyring);
+      const tx = await this.uniqueApi.tx.unique.transfer({ Substrate: address_from }, collection_id, token_id, 1).signAsync(auctionKeyring);
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 
       if (blockNumber === undefined || blockNumber === null || blockNumber.toString() === '0') {
         this.sentryService.message('sendTokenBackToOwner');
-        throw new Error('Block number is not defined')
+        throw new Error('Block number is not defined');
       }
 
       const block = this.blockchainBlockRepository.create({
@@ -148,7 +143,7 @@ export class AuctionCancelingService {
 
       const sendTokenDataLog = {
         subject: 'Send token back to owner',
-        thread:'auction canceling',
+        thread: 'auction canceling',
         address_from: address_from,
         address_from_n42: encodeAddress(address_from),
         collection: collection_id,
@@ -157,9 +152,9 @@ export class AuctionCancelingService {
         auction_seed_n42: encodeAddress(auctionKeyring.address),
         network: this.config.blockchain.unique.network,
         block_number: block.block_number,
-      }
+      };
 
-      this.logger.debug(JSON.stringify(sendTokenDataLog))
+      this.logger.debug(JSON.stringify(sendTokenDataLog));
     } catch (error) {
       this.logger.error(error);
     }

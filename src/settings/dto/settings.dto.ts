@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { example } from 'yargs';
 
 class SettingBlockchainUnique {
   @ApiProperty({})

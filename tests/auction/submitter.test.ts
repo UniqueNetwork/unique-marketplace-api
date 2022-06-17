@@ -16,21 +16,16 @@ const getBalance = (api: ApiPromise, keyringPair: KeyringPair): Promise<bigint> 
   return api.query.system.account(keyringPair.address).then((a) => a.data.free.toBigInt());
 };
 
-const buildTransferMaker = (
-  api: ApiPromise,
-  extrinsicSubmitter: ExtrinsicSubmitter,
-) => async (
-  from: KeyringPair,
-  to: KeyringPair,
-  amount: bigint,
-  isKeepAlive: boolean,
-): Promise<any> => {
-  const method = isKeepAlive ? 'transferKeepAlive' : 'transfer';
-  const tx = await api.tx.balances[method](to.address, amount).signAsync(from).then((tx) => tx.toJSON());
+const buildTransferMaker =
+  (api: ApiPromise, extrinsicSubmitter: ExtrinsicSubmitter) =>
+  async (from: KeyringPair, to: KeyringPair, amount: bigint, isKeepAlive: boolean): Promise<any> => {
+    const method = isKeepAlive ? 'transferKeepAlive' : 'transfer';
+    const tx = await api.tx.balances[method](to.address, amount)
+      .signAsync(from)
+      .then((tx) => tx.toJSON());
 
-  return extrinsicSubmitter.submit(api, tx);
-}
-
+    return extrinsicSubmitter.submit(api, tx);
+  };
 
 describe(ExtrinsicSubmitter.name, () => {
   let sender: KeyringPair;
@@ -42,12 +37,7 @@ describe(ExtrinsicSubmitter.name, () => {
   let minAmount: bigint;
 
   beforeAll(async () => {
-    Logger.overrideLogger(
-      new ConsoleLogger(
-        'jest',
-        { logLevels: ['log', 'error', 'warn', 'debug', 'verbose'] }
-      )
-    );
+    Logger.overrideLogger(new ConsoleLogger('jest', { logLevels: ['log', 'error', 'warn', 'debug', 'verbose'] }));
 
     extrinsicSubmitter = new ExtrinsicSubmitter();
 
@@ -63,7 +53,7 @@ describe(ExtrinsicSubmitter.name, () => {
 
     minAmount = api.consts.balances.existentialDeposit.toBigInt();
     if (!minAmount) {
-      minAmount = await getBalance(api, sender) / 1000n;
+      minAmount = (await getBalance(api, sender)) / 1000n;
     }
   });
 
@@ -88,7 +78,10 @@ describe(ExtrinsicSubmitter.name, () => {
     const makeTransfer = buildTransferMaker(api, extrinsicSubmitter);
 
     const toRecipientResult = makeTransfer(sender, recipient, minAmount * 10n, true);
-    await expect(toRecipientResult).resolves.toMatchObject({ isSucceed: true, blockNumber: expect.any(BigInt) });
+    await expect(toRecipientResult).resolves.toMatchObject({
+      isSucceed: true,
+      blockNumber: expect.any(BigInt),
+    });
     console.log(`sender => ${minAmount * 10n} => recipient: ${stringify(await toRecipientResult)}`);
 
     recipientBalance = await getBalance(api, recipient);
@@ -101,7 +94,10 @@ describe(ExtrinsicSubmitter.name, () => {
     console.log(`sender => ${recipientBalance - minAmount + 1n} => recipient: failed as expected`);
 
     const transferPartResult = makeTransfer(recipient, sender, minAmount, true);
-    await expect(transferPartResult).resolves.toMatchObject({ isSucceed: true, blockNumber: expect.any(BigInt) });
+    await expect(transferPartResult).resolves.toMatchObject({
+      isSucceed: true,
+      blockNumber: expect.any(BigInt),
+    });
     console.log(`recipient => ${minAmount} => sender: ${stringify(await transferPartResult)}`);
 
     const txTransferAll = await api.tx.balances
@@ -111,7 +107,10 @@ describe(ExtrinsicSubmitter.name, () => {
 
     const transferAllResult = extrinsicSubmitter.submit(api, txTransferAll);
 
-    await expect(transferAllResult).resolves.toMatchObject({ isSucceed: true, blockNumber: expect.any(BigInt) });
+    await expect(transferAllResult).resolves.toMatchObject({
+      isSucceed: true,
+      blockNumber: expect.any(BigInt),
+    });
     console.log(`recipient => all => sender: ${stringify(await transferAllResult)}`);
 
     const senderEndBalance = await getBalance(api, sender);

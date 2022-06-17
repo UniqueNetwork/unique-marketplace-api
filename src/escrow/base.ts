@@ -110,10 +110,12 @@ export class Escrow {
     if (timestamp !== null) await this.service.addBlock(blockNum, timestamp, network);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async extractBlockData(blockNum, isSuccess, rawExtrinsic, events) {
     throw Error('NotImplemented');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async processBlock(blockNum, force = false) {
     throw Error('NotImplemented');
   }

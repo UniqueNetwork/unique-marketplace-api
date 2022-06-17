@@ -13,8 +13,8 @@ import { ExtrinsicSubmitter } from '../helpers/extrinsic-submitter';
 import { MarketConfig } from '../../../config/market-config';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { OfferContractAskDto } from '../../../offers/dto/offer-dto';
-import { AuctionCredentials } from "../../providers";
-import { InjectSentry,  SentryService } from '../../../utils/sentry';
+import { AuctionCredentials } from '../../providers';
+import { InjectSentry, SentryService } from '../../../utils/sentry';
 
 @Injectable()
 export class AuctionClosingService {
@@ -35,7 +35,7 @@ export class AuctionClosingService {
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @Inject('CONFIG') private config: MarketConfig,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
-    @InjectSentry() private readonly sentryService: SentryService
+    @InjectSentry() private readonly sentryService: SentryService,
   ) {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
     this.contractAskRepository = connection.manager.getRepository(ContractAsk);
@@ -136,7 +136,7 @@ export class AuctionClosingService {
     if (winner) {
       const { bidderAddress: winnerAddress, totalAmount: finalPrice } = winner;
 
-      const marketFee = finalPrice * BigInt(this.config.auction.commission) / 100n;
+      const marketFee = (finalPrice * BigInt(this.config.auction.commission)) / 100n;
       const ownerPrice = finalPrice - marketFee;
 
       let message = AuctionClosingService.getIdentityMessage(contractAsk, winnerAddress, finalPrice);
@@ -152,7 +152,7 @@ export class AuctionClosingService {
       const extrinsic = await this.extrinsicSubmitter
         .submit(this.kusamaApi, tx)
         .then(() => {
-          this.logger.log(`transfer done`)
+          this.logger.log(`transfer done`);
           return true;
         })
         .catch((error) => this.logger.warn(`transfer failed with ${error.toString()}`));
@@ -175,12 +175,7 @@ export class AuctionClosingService {
     try {
       const { collection_id, token_id } = contractAsk;
 
-      const tx = await this.uniqueApi.tx.unique.transfer(
-        { Substrate: winnerAddress },
-        collection_id,
-        token_id,
-        1,
-      ).signAsync(this.auctionKeyring);
+      const tx = await this.uniqueApi.tx.unique.transfer({ Substrate: winnerAddress }, collection_id, token_id, 1).signAsync(this.auctionKeyring);
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 

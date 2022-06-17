@@ -1,8 +1,10 @@
 import { getConfig } from './index';
 
-export const configProviders = [{
-  provide: 'CONFIG',
-  useFactory: () => {
-    return getConfig();
-  }
-}];
+export const configProviders = [
+  {
+    provide: 'CONFIG',
+    useFactory: () => {
+      return getConfig();
+    },
+  },
+];

@@ -91,7 +91,11 @@ export class AdminService {
 
     try {
       if (this.config.adminList === null || this.config.adminList === '') {
-        throw new ForbiddenException({ statusCode: HttpStatus.FORBIDDEN, message: 'Marketplace disabled management for administrators.', error: 'Forbidden' });
+        throw new ForbiddenException({
+          statusCode: HttpStatus.FORBIDDEN,
+          message: 'Marketplace disabled management for administrators.',
+          error: 'Forbidden',
+        });
       }
       const list = this.config.adminList.split(',');
       list.map((value) => {
@@ -100,7 +104,11 @@ export class AdminService {
         }
       });
       if (!isAdmin) {
-        throw new UnauthorizedException({ statusCode: HttpStatus.UNAUTHORIZED, message: 'Access denied', error: 'Unauthorized address' });
+        throw new UnauthorizedException({
+          statusCode: HttpStatus.UNAUTHORIZED,
+          message: 'Access denied',
+          error: 'Unauthorized address',
+        });
       }
     } catch (e) {
       this.logger.error({ statusCode: e.status, message: e.message, error: e.response?.error });

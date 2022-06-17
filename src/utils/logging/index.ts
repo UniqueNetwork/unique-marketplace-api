@@ -7,7 +7,7 @@ const addLeadZero = (num) => {
 };
 
 const getTime = () => {
-  let a = new Date(),
+  const a = new Date(),
     hour = addLeadZero(a.getHours()),
     min = addLeadZero(a.getMinutes()),
     sec = addLeadZero(a.getSeconds());
@@ -15,7 +15,7 @@ const getTime = () => {
 };
 
 const getDate = () => {
-  let a = new Date(),
+  const a = new Date(),
     year = a.getFullYear(),
     month = addLeadZero(a.getMonth() + 1),
     date = addLeadZero(a.getDate());
@@ -37,9 +37,9 @@ const log = (message, level = logLevel.INFO) => {
     level = green(level);
   }
 
-  let rawMsgs = Array.isArray(message) ? message : [message],
+  const rawMsgs = Array.isArray(message) ? message : [message],
     msgs = [];
-  for (let msg of rawMsgs) {
+  for (const msg of rawMsgs) {
     try {
       if (typeof msg !== 'string') {
         msgs.push(JSON.stringify(msg));

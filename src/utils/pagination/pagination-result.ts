@@ -1,7 +1,7 @@
-import { Exclude, Type } from "class-transformer";
+import { Exclude, Type } from 'class-transformer';
 
 export interface PaginationResult<T> {
-  items: T[]
+  items: T[];
   itemsCount: number;
   page: number;
   pageSize: number;
@@ -18,7 +18,7 @@ export class PaginationResultDto<T> implements PaginationResult<T> {
   // eslint-disable-next-line @typescript-eslint/ban-types
   type: Function;
 
-  @Type(options => {
+  @Type((options) => {
     return (options.newObject as PaginationResultDto<T>).type;
   })
   items: T[];

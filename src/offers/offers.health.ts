@@ -1,4 +1,3 @@
-
 import { PrometheusService } from '../utils/prometheus/prometheus.service';
 import { HealthIndicatorResult } from '@nestjs/terminus';
 import { OffersService } from './offers.service';

@@ -26,8 +26,7 @@ export class PostgresIoAdapter extends IoAdapter {
   static createIOEmitter(config: MarketConfig): BroadcastIOEmitter {
     const poolConfig = PostgresIoAdapter.buildPoolConfig(config);
     const pool = new Pool(poolConfig);
-    PostgresIoAdapter.checkTable(pool)
-      .then(() => new Logger(PostgresIoAdapter.name).debug('table existence checked'));
+    PostgresIoAdapter.checkTable(pool).then(() => new Logger(PostgresIoAdapter.name).debug('table existence checked'));
 
     return new Emitter(pool);
   }

@@ -6,9 +6,9 @@ export function queryArray(name: string, itemType: string) {
     schema: {
       items: {
         type: itemType,
-        default: ''
+        default: '',
       },
-      type: 'array'
-    }
-  }
+      type: 'array',
+    },
+  };
 }

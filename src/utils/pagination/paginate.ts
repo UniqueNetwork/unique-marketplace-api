@@ -18,7 +18,7 @@ export async function paginate<T>(query: SelectQueryBuilder<T>, parameter: Pagin
     page,
     pageSize,
     itemsCount,
-    items
+    items,
   };
 }
 

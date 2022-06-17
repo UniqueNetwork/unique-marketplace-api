@@ -5,7 +5,7 @@ import { MarketConfig } from '../../config/market-config';
 import { SearchIndex } from '../../entity';
 
 import { v4 as uuid } from 'uuid';
-import { CollectionToken, TokenInfo, TypeAttributToken, TypeConstSchema } from '../types';
+import { CollectionToken, TokenInfo, TypeAttributToken } from '../types';
 
 import { ProxyCollection, ProxyToken } from '../../utils/blockchain';
 import { CollectionType } from '../../utils/blockchain/collection';
@@ -64,7 +64,7 @@ export class SearchIndexService {
 
   private getCollectionCover(collection: CollectionType): string {
     if (collection?.collectionCover) {
-      return JSON.parse(collection?.collectionCover)?.collectionCover
+      return JSON.parse(collection?.collectionCover)?.collectionCover;
     }
     if (collection?.offchainSchema) {
       return collection.offchainSchema.replace('{id}', '1');
@@ -123,7 +123,7 @@ export class SearchIndexService {
     if (token.constData) {
       const tokenData = token.constData;
       try {
-        for (let k of this.getKeywords(collection.schema.NFTMeta, tokenData.human)) {
+        for (const k of this.getKeywords(collection.schema.NFTMeta, tokenData.human)) {
           keywords.push(k);
         }
       } catch (e) {
@@ -142,8 +142,8 @@ export class SearchIndexService {
           locale: null,
           key: 'image',
           items: [JSON.parse(dataObj[key]).ipfs],
-          type: TypeAttributToken.ImageURL
-        }
+          type: TypeAttributToken.ImageURL,
+        };
         continue;
       }
       if (resolvedType && resolvedType.constructor.name.toString() === 'Enum') {
