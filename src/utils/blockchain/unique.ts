@@ -2,7 +2,7 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import * as logging from '../logging';
 import { RPC } from './rpc';
 
-const connectApi = async function (url, exitOnDisconnect = true, type = 'mainnet') {
+const connectApi = async function (url: string, exitOnDisconnect = true, type = 'mainnet') {
   const wsProvider = new WsProvider(url);
 
   const api = new ApiPromise({
