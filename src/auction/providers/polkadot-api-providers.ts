@@ -1,7 +1,7 @@
 import { Logger, Provider, Scope } from "@nestjs/common";
 import { ApiPromise, WsProvider } from "@polkadot/api";
-import * as defs from "@unique-nft/types/definitions";
 import { ApiInterfaceEvents } from "@polkadot/api/types";
+import { RPC } from "../../utils/blockchain";
 import { MarketConfig } from "../../config/market-config";
 
 const waitConnectionReady = async (api: ApiPromise, logger: Logger, wsEndpoint: string): Promise<ApiPromise> => {
@@ -34,7 +34,7 @@ const uniqueApiProvider: Provider<Promise<ApiPromise>> = {
 
     const api = new ApiPromise({
       provider: wsProvider,
-      rpc: { unique: defs.unique.rpc },
+      rpc: { unique: RPC(config.blockchain.unique.network) },
     });
 
     return await waitConnectionReady(api, logger, wsEndpoint);
