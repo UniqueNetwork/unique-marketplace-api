@@ -1,14 +1,13 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
-import * as defs from '@unique-nft/types/definitions';
-
 import * as logging from '../logging';
+import { RPC } from './rpc';
 
-const connectApi = async function (opalUrl, exitOnDisconnect = true) {
-  const wsProvider = new WsProvider(opalUrl);
+const connectApi = async function (url: string, exitOnDisconnect = true, type = 'mainnet') {
+  const wsProvider = new WsProvider(url);
 
   const api = new ApiPromise({
     provider: wsProvider,
-    rpc: { unique: defs.unique.rpc },
+    rpc: { unique: RPC(type) },
   });
 
   api.on('disconnected', async (value) => {
