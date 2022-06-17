@@ -10,7 +10,7 @@ export const main = async (moduleRef) => {
 
   const proxyCollection = ProxyCollection.getInstance(api);
 
-  const collection = await proxyCollection.getById(5);
+  const collection = await proxyCollection.getById(2);
 
   console.dir(collection, { depth: 3 });
 
