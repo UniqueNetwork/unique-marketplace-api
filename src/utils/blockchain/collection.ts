@@ -67,8 +67,7 @@ class CollectionOld extends CollectionBase implements CollectionInterface {
 class CollectionProperty extends CollectionBase implements CollectionInterface {
   async getById(id: number): Promise<CollectionType> {
     try {
-      //const collection = await this.api.rpc.unique.collectionById(id);
-      const collection = await this.api.query.common.collectionById(id);
+      const collection = await this.api.rpc.unique.collectionById(id);
       const humanCollection = collection.toHuman();
       const property = mapProperties(humanCollection);
       let schema = null;

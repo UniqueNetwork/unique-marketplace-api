@@ -16,6 +16,7 @@ import { blockchainStaticFile } from '../../utils/blockchain/util';
 import { GAS_LIMIT } from '../constants';
 import { BN } from '@polkadot/util';
 import { BnList } from '@polkadot/util/types';
+import { ProxyCollection } from '../../utils/blockchain';
 
 @Injectable()
 export class MassSaleService {
@@ -200,10 +201,11 @@ export class MassSaleService {
    */
   private async prepareMassSale(collectionId: number): Promise<PrepareMassSaleResult> {
     const enabledIds = await this.collections.getEnabledCollectionIds();
+    const proxyCollection = ProxyCollection.getInstance(this.unique);
 
     if (!enabledIds.includes(collectionId)) throw new BadRequestException(`Collection #${collectionId} not enabled`);
 
-    const collectionById = await this.unique.query.common.collectionById(collectionId);
+    const collectionById = await proxyCollection.getById(collectionId);
 
     const collectionInChain = collectionById.unwrapOr(null);
 
