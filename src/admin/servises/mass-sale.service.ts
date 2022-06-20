@@ -203,7 +203,7 @@ export class MassSaleService {
 
     if (!enabledIds.includes(collectionId)) throw new BadRequestException(`Collection #${collectionId} not enabled`);
 
-    const collectionById = await this.unique.rpc.unique.collectionById(collectionId);
+    const collectionById = await this.unique.query.common.collectionById(collectionId);
 
     const collectionInChain = collectionById.unwrapOr(null);
 
