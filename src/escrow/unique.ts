@@ -10,6 +10,7 @@ import * as util from '../utils/blockchain/util';
 import { MONEY_TRANSFER_STATUS } from './constants';
 import { MoneyTransfer } from '../entity';
 import { Logger } from '@nestjs/common';
+import BigNumber from 'bignumber.js';
 
 export class UniqueEscrow extends Escrow {
   logger = new Logger(UniqueEscrow.name);
@@ -90,8 +91,14 @@ export class UniqueEscrow extends Escrow {
   }
 
   getPriceWithoutCommission(price: bigint) {
-    const commission = BigInt(100 + parseInt(this.config('kusama.marketCommission')));
-    return (price * 100n) / commission;
+    const kusamaMarketCommission = new BigNumber(this.config('kusama.marketCommission'));
+    const commission = kusamaMarketCommission.plus(100);
+    logging.log(`Commission: ${commission.toString()}%`);
+    const bigNumberPrice = new BigNumber(price.toString());
+    logging.log(`Price: ${bigNumberPrice.toString()}`);
+    const percentPrice = bigNumberPrice.multipliedBy(100).dividedBy(commission);
+    logging.log(`Price without commission: ${percentPrice.toString()}`);
+    return BigInt(percentPrice.toString());
   }
 
   async connectApi() {
