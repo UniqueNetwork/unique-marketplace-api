@@ -10,7 +10,6 @@ import { PlaygroundCommand } from './utils/playground';
 import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
 import { PrometheusService } from './utils/prometheus/prometheus.service';
 import { EscrowModule } from './escrow/module';
-import { SettingsController, SettingsService } from './settings';
 import { HealthController, HealthService } from './utils/health';
 import { MetricsController, MetricsService } from './utils/metrics';
 import { AuctionModule } from './auction/auction.module';
@@ -24,6 +23,7 @@ import { AdminController } from './admin/admin.controller';
 import { CollectionsService, TokenService, MassSaleService } from './admin/servises';
 import { TradesModule } from './trades/trades.module';
 import { OffersModule } from './offers/offers.module';
+import { SettingsModule } from './settings/settings.module';
 
 const config = getConfig();
 
@@ -45,11 +45,11 @@ const config = getConfig();
     BroadcastModule,
     TradesModule,
     OffersModule,
+    SettingsModule,
   ],
-  controllers: [AdminController, SettingsController, HealthController, MetricsController],
+  controllers: [AdminController, HealthController, MetricsController],
   providers: [
     PlaygroundCommand,
-    SettingsService,
     AdminService,
     SignatureVerifier,
     HealthService,
