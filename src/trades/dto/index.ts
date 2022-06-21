@@ -1,1 +1,2 @@
-export { TradesFilter } from './trade-filter';
+export * from './trade-dto';
+export * from './trade-filter';

@@ -1,1 +1,1 @@
-export { ParseTradesFilterPipe } from './trades-filter.pipe';
+export * from './trades-filter.pipe';
