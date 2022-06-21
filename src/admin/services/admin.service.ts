@@ -6,9 +6,9 @@ import { ApiPromise } from '@polkadot/api';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuid } from 'uuid';
 import * as util from '../../utils/blockchain/util';
-import { SignatureVerifier } from '../../auction/services/helpers/signature-verifier';
 import { ResponseAdminDto } from '../dto/response-admin.dto';
 import { AdminSessionEntity } from '../../entity/adminsession-entity';
+import { InjectUniqueAPI } from '../../blockchain';
 
 @Injectable()
 export class AdminService {
@@ -17,9 +17,8 @@ export class AdminService {
   constructor(
     @InjectSentry() private readonly sentryService: SentryService,
     @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @InjectUniqueAPI() private uniqueApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
-    private readonly signatureVerifier: SignatureVerifier,
     private jwtService: JwtService,
   ) {
     this.logger = new Logger(AdminService.name);

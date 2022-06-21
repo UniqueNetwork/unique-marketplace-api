@@ -1,10 +1,11 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
-import { Collection, Tokens } from '../../entity';
 import { ApiPromise } from '@polkadot/api';
+import { Collection, Tokens } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { CollectionsService } from './collections.service';
 import { ResponseTokenDto } from '../dto';
+import { InjectUniqueAPI } from '../../blockchain';
 
 @Injectable()
 export class TokenService {
@@ -14,13 +15,13 @@ export class TokenService {
   private readonly MAX_TOKEN_NUMBER = 2147483647;
 
   constructor(
-    @Inject('DATABASE_CONNECTION') private db: Connection,
-    @Inject('UNIQUE_API') private unique: ApiPromise,
+    @Inject('DATABASE_CONNECTION') private connection: Connection,
+    @InjectUniqueAPI() private unique: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
     private collectionsService: CollectionsService,
   ) {
-    this.collectionsRepository = db.getRepository(Collection);
-    this.tokensRepository = db.getRepository(Tokens);
+    this.collectionsRepository = connection.getRepository(Collection);
+    this.tokensRepository = connection.getRepository(Tokens);
     this.logger = new Logger(TokenService.name);
   }
 
@@ -50,7 +51,7 @@ export class TokenService {
   async createTokens(data: string, collection: string): Promise<void> {
     try {
       await this.removeTokenCollection(collection);
-      this.db.transaction(async (entityManager) => {
+      this.connection.transaction(async (entityManager) => {
         //await entityManager.createQueryBuilder().insert().into(Tokens).values(data).execute();
         await entityManager.query(data);
       });

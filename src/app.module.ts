@@ -15,7 +15,6 @@ import { MetricsController, MetricsService } from './utils/metrics';
 import { AuctionModule } from './auction/auction.module';
 import { BroadcastModule } from './broadcast/broadcast.module';
 import { RequestLoggerMiddleware } from './utils/logging/request-logger-middleware.service';
-import { SignatureVerifier } from './auction/services/helpers/signature-verifier';
 import { TradesModule } from './trades/trades.module';
 import { OffersModule } from './offers/offers.module';
 import { SettingsModule } from './settings/settings.module';
@@ -42,7 +41,7 @@ import { AdminModule } from './admin/admin.module';
     AdminModule,
   ],
   controllers: [HealthController, MetricsController],
-  providers: [PlaygroundCommand, SignatureVerifier, HealthService, MetricsService, PrometheusService],
+  providers: [PlaygroundCommand, HealthService, MetricsService, PrometheusService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): any {

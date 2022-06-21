@@ -8,6 +8,7 @@ import { convertAddress, seedToAddress } from '../utils/blockchain/util';
 import { MarketConfig } from '../config/market-config';
 import { Collection } from '../entity';
 import { CollectionStatus } from '../admin/types/collection';
+import { UNIQUE_API_PROVIDER } from '../blockchain';
 
 @Injectable()
 export class SettingsService {
@@ -16,7 +17,7 @@ export class SettingsService {
 
   constructor(
     @Inject('CONFIG') private config: MarketConfig,
-    @Inject(forwardRef(() => 'UNIQUE_API')) private uniqueApi: ApiPromise,
+    @Inject(forwardRef(() => UNIQUE_API_PROVIDER)) private uniqueApi: ApiPromise,
     @Inject('DATABASE_CONNECTION') private connection: Connection,
   ) {
     this.collectionsRepository = connection.getRepository(Collection);

@@ -38,6 +38,7 @@ import { BidWithdrawService } from './services/bid-withdraw.service';
 import { TraceInterceptor } from '../utils/sentry';
 import { BadRequestResponse, BidsWitdrawByOwnerDto, ConflictResponse, UnauthorizedResponse } from './responses';
 import * as fs from 'fs';
+import { InjectUniqueAPI, InjectKusamaAPI } from '../blockchain';
 
 @ApiTags('Auction')
 @Controller('auction')
@@ -51,8 +52,8 @@ export class AuctionController {
     private readonly bidWithdrawService: BidWithdrawService,
     private readonly txDecoder: TxDecoder,
     private readonly signatureVerifier: SignatureVerifier,
-    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
-    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @InjectKusamaAPI() private kusamaApi: ApiPromise,
+    @InjectUniqueAPI() private uniqueApi: ApiPromise,
   ) {
     this.logger = new Logger(AuctionController.name);
   }

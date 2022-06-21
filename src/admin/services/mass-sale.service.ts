@@ -1,22 +1,24 @@
+import '@polkadot/api-augment/polkadot';
 import { Injectable, BadRequestException, Inject, HttpStatus, Logger } from '@nestjs/common';
-import { MassFixPriceSaleDTO, MassFixPriceSaleResult, MassAuctionSaleDTO, MassAuctionSaleResult } from '../dto/collections.dto';
-import { CollectionsService } from './collections.service';
+import { BN } from '@polkadot/util';
+import { BnList } from '@polkadot/util/types';
 import { Keyring } from '@polkadot/api';
 import { Observable, Subscriber } from 'rxjs';
 import { Connection, Repository } from 'typeorm';
+import { Interface } from 'ethers/lib/utils';
+
+import { MassFixPriceSaleDTO, MassFixPriceSaleResult, MassAuctionSaleDTO, MassAuctionSaleResult } from '../dto';
+import { CollectionsService } from './collections.service';
 import { MarketConfig } from '../../config/market-config';
 import { collectionIdToAddress, subToEth } from '../../utils/blockchain/web3';
 import { BlockchainBlock } from '../../entity/blockchain-block';
 import { DateHelper } from '../../utils/date-helper';
 import { AuctionCreationService } from '../../auction/services/auction-creation.service';
 import { PrepareMassSaleResult, TransferResult } from '../types';
-import '@polkadot/api-augment/polkadot';
-import { Interface } from 'ethers/lib/utils';
 import { blockchainStaticFile } from '../../utils/blockchain/util';
 import { GAS_LIMIT } from '../constants';
-import { BN } from '@polkadot/util';
-import { BnList } from '@polkadot/util/types';
 import { ProxyCollection } from '../../utils/blockchain';
+import { InjectUniqueAPI } from '../../blockchain';
 
 @Injectable()
 export class MassSaleService {
@@ -27,7 +29,7 @@ export class MassSaleService {
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @Inject('UNIQUE_API') private unique,
+    @InjectUniqueAPI() private unique,
     @Inject('CONFIG') private config: MarketConfig,
     private readonly collections: CollectionsService,
     private readonly auctionCreationService: AuctionCreationService,

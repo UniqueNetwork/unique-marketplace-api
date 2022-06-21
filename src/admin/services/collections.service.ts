@@ -1,3 +1,4 @@
+import '@polkadot/api-augment/polkadot';
 import { HttpStatus, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { MarketConfig } from '../../config/market-config';
 import { Connection, Repository } from 'typeorm';
@@ -5,15 +6,19 @@ import { CollectionImportType, CollectionStatus, DecodedCollection, ImportByIdRe
 import { CollectionsFilter, DisableCollectionResult, EnableCollectionResult, ListCollectionResult } from '../dto';
 import { Collection } from '../../entity';
 import { ProxyCollection } from '../../utils/blockchain';
-import '@polkadot/api-augment/polkadot';
+import { InjectUniqueAPI } from '../../blockchain';
 
 @Injectable()
 export class CollectionsService implements OnModuleInit {
   private readonly collectionsRepository: Repository<Collection>;
   private readonly logger: Logger;
 
-  constructor(@Inject('DATABASE_CONNECTION') private db: Connection, @Inject('UNIQUE_API') private unique, @Inject('CONFIG') private config: MarketConfig) {
-    this.collectionsRepository = db.getRepository(Collection);
+  constructor(
+    @Inject('DATABASE_CONNECTION') private connection: Connection,
+    @InjectUniqueAPI() private unique,
+    @Inject('CONFIG') private config: MarketConfig,
+  ) {
+    this.collectionsRepository = connection.getRepository(Collection);
     this.logger = new Logger(CollectionsService.name);
   }
 
