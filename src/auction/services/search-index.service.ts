@@ -10,6 +10,7 @@ import { CollectionToken, TokenInfo, TypeAttributToken } from '../types';
 import { ProxyCollection, ProxyToken } from '../../utils/blockchain';
 import { CollectionType } from '../../utils/blockchain/collection';
 import '@polkadot/api-augment/polkadot';
+import { InjectUniqueAPI } from '../../blockchain';
 
 @Injectable()
 export class SearchIndexService {
@@ -21,7 +22,7 @@ export class SearchIndexService {
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @InjectUniqueAPI() private uniqueApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
   ) {
     this.network = this.config.blockchain.unique.network;

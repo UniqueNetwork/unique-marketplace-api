@@ -1,7 +1,7 @@
 import { PrometheusService } from '../utils/prometheus/prometheus.service';
 import { HealthIndicatorResult } from '@nestjs/terminus';
 import { BaseHealthIndicator, HealthIndicator } from '../utils/health';
-import { AdminService } from './admin.service';
+import { AdminService } from './services';
 
 export class AdminHealthIndicator extends BaseHealthIndicator implements HealthIndicator {
   public readonly name = AdminHealthIndicator.name;

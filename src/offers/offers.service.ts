@@ -1,22 +1,18 @@
-import { Bid } from './../auction/types/bid';
-import { OfferTraits } from './dto/offer-traits';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
+
+import { TypeAttributToken, Bid } from '../auction/types';
+
+import { OffersQuerySortHelper } from './offers-query-sort-helper';
+import { OfferTraits, OfferContractAskDto, filterAttributes, OffersFilter, OfferAttributesDto, OfferAttributes } from './dto';
+import { BlockchainBlock, ContractAsk, SearchIndex, AuctionEntity, BidEntity } from '../entity';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResultDto } from '../utils/pagination/pagination-result';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
-
-import { OfferContractAskDto } from './dto/offer-dto';
-import { filterAttributes, OffersFilter } from './dto/offers-filter';
 import { priceTransformer } from '../utils/price-transformer';
-import { BlockchainBlock, ContractAsk, SearchIndex, AuctionEntity, BidEntity } from '../entity';
 import { InjectSentry, SentryService } from '../utils/sentry';
-import { OffersQuerySortHelper } from './offers-query-sort-helper';
-import { TypeAttributToken } from '../auction/types';
-import { OfferAttributesDto } from './dto';
-import { OfferAttributes } from './dto/offer-attributes';
 
 type OfferPaginationResult = {
   items: ContractAsk[];

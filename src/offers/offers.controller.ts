@@ -1,19 +1,15 @@
-import { OfferTraits } from './dto/offer-traits';
 import { Controller, Get, HttpStatus, NotFoundException, Param, Query, UseInterceptors, ParseIntPipe } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import * as fs from 'fs';
+
+import { OffersService } from './offers.service';
+import { OfferTraits, OfferContractAskDto, OffersFilter, OfferAttributesDto, OfferAttributes } from './dto';
+import { ParseOffersFilterPipe, ParseOffersAttributes } from './pipes';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResultDto } from '../utils/pagination/pagination-result';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
-import { OfferContractAskDto } from './dto/offer-dto';
-import { OffersFilter } from './dto/offers-filter';
-import { ParseOffersFilterPipe } from './pipes/offers-filter.pipe';
-import { OffersService } from './offers.service';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import * as fs from 'fs';
 import { TraceInterceptor } from '../utils/sentry';
-import { OfferAttributesDto } from './dto';
-import { ParseOffersAttributes } from './pipes/offers-attributes.pipe';
-import { OfferAttributes } from './dto/offer-attributes';
 
 @ApiTags('Offers')
 @Controller()

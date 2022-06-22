@@ -3,7 +3,6 @@ import { Connection, Repository, In } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
 import { v4 as uuid } from 'uuid';
 import { KeyringPair } from '@polkadot/keyring/types';
-
 import { BroadcastService } from '../../../broadcast/services/broadcast.service';
 import { AuctionEntity } from '../../entities';
 import { BlockchainBlock, ContractAsk, MarketTrade, SellingMethod } from '../../../entity';
@@ -17,7 +16,7 @@ import { MarketConfig } from '../../../config/market-config';
 import { OfferContractAskDto } from '../../../offers/dto/offer-dto';
 import { AuctionCredentials } from '../../providers';
 import { InjectSentry, SentryService } from '../../../utils/sentry';
-import { subToEth } from '../../../utils/blockchain/web3';
+import { InjectUniqueAPI, InjectKusamaAPI } from '../../../blockchain';
 
 @Injectable()
 export class AuctionClosingService {
@@ -31,8 +30,8 @@ export class AuctionClosingService {
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
-    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @InjectKusamaAPI() private kusamaApi: ApiPromise,
+    @InjectUniqueAPI() private uniqueApi: ApiPromise,
     private broadcastService: BroadcastService,
     private bidWithdrawService: BidWithdrawService,
     private auctionCancellingService: AuctionCancelingService,
