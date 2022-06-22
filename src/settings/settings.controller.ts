@@ -1,7 +1,8 @@
 import { Controller, Get, HttpStatus } from '@nestjs/common';
-import { SettingsService } from './settings.service';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
-import { SettingsDto } from './dto/settings.dto';
+
+import { SettingsService } from './settings.service';
+import { SettingsDto } from './dto';
 
 @ApiTags('Settings')
 @Controller('settings')

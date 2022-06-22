@@ -1,25 +1,26 @@
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { ApiPromise } from '@polkadot/api';
-import { SettingsDto } from './dto/settings.dto';
+import { Connection, Not, Repository } from 'typeorm';
+
+import { SettingsDto } from './dto';
+
 import { convertAddress, seedToAddress } from '../utils/blockchain/util';
 import { MarketConfig } from '../config/market-config';
-import { Connection, Not, Repository } from 'typeorm';
 import { Collection } from '../entity';
 import { CollectionStatus } from '../admin/types/collection';
+import { UNIQUE_API_PROVIDER } from '../blockchain';
 
 @Injectable()
 export class SettingsService {
-  private preparedSettings: SettingsDto = null;
-
   private readonly logger = new Logger(SettingsService.name);
   private readonly collectionsRepository: Repository<Collection>;
 
   constructor(
     @Inject('CONFIG') private config: MarketConfig,
-    @Inject(forwardRef(() => 'UNIQUE_API')) private uniqueApi: ApiPromise,
-    @Inject('DATABASE_CONNECTION') private db: Connection,
+    @Inject(forwardRef(() => UNIQUE_API_PROVIDER)) private uniqueApi: ApiPromise,
+    @Inject('DATABASE_CONNECTION') private connection: Connection,
   ) {
-    this.collectionsRepository = db.getRepository(Collection);
+    this.collectionsRepository = connection.getRepository(Collection);
   }
 
   async prepareSettings(): Promise<SettingsDto> {
@@ -60,8 +61,6 @@ export class SettingsService {
         this.logger.warn(error);
       }
     }
-
-    this.preparedSettings = settings;
 
     return settings;
   }

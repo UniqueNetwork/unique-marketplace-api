@@ -8,6 +8,7 @@ import { plainToInstance, ClassConstructor } from 'class-transformer';
 import { validate } from 'class-validator';
 import { ValidationError } from '@nestjs/common/interfaces/external/validation-error.interface';
 import { AuctionCredentials } from '../../providers';
+import { InjectKusamaAPI, InjectUniqueAPI } from '../../../blockchain';
 
 @Injectable()
 export class TxDecoder {
@@ -18,8 +19,8 @@ export class TxDecoder {
   private marketAuctionKusamaAddress: string;
 
   constructor(
-    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
-    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @InjectKusamaAPI() private kusamaApi: ApiPromise,
+    @InjectUniqueAPI() private uniqueApi: ApiPromise,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
   ) {
     this.exceptionFactory = new ValidationPipe().createExceptionFactory();

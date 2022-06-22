@@ -1,4 +1,3 @@
-import { TradesFilter } from './dto/trade-filter';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 
@@ -9,9 +8,9 @@ import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
 import { paginate } from '../utils/pagination/paginate';
-import { MarketTradeDto } from './dto/trade-dto';
+import { MarketTradeDto, TradesFilter } from './dto';
 import { MarketTrade, SearchIndex } from '../entity';
-import { IMarketTrade } from './interfaces/trade.interface';
+import { IMarketTrade } from './interfaces';
 import { InjectSentry, SentryService } from '../utils/sentry';
 
 @Injectable()

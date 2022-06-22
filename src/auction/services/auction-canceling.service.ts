@@ -13,6 +13,7 @@ import { AuctionStatus, BidStatus } from '../types';
 import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { InjectSentry, SentryService } from '../../utils/sentry';
+import { InjectUniqueAPI } from '../../blockchain';
 
 type AuctionCancelArgs = {
   collectionId: number;
@@ -29,7 +30,7 @@ export class AuctionCancelingService {
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     private broadcastService: BroadcastService,
-    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @InjectUniqueAPI() private uniqueApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,

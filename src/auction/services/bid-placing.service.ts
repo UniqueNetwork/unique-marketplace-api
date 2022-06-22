@@ -13,6 +13,7 @@ import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs } from '../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { encodeAddress } from '@polkadot/util-crypto';
+import { InjectKusamaAPI } from '../../blockchain';
 
 @Injectable()
 export class BidPlacingService {
@@ -26,7 +27,7 @@ export class BidPlacingService {
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     private broadcastService: BroadcastService,
-    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
+    @InjectKusamaAPI() private kusamaApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
   ) {

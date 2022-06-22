@@ -1,8 +1,10 @@
-import { Logger, Provider, Scope } from '@nestjs/common';
+import { Module, Provider, Logger, Scope } from '@nestjs/common';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { ApiInterfaceEvents } from '@polkadot/api/types';
-import { MarketConfig } from '../../config/market-config';
-import { RPC } from '../../utils/blockchain';
+import { MarketConfig } from '../config/market-config';
+import { RPC } from '../utils/blockchain';
+import { KUSAMA_API_PROVIDER, UNIQUE_API_PROVIDER } from './constants';
+import { ConfigModule } from '../config/module';
 
 const waitConnectionReady = async (api: ApiPromise, logger: Logger, wsEndpoint: string): Promise<ApiPromise> => {
   const apiEvents: ApiInterfaceEvents[] = ['ready', 'connected', 'disconnected', 'error'];
@@ -20,11 +22,11 @@ const waitConnectionReady = async (api: ApiPromise, logger: Logger, wsEndpoint: 
   return api;
 };
 
-const uniqueApiProvider: Provider<Promise<ApiPromise>> = {
-  provide: 'UNIQUE_API',
+const UniqueAPIProvider: Provider<Promise<ApiPromise>> = {
+  provide: UNIQUE_API_PROVIDER,
   inject: ['CONFIG'],
   useFactory: async (config: MarketConfig) => {
-    const logger = new Logger('UNIQUE_API');
+    const logger = new Logger(UNIQUE_API_PROVIDER);
 
     const { wsEndpoint } = config.blockchain.unique;
     const wsProvider = new WsProvider(wsEndpoint);
@@ -39,11 +41,11 @@ const uniqueApiProvider: Provider<Promise<ApiPromise>> = {
   scope: Scope.DEFAULT,
 };
 
-const kusamaApiProvider: Provider<Promise<ApiPromise>> = {
-  provide: 'KUSAMA_API',
+const KusamaAPIProvider: Provider<Promise<ApiPromise>> = {
+  provide: KUSAMA_API_PROVIDER,
   inject: ['CONFIG'],
   useFactory: async (config: MarketConfig) => {
-    const logger = new Logger('KUSAMA_API');
+    const logger = new Logger(KUSAMA_API_PROVIDER);
 
     const { wsEndpoint } = config.blockchain.kusama;
     const wsProvider = new WsProvider(wsEndpoint);
@@ -57,4 +59,9 @@ const kusamaApiProvider: Provider<Promise<ApiPromise>> = {
   scope: Scope.DEFAULT,
 };
 
-export const polkadotApiProviders = [uniqueApiProvider, kusamaApiProvider];
+@Module({
+  imports: [ConfigModule],
+  providers: [UniqueAPIProvider, KusamaAPIProvider],
+  exports: [UniqueAPIProvider, KusamaAPIProvider],
+})
+export class BlockchainModule {}

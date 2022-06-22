@@ -16,6 +16,7 @@ import { AuctionCredentials } from '../providers';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 import { subToEth } from '../../utils/blockchain/web3';
 import { CreateAskAndBroadcastArgs } from '../types/auction';
+import { InjectUniqueAPI } from '../../blockchain';
 
 export type CreateAuctionArgs = {
   collectionId: string;
@@ -46,7 +47,7 @@ export class AuctionCreationService {
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     private broadcastService: BroadcastService,
-    @Inject('UNIQUE_API') private uniqueApi: any,
+    @InjectUniqueAPI() private uniqueApi: any,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @Inject('CONFIG') private config: MarketConfig,
     private searchIndexService: SearchIndexService,

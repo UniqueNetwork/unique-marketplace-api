@@ -13,6 +13,7 @@ import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { BidsWitdrawByOwner, BidsWithdraw } from '../responses';
 import { InjectSentry, SentryService } from '../../utils/sentry';
+import { InjectKusamaAPI } from '../../blockchain';
 
 type BidWithdrawArgs = {
   collectionId: number;
@@ -36,7 +37,7 @@ export class BidWithdrawService {
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     private broadcastService: BroadcastService,
-    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
+    @InjectKusamaAPI() private kusamaApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,

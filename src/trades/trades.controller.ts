@@ -1,16 +1,15 @@
 import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import * as fs from 'fs';
 
+import { MarketTradeDto, ResponseMarketTradeDto, TradesFilter } from './dto';
+import { ParseTradesFilterPipe } from './pipes';
+import { TradesService } from './trades.service';
 import { queryArray } from '../utils/decorators/query-array.decorator';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResult } from '../utils/pagination/pagination-result';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
-import { MarketTradeDto, ResponseMarketTradeDto } from './dto/trade-dto';
-import { TradesService } from './trades.service';
-import * as fs from 'fs';
 import { TraceInterceptor } from '../utils/sentry';
-import { TradesFilter } from './dto';
-import { ParseTradesFilterPipe } from './pipes';
 
 @ApiTags('Trades')
 @Controller('trades')

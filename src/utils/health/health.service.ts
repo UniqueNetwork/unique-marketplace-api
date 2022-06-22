@@ -5,7 +5,7 @@ import { HealthIndicator } from './interfaces/health-indicator.interface';
 import { OffersHealthIndicator, OffersService } from '../../offers';
 import { TradesHealthIndicator, TradesService } from '../../trades';
 import { AdminHealthIndicator } from '../../admin/admin.health';
-import { AdminService } from '../../admin/admin.service';
+import { AdminService } from '../../admin/services/admin.service';
 
 @Injectable()
 export class HealthService {

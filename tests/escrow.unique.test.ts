@@ -15,7 +15,7 @@ import { MONEY_TRANSFER_STATUS } from '../src/escrow/constants';
 import { ConstDataPlayload, TraitsSchema } from './data/escrow.data';
 import { encodeData } from '../src/utils/blockchain/token';
 import { signTransaction } from '../src/utils/blockchain';
-import { CollectionsService } from '../src/admin/servises/collections.service';
+import { CollectionsService } from '../src/admin/services/collections.service';
 import { CollectionImportType } from '../src/admin/types';
 
 describe('Escrow test', () => {

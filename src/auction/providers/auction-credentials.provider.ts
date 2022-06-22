@@ -4,6 +4,7 @@ import { MarketConfig } from '../../config/market-config';
 import { ApiPromise, Keyring } from '@polkadot/api';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 import { convertAddress } from '../../utils/blockchain/util';
+import { UNIQUE_API_PROVIDER, KUSAMA_API_PROVIDER } from '../../blockchain';
 
 export type AuctionCredentials = {
   keyring?: KeyringPair;
@@ -13,7 +14,7 @@ export type AuctionCredentials = {
 
 export const auctionCredentialsProvider: Provider = {
   provide: 'AUCTION_CREDENTIALS',
-  inject: ['CONFIG', 'UNIQUE_API', 'KUSAMA_API'],
+  inject: ['CONFIG', UNIQUE_API_PROVIDER, KUSAMA_API_PROVIDER],
   useFactory: async (config: MarketConfig, uniqueApi: ApiPromise, kusamaApi: ApiPromise) => {
     const auctionCredentials: AuctionCredentials = {
       uniqueAddress: '',
