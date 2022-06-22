@@ -57,8 +57,8 @@ export const runMigrations = async (config) => {
  * @param {String} filterData
  */
 export const sortToString = (sortFilter: OfferSortingRequest) => {
-  let filterData: string = '';
-  let { sort } = sortFilter;
+  let filterData = '';
+  const { sort } = sortFilter;
   if (sort.length !== 0) {
     sort.map((value) => {
       if (value.column === undefined || value.column === '') {
@@ -85,6 +85,7 @@ export const searchByFilterOffers = async (app: INestApplication, pagination: Pa
 
   const { page, pageSize } = pagination;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { collectionId, searchLocale, minPrice, maxPrice, seller, numberOfAttributes, attributes: traits, isAuction, bidderAddress } = offersFilter;
 
   let { searchText } = offersFilter;

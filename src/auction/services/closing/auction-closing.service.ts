@@ -1,9 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository, In } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
+import { v4 as uuid } from 'uuid';
+import { KeyringPair } from '@polkadot/keyring/types';
+
 import { BroadcastService } from '../../../broadcast/services/broadcast.service';
 import { AuctionEntity } from '../../entities';
-import { BlockchainBlock, ContractAsk } from '../../../entity';
+import { BlockchainBlock, ContractAsk, MarketTrade, SellingMethod } from '../../../entity';
 import { DatabaseHelper } from '../helpers/database-helper';
 import { AuctionStatus, BidStatus } from '../../types';
 import { BidWithdrawService } from '../bid-withdraw.service';
@@ -11,7 +14,6 @@ import { AuctionCancelingService } from '../auction-canceling.service';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { ExtrinsicSubmitter } from '../helpers/extrinsic-submitter';
 import { MarketConfig } from '../../../config/market-config';
-import { KeyringPair } from '@polkadot/keyring/types';
 import { OfferContractAskDto } from '../../../offers/dto/offer-dto';
 import { AuctionCredentials } from '../../providers';
 import { InjectSentry, SentryService } from '../../../utils/sentry';
@@ -65,7 +67,7 @@ export class AuctionClosingService {
   }
 
   async auctionsWithdrawingIntervalHandler(): Promise<void> {
-    const databaseHelper = await new DatabaseHelper(this.connection.manager);
+    const databaseHelper = new DatabaseHelper(this.connection.manager);
 
     const auctions = await databaseHelper.findAuctionsReadyForWithdraw();
 
@@ -85,7 +87,7 @@ export class AuctionClosingService {
   }
 
   async processAuctionWithdraws(auction: AuctionEntity): Promise<void> {
-    const databaseHelper = await new DatabaseHelper(this.connection.manager);
+    const databaseHelper = new DatabaseHelper(this.connection.manager);
     await this.auctionRepository.update(auction.id, { status: AuctionStatus.withdrawing });
 
     const [winner, ...othersBidders] = await databaseHelper.getAuctionAggregatedBids({
@@ -162,6 +164,52 @@ export class AuctionClosingService {
       if (extrinsic) {
         await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.BOUGHT });
         await this.auctionRepository.update(auction.id, { status: AuctionStatus.ended });
+
+        const contractAskDb = await this.contractAskRepository.findOne(contractAsk.id);
+
+        const getPriceWithoutCommission = (price: bigint, commission: number) => (price * 100n) / BigInt(100 + commission);
+
+        const price = getPriceWithoutCommission(BigInt(contractAsk.price), this.config.auction.commission);
+
+        const getBlockCreatedAt = async (blockNum: bigint | number, blockTimeSec = 6n) => {
+          let block = await this.blockchainBlockRepository.findOne({ block_number: `${blockNum}`, network: this.config.blockchain.unique.network });
+          if (!!block) return block.created_at;
+          block = await this.blockchainBlockRepository
+            .createQueryBuilder('blockchain_block')
+            .orderBy('block_number', 'DESC')
+            .where('blockchain_block.network = :network AND blockchain_block.block_number < :num', {
+              network: this.config.blockchain.unique.network,
+              num: blockNum,
+            })
+            .limit(1)
+            .getOne();
+          if (!!block) {
+            const difference = BigInt(blockNum) - BigInt(block.block_number);
+            return new Date(block.created_at.getTime() + Number(difference * 1000n * blockTimeSec)); // predict time for next block
+          }
+          return new Date();
+        };
+
+        const ask_created_at = await getBlockCreatedAt(BigInt(contractAskDb.block_number_ask));
+        const buy_created_at = await getBlockCreatedAt(BigInt(contractAskDb.block_number_buy));
+
+        await this.tradeRepository.insert({
+          id: uuid(),
+          collection_id: contractAskDb.collection_id,
+          token_id: contractAskDb.token_id,
+          network: this.config.blockchain.unique.network,
+          price: `${price}`,
+          currency: contractAskDb.currency,
+          address_seller: contractAskDb.address_from,
+          address_buyer: winnerAddress,
+          block_number_ask: contractAskDb.block_number_ask,
+          block_number_buy: contractAskDb.block_number_buy,
+          ask_created_at,
+          buy_created_at,
+          originPrice: `${contractAskDb.price}`,
+          status: SellingMethod.Auction,
+          commission: `${BigInt(contractAsk.price) - price}`,
+        });
       }
     } else {
       const contractAsk = await this.contractAskRepository.findOne(auction.contractAskId);

@@ -1,6 +1,5 @@
 type PickNonFunction<T> = {
-  [k in keyof T] : T[k] extends Function ? never :
-                   k;
+  [k in keyof T]: T[k] extends Function ? never : k;
 }[keyof T];
 
 // Removes function definitions from class.

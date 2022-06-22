@@ -1,13 +1,9 @@
-import {
-  WebSocketGateway,
-  WebSocketServer,
-  OnGatewayInit,
-} from '@nestjs/websockets';
+import { WebSocketGateway, WebSocketServer, OnGatewayInit } from '@nestjs/websockets';
 import { Server } from 'socket.io';
-import { GatewayMetadata } from "@nestjs/websockets/interfaces/gateway-metadata.interface";
+import { GatewayMetadata } from '@nestjs/websockets/interfaces/gateway-metadata.interface';
 
-import { BroadcastService } from "./broadcast.service";
-import { BroadcastIOServer } from "../types";
+import { BroadcastService } from './broadcast.service';
+import { BroadcastIOServer } from '../types';
 
 @WebSocketGateway({
   cors: { credentials: false },

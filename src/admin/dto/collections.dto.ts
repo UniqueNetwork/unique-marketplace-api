@@ -8,7 +8,7 @@ import { UNIQUE } from '../../utils/blockchain/web3';
 import { IsBigInt, BigIntGte, BigIntLte } from '../../offers/decorators';
 
 const ToBigInt = () =>
-  Transform(({ value }: { value: any }): BigInt | any => {
+  Transform(({ value }: { value: any }): bigint | any => {
     try {
       return BigInt(value);
     } catch (error) {

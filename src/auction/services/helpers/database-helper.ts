@@ -114,7 +114,10 @@ export class DatabaseHelper {
       .where('auction_bid.auction_id = :auctionId', { auctionId });
 
     if (bidStatuses) query.andWhere('auction_bid.status = ANY (:bidStatuses)', { bidStatuses });
-    if (bidderAddress) query.andWhere('auction_bid.bidder_address = :bidderAddress', { bidderAddress: encodeAddress(bidderAddress) });
+    if (bidderAddress)
+      query.andWhere('auction_bid.bidder_address = :bidderAddress', {
+        bidderAddress: encodeAddress(bidderAddress),
+      });
 
     query.groupBy('bidder_address').orderBy('1', 'DESC');
 
@@ -124,7 +127,10 @@ export class DatabaseHelper {
   }
 
   async getUserPendingSum(filter: { auctionId: string; bidderAddress: string }): Promise<bigint> {
-    const bidsTotal = await this.getAggregatedBid({ ...filter, bidStatuses: [BidStatus.finished, BidStatus.minting] });
+    const bidsTotal = await this.getAggregatedBid({
+      ...filter,
+      bidStatuses: [BidStatus.finished, BidStatus.minting],
+    });
 
     return bidsTotal?.totalAmount ?? 0n;
   }

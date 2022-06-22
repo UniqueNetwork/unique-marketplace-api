@@ -2,7 +2,7 @@ import { Inject, Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
-import { Integration, Options } from '@sentry/types';
+import { Integration } from '@sentry/types';
 import { SENTRY_MODULE_OPTIONS } from '../constants';
 import { SentryModuleOptions } from '../interfaces';
 
@@ -13,24 +13,23 @@ export class BootstrapSentry implements OnApplicationShutdown {
     @Inject(SENTRY_MODULE_OPTIONS)
     private readonly options: SentryModuleOptions,
     @Inject('CONFIG')
-    private readonly config
+    private readonly config,
   ) {
-    const { expressTracing, integrations, ...restOptions } = options;
-    let _integrations: Options['integrations'];
+    const { integrations, ...restOptions } = options;
 
-    const SentryIntegrations: Integration[] = [new Sentry.Integrations.Http({ tracing: true }), new Tracing.Integrations.Postgres()];
+    const sentryIntegrations: Integration[] = [new Sentry.Integrations.Http({ tracing: true }), new Tracing.Integrations.Postgres()];
 
-    _integrations = integrations
+    const initIntegrations = integrations
       ? typeof integrations === 'function'
-        ? () => SentryIntegrations.concat(integrations([]))
-        : SentryIntegrations.concat(integrations)
-      : SentryIntegrations;
+        ? () => sentryIntegrations.concat(integrations([]))
+        : sentryIntegrations.concat(integrations)
+      : sentryIntegrations;
 
     Sentry.init({
       ...restOptions,
-      integrations: _integrations,
+      integrations: initIntegrations,
       enabled: this.config.sentry.enabled,
-      dsn: this.config.sentry.enabled ? this.config.sentry.dsn : null
+      dsn: this.config.sentry.enabled ? this.config.sentry.dsn : null,
     });
   }
 

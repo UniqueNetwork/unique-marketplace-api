@@ -25,7 +25,7 @@ import { getConfig } from './config';
 import { SignatureVerifier } from './auction/services/helpers/signature-verifier';
 import { AdminService } from './admin/admin.service';
 import { AdminController } from './admin/admin.controller';
-import { CollectionsService, TokenService, MassSaleService } from './admin/servises';
+import { CollectionsService, TokenService, MassSaleService, MassCancelingService } from './admin/servises';
 
 const config = getConfig();
 
@@ -60,6 +60,7 @@ const config = getConfig();
     CollectionsService,
     TokenService,
     MassSaleService,
+    MassCancelingService,
   ],
 })
 export class AppModule implements NestModule {

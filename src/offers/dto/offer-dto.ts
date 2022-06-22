@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ContractAsk } from '../../entity';
-import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription, TypeAttributToken } from '../../auction/types';
+import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription } from '../../auction/types';
 import { Exclude, Expose, plainToInstance, Type } from 'class-transformer';
 
 class AuctionDto implements Auction {
@@ -37,7 +37,7 @@ export class TokenDescriptionDto {
   @Expose() prefix: string;
   @Expose() description: string;
   @Expose() collectionCover: string;
-  @Expose() attributes: Array<TokenDescription>
+  @Expose() attributes: Array<TokenDescription>;
 }
 
 export class OfferContractAskDto {
@@ -78,7 +78,7 @@ export class OfferContractAskDto {
       price: contractAsk.price.toString(),
       quoteId: +contractAsk.currency,
       seller: contractAsk.address_from,
-      creationDate: contractAsk.created_at
+      creationDate: contractAsk.created_at,
     };
 
     if (contractAsk?.auction?.bids?.length) {
@@ -94,7 +94,7 @@ export class OfferContractAskDto {
   prefix: string
 }
      */
-/*     if (Array.isArray(contractAsk?.search_index)) {
+    /*     if (Array.isArray(contractAsk?.search_index)) {
       plain.tokenDescription = contractAsk?.search_index.reduce((acc, item) => {
         if (item.type === TypeAttributToken.Prefix) {
           acc.prefix = item.items.pop();
@@ -134,6 +134,8 @@ export class OfferContractAskDto {
       })
     } */
 
-    return plainToInstance<OfferContractAskDto, Record<string, any>>(OfferContractAskDto, plain, { excludeExtraneousValues: true });
+    return plainToInstance<OfferContractAskDto, Record<string, any>>(OfferContractAskDto, plain, {
+      excludeExtraneousValues: true,
+    });
   }
 }

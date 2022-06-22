@@ -1,5 +1,6 @@
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { Interface } from 'ethers/lib/utils';
+import InputDataDecoder from 'ethereum-input-data-decoder';
 
 import { Escrow } from './base';
 import * as logging from '../utils/logging';
@@ -41,7 +42,6 @@ export class UniqueEscrow extends Escrow {
   async init() {
     this.initialized = true;
     await this.connectApi();
-    const InputDataDecoder = require('ethereum-input-data-decoder');
     this.inputDecoder = new InputDataDecoder(this.getAbi());
     this.etherDecoder = new Interface(this.getAbi());
     this.explorer = new util.UniqueExplorer(this.api, this.admin);
@@ -186,7 +186,7 @@ export class UniqueEscrow extends Escrow {
     }
     const buyerAddress = buyerSub ? buyerSub : buyerEth;
 
-    await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
+    await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, realPrice, this.getNetwork());
 
     // Balance on smart-contract (Process now, instead of next-tick)
     const transfer = await this.service.modifyContractBalance(-realPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));

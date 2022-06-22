@@ -16,6 +16,7 @@ import { blockchainStaticFile } from '../../utils/blockchain/util';
 import { GAS_LIMIT } from '../constants';
 import { BN } from '@polkadot/util';
 import { BnList } from '@polkadot/util/types';
+import { ProxyCollection } from '../../utils/blockchain';
 
 @Injectable()
 export class MassSaleService {
@@ -118,7 +119,7 @@ export class MassSaleService {
 
     const tokensCount = tokenIds.length;
 
-    // if (tokensCount === 0) throw new BadRequestException('No tokens for sale');
+    if (tokensCount === 0) throw new BadRequestException('No tokens for sale');
 
     let stopAt = DateHelper.addDays(days);
     if (minutes) stopAt = DateHelper.addMinutes(minutes, stopAt);
@@ -200,10 +201,11 @@ export class MassSaleService {
    */
   private async prepareMassSale(collectionId: number): Promise<PrepareMassSaleResult> {
     const enabledIds = await this.collections.getEnabledCollectionIds();
+    const proxyCollection = ProxyCollection.getInstance(this.unique);
 
     if (!enabledIds.includes(collectionId)) throw new BadRequestException(`Collection #${collectionId} not enabled`);
 
-    const collectionById = await this.unique.rpc.unique.collectionById(collectionId);
+    const collectionById = await proxyCollection.getById(collectionId);
 
     const collectionInChain = collectionById.unwrapOr(null);
 

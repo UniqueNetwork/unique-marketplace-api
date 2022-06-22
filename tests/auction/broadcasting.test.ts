@@ -17,7 +17,7 @@ const buildOffer = (price: string): OfferContractAskDto => ({
   quoteId: 2,
   seller: '3',
   tokenId: 4,
-})
+});
 
 describe(`${BroadcastService.name} - emitter`, () => {
   let app: INestApplication;
@@ -77,8 +77,12 @@ describe(`${BroadcastService.name} - emitter`, () => {
 
     await untilEvent;
 
-
     expect(offers.length).toBe(3);
-    expect(offers.map((o) => o.price).sort().reverse()).toMatchObject(['foo', 'baz', 'bar']);
+    expect(
+      offers
+        .map((o) => o.price)
+        .sort()
+        .reverse(),
+    ).toMatchObject(['foo', 'baz', 'bar']);
   }, 15_000);
 });

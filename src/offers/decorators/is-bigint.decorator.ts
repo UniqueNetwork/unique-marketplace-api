@@ -7,12 +7,9 @@ export function IsBigInt(validationOptions?: ValidationOptions): PropertyDecorat
       constraints: [],
       validator: {
         validate: (value): boolean => typeof value === 'bigint',
-        defaultMessage: buildMessage(
-          eachPrefix => eachPrefix + '$property must be convertible to bigint',
-          validationOptions
-        ),
+        defaultMessage: buildMessage((eachPrefix) => eachPrefix + '$property must be convertible to bigint', validationOptions),
       },
     },
-    validationOptions
+    validationOptions,
   );
 }
