@@ -186,7 +186,7 @@ export class UniqueEscrow extends Escrow {
     }
     const buyerAddress = buyerSub ? buyerSub : buyerEth;
 
-    await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, this.getNetwork());
+    await this.service.registerTrade(buyerAddress, origPrice, activeAsk, blockNum, realPrice, this.getNetwork());
 
     // Balance on smart-contract (Process now, instead of next-tick)
     const transfer = await this.service.modifyContractBalance(-realPrice, activeAsk.address_from, blockNum, this.config('kusama.network'));

@@ -1,26 +1,16 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
-import { ApiPromise } from '@polkadot/api';
-import { Collection, Tokens } from '../../entity';
-import { MarketConfig } from '../../config/market-config';
+import { Tokens } from '../../entity';
 import { CollectionsService } from './collections.service';
 import { ResponseTokenDto } from '../dto';
-import { InjectUniqueAPI } from '../../blockchain';
 
 @Injectable()
 export class TokenService {
-  private readonly collectionsRepository: Repository<Collection>;
   private readonly tokensRepository: Repository<Tokens>;
   private readonly logger: Logger;
   private readonly MAX_TOKEN_NUMBER = 2147483647;
 
-  constructor(
-    @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @InjectUniqueAPI() private unique: ApiPromise,
-    @Inject('CONFIG') private config: MarketConfig,
-    private collectionsService: CollectionsService,
-  ) {
-    this.collectionsRepository = connection.getRepository(Collection);
+  constructor(@Inject('DATABASE_CONNECTION') private connection: Connection, private collectionsService: CollectionsService) {
     this.tokensRepository = connection.getRepository(Tokens);
     this.logger = new Logger(TokenService.name);
   }
