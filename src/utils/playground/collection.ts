@@ -11,11 +11,9 @@ export const main = async (moduleRef, args: string[]) => {
 
   const proxyCollection = ProxyCollection.getInstance(api);
 
-  const collection = await proxyCollection.getById(2);
-
+  const collection = await proxyCollection.getById(5);
 
   console.dir(collection, { depth: 3 });
-
 
   await api.disconnect();
 };
