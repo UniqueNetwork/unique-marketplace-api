@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class addMarketTradeInfoInAuctions1655872620949 implements MigrationInterface {
-    name = 'addMarketTradeInfoInAuctions1655872620949'
+export class AddMarketTradeInfoInAuctions_20220622000000 implements MigrationInterface {
+    name = 'AddMarketTradeInfoInAuctions_20220622000000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query('ALTER TABLE public.market_trade ADD "method" text NULL');

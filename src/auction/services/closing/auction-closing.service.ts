@@ -163,7 +163,7 @@ export class AuctionClosingService {
         .catch((error) => this.logger.warn(`transfer failed with ${error.toString()}`));
 
       if (extrinsic) {
-        await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.BOUGHT, address_to: subToEth(winnerAddress) });
+        await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.BOUGHT, address_to: winnerAddress });
         await this.auctionRepository.update(auction.id, { status: AuctionStatus.ended });
 
         const contractAskDb = await this.contractAskRepository.findOne(contractAsk.id);
