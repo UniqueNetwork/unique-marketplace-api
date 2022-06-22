@@ -26,6 +26,7 @@ export class AuctionClosingService {
   private contractAskRepository: Repository<ContractAsk>;
   private blockchainBlockRepository: Repository<BlockchainBlock>;
   private auctionKeyring: KeyringPair;
+  private tradeRepository: Repository<MarketTrade>;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
@@ -43,6 +44,7 @@ export class AuctionClosingService {
     this.contractAskRepository = connection.manager.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
     this.auctionKeyring = auctionCredentials.keyring;
+    this.tradeRepository = connection.manager.getRepository(MarketTrade);
   }
 
   async auctionsStoppingIntervalHandler(): Promise<void> {
@@ -162,7 +164,7 @@ export class AuctionClosingService {
         .catch((error) => this.logger.warn(`transfer failed with ${error.toString()}`));
 
       if (extrinsic) {
-        await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.BOUGHT });
+        await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.BOUGHT, address_to: winnerAddress });
         await this.auctionRepository.update(auction.id, { status: AuctionStatus.ended });
 
         const contractAskDb = await this.contractAskRepository.findOne(contractAsk.id);
