@@ -30,9 +30,10 @@ import {
   MassAuctionSaleDTO,
   BadRequestResponse,
   NotFoundResponse,
+  MassCancelResult,
 } from './dto';
 import { CollectionsFilterPipe, ParseCollectionIdPipe } from './pipes';
-import { CollectionsService, TokenService, MassSaleService } from './servises';
+import { CollectionsService, TokenService, MassSaleService, MassCancelingService } from './servises';
 import * as fs from 'fs';
 
 @ApiTags('Administration')
@@ -52,6 +53,7 @@ export class AdminController {
     private readonly collectionsService: CollectionsService,
     private readonly tokenService: TokenService,
     private readonly massSaleService: MassSaleService,
+    private readonly massCancelingService: MassCancelingService,
   ) {}
 
   @Post('/login')
@@ -150,5 +152,18 @@ export class AdminController {
   @UseGuards(AuthGuard, MainSaleSeedGuard)
   async massAuctionSale(@Body(new ValidationPipe({ transform: true })) data: MassAuctionSaleDTO): Promise<MassAuctionSaleResult> {
     return await this.massSaleService.massAuctionSale(data);
+  }
+
+  @Delete('/mass-cancel')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Mass cancel',
+    description: fs.readFileSync('docs/mass_cancel.md').toString(),
+  })
+  @ApiResponse({ status: HttpStatus.OK, type: MassCancelResult })
+  @ApiBadRequestResponse({ type: BadRequestResponse })
+  @UseGuards(AuthGuard, MainSaleSeedGuard)
+  async massCancel(): Promise<MassCancelResult> {
+    return await this.massCancelingService.massCancel();
   }
 }

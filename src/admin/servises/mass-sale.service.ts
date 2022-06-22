@@ -119,7 +119,7 @@ export class MassSaleService {
 
     const tokensCount = tokenIds.length;
 
-    // if (tokensCount === 0) throw new BadRequestException('No tokens for sale');
+    if (tokensCount === 0) throw new BadRequestException('No tokens for sale');
 
     let stopAt = DateHelper.addDays(days);
     if (minutes) stopAt = DateHelper.addMinutes(minutes, stopAt);
