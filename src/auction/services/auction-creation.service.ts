@@ -122,7 +122,7 @@ export class AuctionCreationService {
       collection_id: collectionId,
       token_id: tokenId,
       address_from: encodeAddress(ownerAddress),
-      address_to: '',
+      address_to: encodeAddress(this.auctionCredentials.uniqueAddress),
       status: ASK_STATUS.ACTIVE, // todo - add appropriate status
       price: startPrice.toString(),
       currency: '',

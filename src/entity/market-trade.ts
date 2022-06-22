@@ -1,6 +1,11 @@
 import { Column, Entity, OneToOne } from 'typeorm';
 import { SearchIndex } from './search-index';
 
+export enum SellingMethod {
+  FixedPrice = 'FixedPrice',
+  Auction = 'Auction',
+}
+
 @Entity('market_trade', { schema: 'public' })
 export class MarketTrade {
   @Column('uuid', { primary: true, name: 'id' })
@@ -38,6 +43,19 @@ export class MarketTrade {
 
   @Column('bigint', { name: 'block_number_buy', nullable: true })
   block_number_buy: string;
+
+  @Column({
+    type: 'enum',
+    enum: SellingMethod,
+    name: 'method',
+  })
+  status?: SellingMethod;
+
+  @Column('bigint', { name: 'origin_price' })
+  originPrice?: string;
+
+  @Column('bigint', { name: 'commission' })
+  commission?: string;
 
   @OneToOne(() => SearchIndex)
   search_index: SearchIndex;
