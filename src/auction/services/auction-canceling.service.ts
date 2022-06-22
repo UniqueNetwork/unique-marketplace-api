@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Logger } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Logger } from '@nestjs/common';
 import { Connection, Not, Repository } from 'typeorm';
 import { AuctionEntity, BidEntity } from '../entities';
 import { BlockchainBlock, ContractAsk } from '../../entity';
@@ -122,7 +122,9 @@ export class AuctionCancelingService {
       const { address_from, collection_id, token_id } = contractAsk;
       const auctionKeyring = this.auctionCredentials.keyring;
 
-      const tx = await this.uniqueApi.tx.unique.transfer({ Substrate: address_from }, collection_id, token_id, 1).signAsync(auctionKeyring);
+      const nonce = await this.uniqueApi.rpc.system.accountNextIndex(auctionKeyring.address);
+
+      const tx = await this.uniqueApi.tx.unique.transfer({ Substrate: address_from }, collection_id, token_id, 1).signAsync(auctionKeyring, { nonce });
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 
@@ -139,7 +141,7 @@ export class AuctionCancelingService {
 
       contractAsk.block_number_cancel = block.block_number;
 
-      await this.blockchainBlockRepository.save(block);
+      await this.connection.createQueryBuilder().insert().into(BlockchainBlock).values(block).orIgnore().execute();
       await this.contractAskRepository.save(contractAsk);
 
       const sendTokenDataLog = {

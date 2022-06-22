@@ -87,7 +87,7 @@ export class AuctionCreationService {
     if (minutes) stopAt = DateHelper.addMinutes(minutes, stopAt);
 
     const block = await this.sendTransferExtrinsic(tx);
-    await this.blockchainBlockRepository.save(block);
+    await this.connection.createQueryBuilder().insert().into(BlockchainBlock).values(block).orIgnore().execute();
 
     this.logger.debug(`Token transfer block number: ${block.block_number}`);
 

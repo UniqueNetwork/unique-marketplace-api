@@ -85,7 +85,9 @@ export class BidWithdrawService {
     const auctionKeyring = this.auctionCredentials.keyring;
     const amount = BigInt(withdrawingBid.amount) * -1n;
 
-    const tx = await this.kusamaApi.tx.balances.transferKeepAlive(withdrawingBid.bidderAddress, amount).signAsync(auctionKeyring);
+    const nonce = await this.kusamaApi.rpc.system.accountNextIndex(auctionKeyring.address);
+
+    const tx = await this.kusamaApi.tx.balances.transferKeepAlive(withdrawingBid.bidderAddress, amount).signAsync(auctionKeyring, { nonce });
 
     await this.extrinsicSubmitter
       .submit(this.kusamaApi, tx)

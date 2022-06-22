@@ -3,6 +3,7 @@ import { Connection, Repository, In } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
 import { v4 as uuid } from 'uuid';
 import { KeyringPair } from '@polkadot/keyring/types';
+
 import { BroadcastService } from '../../../broadcast/services/broadcast.service';
 import { AuctionEntity } from '../../entities';
 import { BlockchainBlock, ContractAsk, MarketTrade, SellingMethod } from '../../../entity';
@@ -16,7 +17,7 @@ import { MarketConfig } from '../../../config/market-config';
 import { OfferContractAskDto } from '../../../offers/dto/offer-dto';
 import { AuctionCredentials } from '../../providers';
 import { InjectSentry, SentryService } from '../../../utils/sentry';
-import { InjectUniqueAPI, InjectKusamaAPI } from '../../../blockchain';
+import { subToEth } from '../../../utils/blockchain/web3';
 
 @Injectable()
 export class AuctionClosingService {
@@ -30,8 +31,8 @@ export class AuctionClosingService {
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @InjectKusamaAPI() private kusamaApi: ApiPromise,
-    @InjectUniqueAPI() private uniqueApi: ApiPromise,
+    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
+    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
     private broadcastService: BroadcastService,
     private bidWithdrawService: BidWithdrawService,
     private auctionCancellingService: AuctionCancelingService,
@@ -151,7 +152,9 @@ export class AuctionClosingService {
 
       await this.sendTokenToWinner(contractAsk, winnerAddress);
 
-      const tx = await this.kusamaApi.tx.balances.transferKeepAlive(address_from, ownerPrice).signAsync(this.auctionKeyring);
+      const nonce = await this.kusamaApi.rpc.system.accountNextIndex(this.auctionKeyring.address);
+
+      const tx = await this.kusamaApi.tx.balances.transferKeepAlive(address_from, ownerPrice).signAsync(this.auctionKeyring, { nonce });
 
       const extrinsic = await this.extrinsicSubmitter
         .submit(this.kusamaApi, tx)
@@ -225,7 +228,9 @@ export class AuctionClosingService {
     try {
       const { collection_id, token_id } = contractAsk;
 
-      const tx = await this.uniqueApi.tx.unique.transfer({ Substrate: winnerAddress }, collection_id, token_id, 1).signAsync(this.auctionKeyring);
+      const nonce = await this.kusamaApi.rpc.system.accountNextIndex(this.auctionKeyring.address);
+
+      const tx = await this.uniqueApi.tx.unique.transfer({ Substrate: winnerAddress }, collection_id, token_id, 1).signAsync(this.auctionKeyring, { nonce });
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 
@@ -235,7 +240,7 @@ export class AuctionClosingService {
         created_at: new Date(),
       });
 
-      await this.blockchainBlockRepository.save(block);
+      await this.connection.createQueryBuilder().insert().into(BlockchainBlock).values(block).orIgnore().execute();
       await this.contractAskRepository.update(contractAsk.id, { block_number_buy: block.block_number });
     } catch (error) {
       this.logger.error(error);

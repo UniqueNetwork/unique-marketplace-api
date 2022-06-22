@@ -69,7 +69,7 @@ export class MassFixPriceSaleDTO {
   @IsPositive()
   @IsInt()
   collectionId: number;
-  @ApiProperty({ example: UNIQUE.toString() })
+  @ApiProperty({ example: UNIQUE.toString(), description: `Max value is ${BIGINT_MAX_VALUE}` })
   @BigIntLte(BIGINT_MAX_VALUE)
   @IsBigInt()
   @ToBigInt()
