@@ -2,6 +2,8 @@ import { TypeAttributToken } from './../auction/types';
 import { Column, Entity, Index } from 'typeorm';
 
 @Index('IX_search_index_collection_id_token_id_locale', ['collection_id', 'token_id', 'locale'])
+@Index('IX_search_index_list_items', ['list_items'])
+@Index('IX_search_index_total_items', ['total_items'])
 @Index('IX_search_index_key', ['key'])
 @Entity('search_index', { schema: 'public' })
 export class SearchIndex {
@@ -17,9 +19,6 @@ export class SearchIndex {
   @Column('varchar', { name: 'network', length: 16 })
   network: string;
 
-  @Column('text', { name: 'value', nullable: true })
-  value: string;
-
   @Column('text', { name: 'items', array: true, default: [] })
   items: string[];
 
@@ -31,6 +30,15 @@ export class SearchIndex {
 
   @Column('varchar', { name: 'key', nullable: true, length: 200 })
   key: string | null;
+
+  @Column('smallint', { name: 'count_item', nullable: true })
+  count_item: number | null;
+
+  @Column('smallint', { name: 'total_items', nullable: true })
+  total_items: number | null;
+
+  @Column('text', { name: 'list_items', array: true, default: [] })
+  list_items: string[];
 
   @Column({
     type: 'enum',
