@@ -5,7 +5,7 @@ import { Connection, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import * as logging from '../utils/logging';
 
-import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex, Collection } from '../entity';
+import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex, Collection, SellingMethod } from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { CollectionToken } from '../auction/types';
@@ -304,9 +304,8 @@ export class EscrowService {
     });
   }
 
-  async registerTrade(buyer: string, price: bigint, ask: ContractAsk, blockNum: bigint, network?: string) {
+  async registerTrade(buyer: string, price: bigint, ask: ContractAsk, blockNum: bigint, originPrice: bigint, network?: string) {
     const repository = this.db.getRepository(MarketTrade);
-
     await repository.insert({
       id: uuid(),
       collection_id: ask.collection_id,
@@ -320,6 +319,9 @@ export class EscrowService {
       block_number_buy: `${blockNum}`,
       ask_created_at: await this.getBlockCreatedAt(BigInt(ask.block_number_ask), network),
       buy_created_at: await this.getBlockCreatedAt(blockNum, network),
+      status: SellingMethod.FixedPrice,
+      originPrice: `${originPrice}`,
+      commission: `${originPrice - price}`,
     });
     logging.log(
       `{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${
