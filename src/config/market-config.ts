@@ -17,6 +17,11 @@ interface AuctionConfig {
   commission: number;
 }
 
+export enum MarketType {
+  PRIMARY = 'primary',
+  SECONDARY = 'secondary',
+}
+
 export interface MarketConfig {
   postgresUrl: string;
   testingPostgresUrl: string;
@@ -25,7 +30,7 @@ export interface MarketConfig {
   rootDir: string;
   autoDBMigrations: boolean;
   auction: AuctionConfig;
-  marketType: string;
+  marketType: MarketType;
   mainSaleSeed: string;
   adminList: string;
   jwt: {
