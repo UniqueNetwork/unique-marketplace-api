@@ -67,7 +67,6 @@ describe('Offers service', () => {
       expect(response.body.items.length).toBe(10);
     });
 
-
     // Trait for several tokens
     it('/offers (GET, Trait for several tokens)', async () => {
       const response = await searchByFilterOffers(
