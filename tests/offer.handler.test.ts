@@ -67,23 +67,6 @@ describe('Offers service', () => {
       expect(response.body.items.length).toBe(10);
     });
 
-    // All tokens has that trait
-    it('/offers (GET, All tokens has that trait)', async () => {
-      const response = await searchByFilterOffers(
-        app,
-        {},
-        {
-          searchText: 'Zahar',
-          collectionId: [],
-          numberOfAttributes: [],
-          attributes: [],
-        },
-        { sort: [{ order: 1, column: '' }] },
-      );
-      expect(response.body.items.length).toBe(1);
-
-      expect(response.body.items.map((x) => x.tokenId)).toStrictEqual([2]);
-    });
 
     // Trait for several tokens
     it('/offers (GET, Trait for several tokens)', async () => {

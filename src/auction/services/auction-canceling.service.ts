@@ -1,4 +1,4 @@
-import { BadRequestException, HttpStatus, Inject, Logger } from '@nestjs/common';
+import { BadRequestException, Inject, Logger } from '@nestjs/common';
 import { Connection, Not, Repository } from 'typeorm';
 import { AuctionEntity, BidEntity } from '../entities';
 import { BlockchainBlock, ContractAsk } from '../../entity';
