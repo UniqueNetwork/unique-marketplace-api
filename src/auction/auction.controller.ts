@@ -7,7 +7,6 @@ import {
   Get,
   Headers,
   HttpStatus,
-  Inject,
   Logger,
   Post,
   Query,
