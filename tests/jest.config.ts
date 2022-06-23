@@ -1,4 +1,3 @@
-
 const esModules = ['@polkadot/'].join('|');
 
 export default {
@@ -16,4 +15,4 @@ export default {
       tsconfig: '<rootDir>/tsconfig.json',
     },
   },
-}
+};
