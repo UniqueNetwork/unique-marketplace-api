@@ -209,9 +209,7 @@ export class MassSaleService {
 
     const collectionById = await proxyCollection.getById(collectionId);
 
-    const collectionInChain = collectionById.unwrapOr(null);
-
-    if (collectionInChain === null) throw new BadRequestException(`Collection #${collectionId} not found in chain`);
+    if (collectionById === null) throw new BadRequestException(`Collection #${collectionId} not found in chain`);
 
     const keyring = new Keyring({ type: 'sr25519' });
 
