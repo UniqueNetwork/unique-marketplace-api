@@ -40,27 +40,8 @@ import { AdminModule } from './admin/admin.module';
     SettingsModule,
     AdminModule,
   ],
-<<<<<<< HEAD
   controllers: [HealthController, MetricsController],
   providers: [PlaygroundCommand, HealthService, MetricsService, PrometheusService],
-=======
-  controllers: [OffersController, TradesController, AdminController, SettingsController, HealthController, MetricsController],
-  providers: [
-    OffersService,
-    OffersFilterService,
-    TradesService,
-    PlaygroundCommand,
-    SettingsService,
-    AdminService,
-    SignatureVerifier,
-    HealthService,
-    MetricsService,
-    PrometheusService,
-    CollectionsService,
-    TokenService,
-    MassSaleService,
-  ],
->>>>>>> cf56f92... fix: Updated attributes count
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): any {
