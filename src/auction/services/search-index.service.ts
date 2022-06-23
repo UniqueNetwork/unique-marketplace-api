@@ -187,6 +187,18 @@ export class SearchIndexService {
   }
 
   async saveSearchIndex(collectionToken: CollectionToken, items: TokenInfo[]): Promise<void> {
+    const total = items
+      .filter(
+        (i) =>
+          [TypeAttributToken.Enum, TypeAttributToken.String].includes(i.type) &&
+          !['collectionCover', 'prefix', 'description', 'collectionName', 'tokenId', 'image'].includes(i.key),
+      )
+      .reduce((acc, item) => {
+        return acc + item.items.length;
+      }, 0);
+
+    const listItems = this.setListItems(items);
+
     const searchIndexItems: SearchIndex[] = items.map((item) =>
       this.repository.create({
         id: uuid(),
@@ -198,10 +210,36 @@ export class SearchIndexService {
         key: item.key,
         is_trait: item.is_trait,
         type: item.type,
+        count_item: this.setCountItem(item),
+        total_items: total,
+        list_items: listItems,
       }),
     );
 
     await this.repository.save(searchIndexItems);
+  }
+
+  private setCountItem(item: TokenInfo): number {
+    if (
+      [TypeAttributToken.Enum, TypeAttributToken.String].includes(item.type) &&
+      !['collectionCover', 'prefix', 'description', 'collectionName'].includes(item.key)
+    ) {
+      return 0;
+    }
+    return item.items.length;
+  }
+
+  private setListItems(items: TokenInfo[]): string[] {
+    return items
+      .filter(
+        (i) =>
+          [TypeAttributToken.Enum, TypeAttributToken.String].includes(i.type) &&
+          !['collectionCover', 'prefix', 'description', 'collectionName', 'tokenId', 'image'].includes(i.key),
+      )
+      .reduce((acc, item) => {
+        acc = [...acc, ...item.items];
+        return acc;
+      }, []);
   }
 
   async updateSearchIndex(): Promise<void> {

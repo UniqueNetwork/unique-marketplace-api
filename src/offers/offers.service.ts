@@ -13,6 +13,7 @@ import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 import { priceTransformer } from '../utils/price-transformer';
 import { InjectSentry, SentryService } from '../utils/sentry';
+import { OffersFilterService } from './offers-filter.service';
 
 type OfferPaginationResult = {
   items: ContractAsk[];
@@ -28,7 +29,11 @@ export class OffersService {
   private readonly searchIndexRepository: Repository<SearchIndex>;
   private offersQuerySortHelper: OffersQuerySortHelper;
 
-  constructor(@Inject('DATABASE_CONNECTION') private connection: Connection, @InjectSentry() private readonly sentryService: SentryService) {
+  constructor(
+    @Inject('DATABASE_CONNECTION') private connection: Connection,
+    @InjectSentry() private readonly sentryService: SentryService,
+    private readonly offersFilterService: OffersFilterService,
+  ) {
     this.logger = new Logger(OffersService.name);
     this.contractAskRepository = connection.manager.getRepository(ContractAsk);
     this.searchIndexRepository = connection.manager.getRepository(SearchIndex);
@@ -625,49 +630,7 @@ export class OffersService {
           message: 'Not found collectionIds. Please set collectionIds',
         });
       }
-
-      const counts = (await this.connection.manager
-        .createQueryBuilder()
-        .select(['"numberOfAttributes"', 'count(_j.token_id) over (partition by "numberOfAttributes") amount'])
-        .distinct()
-        .from((qb) => {
-          return qb
-            .select([
-              '_i.collection_id as collection_id',
-              '_i.token_id as token_id',
-              'sum(_i.array_count) over (partition by _i.collection_id, _i.token_id) "numberOfAttributes"',
-            ])
-            .distinct()
-            .from((qb) => {
-              return qb
-                .select(['_p.token_id as token_id', '_p.collection_id as collection_id', '_p.array_count as array_count'])
-                .distinct()
-                .from((qb) => {
-                  return qb
-                    .select(['_s.collection_id as collection_id', '_s.token_id as token_id', 'array_length(_s.items, 1) as  array_count'])
-                    .distinct()
-                    .from(SearchIndex, '_s')
-                    .leftJoinAndSelect(ContractAsk, 'ca', 'ca.collection_id = _s.collection_id and ca.token_id = _s.token_id')
-                    .where('_s.collection_id in (:...collectionIds)', {
-                      collectionIds: args.collectionId,
-                    })
-                    .andWhere('_s.type in (:...types)', { types: ['Enum', 'String'] })
-                    .andWhere('_s.key not in (:...keys)', {
-                      keys: ['collectionCover', 'description', 'collectionName'],
-                    })
-                    .andWhere('ca.status = :status', { status: 'active' });
-                }, '_p');
-            }, '_i');
-        }, '_j')
-        .orderBy('"numberOfAttributes"')
-        .getRawMany()) as Array<OfferAttributes>;
-
-      return counts.map((item) => {
-        return {
-          numberOfAttributes: +item.numberOfAttributes,
-          amount: +item.amount,
-        };
-      });
+      return this.offersFilterService.attributesCount(args.collectionId);
     } catch (e) {
       this.logger.error(e.message);
     }
