@@ -1,4 +1,3 @@
-import { InitialOptionsTsJest } from 'ts-jest';
 
 const esModules = ['@polkadot/'].join('|');
 
@@ -17,4 +16,4 @@ export default {
       tsconfig: '<rootDir>/tsconfig.json',
     },
   },
-} as InitialOptionsTsJest;
+}
