@@ -1,8 +1,8 @@
 import { SearchIndex } from '../entity';
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class UpdateSearchIndex_20220623130000 implements MigrationInterface {
-  name = 'UpdateSearchIndex_20220623130000';
+export class UpdateSearchIndex_22062600000000 implements MigrationInterface {
+  name = 'UpdateSearchIndex_22062600000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     for (const item of await queryRunner.query(
