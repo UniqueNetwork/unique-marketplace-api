@@ -3,6 +3,7 @@ import * as path from 'path';
 import { INestApplication } from '@nestjs/common';
 import { IKeyringPair } from '@polkadot/types/types';
 import { ApiPromise } from '@polkadot/api';
+import { Connection } from 'typeorm';
 
 import * as lib from '../src/utils/blockchain/web3';
 import * as unique from '../src/utils/blockchain/unique';
@@ -17,6 +18,7 @@ import { encodeData } from '../src/utils/blockchain/token';
 import { signTransaction } from '../src/utils/blockchain';
 import { CollectionsService } from '../src/admin/services/collections.service';
 import { CollectionImportType } from '../src/admin/types';
+import { UNIQUE_API_PROVIDER, KUSAMA_API_PROVIDER } from '../src/blockchain';
 
 describe('Escrow test', () => {
   jest.setTimeout(60 * 60 * 1000);
@@ -41,6 +43,10 @@ describe('Escrow test', () => {
     await app.close();
     web3conn.provider.connection.close();
     await api.disconnect();
+
+    await app.get<Connection>('DATABASE_CONNECTION').close();
+    await app.get<ApiPromise>(KUSAMA_API_PROVIDER).disconnect();
+    await app.get<ApiPromise>(UNIQUE_API_PROVIDER).disconnect();
   });
 
   const clearCache = () => {
@@ -358,6 +364,8 @@ describe('Escrow test', () => {
     const transfer = afterTransfers.find((x) => x.id != notInterested);
     expect(transfer.address_from).toEqual(buyer.address);
     expect(transfer.address_to).toEqual(lib.subToEthLowercase(buyer.address));
+
+    await escrow.destroy();
   });
 
   it('Cancel ask', async () => {
