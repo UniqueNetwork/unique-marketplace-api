@@ -216,7 +216,7 @@ const extractCollectionIdFromAddress = (address: string): number => {
 };
 
 const blockchainStaticFile = (filename: string): string => {
-  return fs.readFileSync(path.join(__dirname, '..', '..', '..', 'blockchain', filename)).toString();
+  return fs.readFileSync(path.join(__dirname, '..', '..', '..', '..', 'blockchain', filename)).toString();
 };
 
 const seedToAddress = async (seed: string): Promise<string> => {

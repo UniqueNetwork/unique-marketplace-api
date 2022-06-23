@@ -17,7 +17,6 @@ import { MarketConfig } from '../../../config/market-config';
 import { OfferContractAskDto } from '../../../offers/dto/offer-dto';
 import { AuctionCredentials } from '../../providers';
 import { InjectSentry, SentryService } from '../../../utils/sentry';
-import { subToEth } from '../../../utils/blockchain/web3';
 
 @Injectable()
 export class AuctionClosingService {
