@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class UpdateSearchIndex_2022062410510000 implements MigrationInterface {
-  name = 'UpdateSearchIndex_2022062410510000';
+export class ChangeSearchIndex_2022062410510000 implements MigrationInterface {
+  name = 'ChangeSearchIndex_2022062410510000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "search_index" DROP COLUMN "value"`);
