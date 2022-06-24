@@ -6,26 +6,8 @@ x-marketplace: &marketplace-backend
     dockerfile: .docker/Dockerfile
   image: marketplace-backend
   restart: unless-stopped
-  environment:
-    POSTGRES_URL: 'postgres://marketplace:12345@marketplace-postgres:5432/marketplace_db'
-    API_PORT: '5000'
-    DISABLE_SECURITY: 'false'
-    ESCROW_SEED: '//Alice'
-    AUCTION_SEED: '//Bob'
-    UNIQUE_WS_ENDPOINT: 'wss://opal.unique.network'
-    UNIQUE_NETWORK: 'opal'
-    UNIQUE_START_FROM_BLOCK: 'current'
-#    CONTRACT_ETH_OWNER_SEED: 'Get by running "npm run playground deploy_contract"'
-#    CONTRACT_ADDRESS: 'Get by running "npm run playground deploy_contract"'
-    UNIQUE_COLLECTION_IDS: '1, 2, 3'
-    KUSAMA_WS_ENDPOINT: 'wss://ws-relay-opal.unique.network'
-    KUSAMA_NETWORK: 'private_ksm'
-    KUSAMA_START_FROM_BLOCK: 'current'
-    COMMISSION_PERCENT: '10'
-    AUTO_DB_MIGRATIONS: 'false'
-    SENTRY_ENABLED: 'false'
-    SENTRY_ENV: 'production'
-    SENTRY_DSN: 'https://hash@domain.tld/sentryId'
+  env_file:
+    - ./.env-local
   depends_on:
     - marketplace-postgres
 
@@ -33,12 +15,8 @@ services:
   marketplace-postgres:
     image: postgres:14.1-alpine
     container_name: marketplace-postgres
-    environment:
-      POSTGRES_DB: 'marketplace_db'
-      POSTGRES_USER: 'marketplace'
-      POSTGRES_PASSWORD: '12345'
-      POSTGRES_PORT: '5432'
-      POSTGRES_INITDB_ARGS: "--auth-local=trust"
+    env_file:
+      - ./.env-local
     restart: unless-stopped
     ports:
       - 5432:5432
