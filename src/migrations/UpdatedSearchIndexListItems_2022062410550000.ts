@@ -1,8 +1,8 @@
 import { SearchIndex } from '../entity';
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class UpdatedSearchIndex_22062400000000 implements MigrationInterface {
-  name = 'UpdatedSearchIndex_22062400000000';
+export class UpdatedSearchIndexListItems_2022062410550000 implements MigrationInterface {
+  name = 'UpdatedSearchIndexListItems_2022062410550000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "search_index" ADD "list_items" text array NOT NULL DEFAULT '{}'`);
