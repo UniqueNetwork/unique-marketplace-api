@@ -8,10 +8,10 @@ class AuctionDto implements Auction {
   @Exclude() createdAt: Date;
   @Exclude() updatedAt: Date;
 
-  @Expose() priceStep: string;
-  @Expose() startPrice: string;
-  @Expose() status: AuctionStatus;
-  @Expose() stopAt: Date;
+  @Expose() @ApiProperty({ example: '10' }) priceStep: string;
+  @Expose() @ApiProperty({ example: '100' }) startPrice: string;
+  @Expose() @ApiProperty({ example: 'active' }) status: AuctionStatus;
+  @Expose() @ApiProperty({ example: '2022-06-24T14:32:00.833Z' }) stopAt: Date;
 
   @Expose()
   @Type(() => BidDto)
@@ -32,28 +32,28 @@ class BidDto implements Bid {
 }
 
 export class TokenDescriptionDto {
-  @Expose() collectionName: string;
+  @Expose() @ApiProperty({ example: 'Test' }) collectionName: string;
   @Expose() image: string;
-  @Expose() prefix: string;
-  @Expose() description: string;
+  @Expose() @ApiProperty({ example: 'TEST' }) prefix: string;
+  @Expose() @ApiProperty({ example: 'Test collection' }) description: string;
   @Expose() collectionCover: string;
   @Expose() attributes: Array<TokenDescription>;
 }
 
 export class OfferContractAskDto {
-  @ApiProperty({ description: 'Collection ID' })
+  @ApiProperty({ description: 'Collection ID', example: 16 })
   @Expose()
   collectionId: number;
-  @ApiProperty({ description: 'Token ID' })
+  @ApiProperty({ description: 'Token ID', example: 4 })
   @Expose()
   tokenId: number;
-  @ApiProperty({ description: 'Price' })
+  @ApiProperty({ description: 'Price', example: '100' })
   @Expose()
   price: string;
-  @ApiProperty({ description: 'Contract ask currency' })
+  @ApiProperty({ description: 'Contract ask currency', example: 0 })
   @Expose()
   quoteId: number;
-  @ApiProperty({ description: 'Contract ask from' })
+  @ApiProperty({ description: 'Contract ask from', example: '5CfC8HRcV5Rc4jHFHmZsSjADCMYc7zoWbvxdoNG9qwEP7aUB' })
   @Expose()
   seller: string;
   @ApiProperty({ description: 'Date blockchain block created' })
