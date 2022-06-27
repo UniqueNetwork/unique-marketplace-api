@@ -61,9 +61,16 @@ export const main = async (moduleRef) => {
     }
     const account = web3.eth.accounts.create();
 
-    const result = await signTransaction(escrow, api.tx.balances.transfer(evmToAddress(account.address), DEPLOY_COST), 'api.tx.balances.transfer');
+    const result = await signTransaction(
+      escrow,
+      api.tx.balances.transfer(evmToAddress(account.address), DEPLOY_COST),
+      'api.tx.balances.transfer',
+    );
     if (result.status !== TransactionStatus.SUCCESS) {
-      logging.log(['Unable to transfer', DEPLOY_COST.toString(), 'from', escrow.address, 'to', evmToAddress(account.address)], logging.level.ERROR);
+      logging.log(
+        ['Unable to transfer', DEPLOY_COST.toString(), 'from', escrow.address, 'to', evmToAddress(account.address)],
+        logging.level.ERROR,
+      );
       logging.log(result.result.toHuman(), logging.level.ERROR);
       return await disconnect();
     }
@@ -75,7 +82,10 @@ export const main = async (moduleRef) => {
   }
   summary.push(`CONTRACT_ETH_OWNER_SEED: '${ownerSeed}'`);
   if (config.blockchain.unique.contractAddress !== null) {
-    logging.log('Contract already deployed. Check your CONTRACT_ADDRESS env or "blockchain.unique.contractAddress" config section', logging.level.WARNING);
+    logging.log(
+      'Contract already deployed. Check your CONTRACT_ADDRESS env or "blockchain.unique.contractAddress" config section',
+      logging.level.WARNING,
+    );
 
     summary.push(`CONTRACT_ADDRESS: '${config.blockchain.unique.contractAddress}'`);
     await addSubstrateMirror(config.blockchain.unique.contractAddress);
@@ -85,7 +95,10 @@ export const main = async (moduleRef) => {
   const balance = await getBalance(escrow.address);
   const minBalance = CONTRACT_MIN_BALANCE + ESCROW_MIN_BALANCE;
   if (balance < minBalance) {
-    logging.log(['Balance on account', escrow.address, 'too low to deploy contract. Need at least', minBalance.toString()], logging.level.WARNING);
+    logging.log(
+      ['Balance on account', escrow.address, 'too low to deploy contract. Need at least', minBalance.toString()],
+      logging.level.WARNING,
+    );
     return await disconnect();
   }
   logging.log('Deploy contract...');
@@ -96,7 +109,9 @@ export const main = async (moduleRef) => {
     from: account.address,
     ...lib.GAS_ARGS,
   });
-  const contract = await contractAbi.deploy({ data: util.blockchainStaticFile('MarketPlace.bin') }).send({ from: account.address, gas: 5_000_000 });
+  const contract = await contractAbi
+    .deploy({ data: util.blockchainStaticFile('MarketPlace.bin') })
+    .send({ from: account.address, gas: 5_000_000 });
   logging.log('Set escrow...');
   await contract.methods.setEscrow(account.address, true).send({ from: account.address });
   const helpers = lib.contractHelpers(web3, account.address);

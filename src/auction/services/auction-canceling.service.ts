@@ -124,7 +124,9 @@ export class AuctionCancelingService {
 
       const nonce = await this.uniqueApi.rpc.system.accountNextIndex(auctionKeyring.address);
 
-      const tx = await this.uniqueApi.tx.unique.transfer({ Substrate: address_from }, collection_id, token_id, 1).signAsync(auctionKeyring, { nonce });
+      const tx = await this.uniqueApi.tx.unique
+        .transfer({ Substrate: address_from }, collection_id, token_id, 1)
+        .signAsync(auctionKeyring, { nonce });
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 

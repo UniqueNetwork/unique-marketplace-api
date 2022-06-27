@@ -103,7 +103,9 @@ export class Escrow {
         continue;
       }
 
-      const extrinsicEvents = allRecords.filter(({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(extrinsicIndex)).map((e) => e.toHuman());
+      const extrinsicEvents = allRecords
+        .filter(({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(extrinsicIndex))
+        .map((e) => e.toHuman());
 
       await this.extractBlockData(blockNum, isSuccess, ex, extrinsicEvents);
     }

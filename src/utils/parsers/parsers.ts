@@ -58,7 +58,10 @@ export function parseIntArrayRequest(request: QueryParamArray, onError: (badValu
  */
 export function parseCollectionIdRequest(collectionId: QueryParamArray): number[] {
   return parseIntArrayRequest(collectionId, (v) => {
-    throw new BadRequestException({}, `Failed to parse collection id from ${JSON.stringify(collectionId)}, unable to parse ${v} as integer.`);
+    throw new BadRequestException(
+      {},
+      `Failed to parse collection id from ${JSON.stringify(collectionId)}, unable to parse ${v} as integer.`,
+    );
   });
 }
 

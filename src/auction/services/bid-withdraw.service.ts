@@ -87,7 +87,9 @@ export class BidWithdrawService {
 
     const nonce = await this.kusamaApi.rpc.system.accountNextIndex(auctionKeyring.address);
 
-    const tx = await this.kusamaApi.tx.balances.transferKeepAlive(withdrawingBid.bidderAddress, amount).signAsync(auctionKeyring, { nonce });
+    const tx = await this.kusamaApi.tx.balances
+      .transferKeepAlive(withdrawingBid.bidderAddress, amount)
+      .signAsync(auctionKeyring, { nonce });
 
     await this.extrinsicSubmitter
       .submit(this.kusamaApi, tx)
@@ -96,7 +98,9 @@ export class BidWithdrawService {
           status: BidStatus.finished,
           blockNumber: blockNumber.toString(),
         });
-        this.logger.debug(`Bid make Withdraw transfer id: ${withdrawingBid.id},  status: ${BidStatus.finished}, blockNumber: ${blockNumber.toString()} `);
+        this.logger.debug(
+          `Bid make Withdraw transfer id: ${withdrawingBid.id},  status: ${BidStatus.finished}, blockNumber: ${blockNumber.toString()} `,
+        );
       })
       .catch(async (error) => {
         const fullError = {

@@ -17,7 +17,8 @@ export class CollectionsFilterPipe implements PipeTransform<any, TransformationR
     if (params.collectionId) {
       const collectionId = Number(params.collectionId);
 
-      if (!isInt(collectionId) || !isPositive(collectionId) || collectionId > U32_MAX_VALUE) throw new BadRequestException('Please enter valid ID');
+      if (!isInt(collectionId) || !isPositive(collectionId) || collectionId > U32_MAX_VALUE)
+        throw new BadRequestException('Please enter valid ID');
 
       value.collectionId = collectionId;
     }

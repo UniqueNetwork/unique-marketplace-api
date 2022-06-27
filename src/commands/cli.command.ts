@@ -13,7 +13,7 @@ export class CliCommands {
   ) {}
 
   @Command({
-    command: 'checkout config',
+    command: 'check config',
     describe: 'Checking the collection configuration',
   })
   async showSetting() {
