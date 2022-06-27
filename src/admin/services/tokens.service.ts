@@ -28,9 +28,15 @@ export class TokenService {
     const collectionId = await this.collectionsService.findById(+collection);
     if (collectionId === undefined) throw new NotFoundException('Collection not found');
     await this.collectionsService.updateAllowedTokens(+collection, data.tokens);
+
+    const message =
+      data.tokens === ''
+        ? `Add allowed tokens: all tokens for collection: ${collectionId.id}`
+        : `Add allowed tokens: ${data.tokens} for collection: ${collectionId.id}`;
+
     return {
       statusCode: HttpStatus.OK,
-      message: `Add allowed tokens: ${data.tokens} for collection: ${collectionId.id}`,
+      message,
     };
   }
 

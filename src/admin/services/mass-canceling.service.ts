@@ -36,8 +36,6 @@ export class MassCancelingService {
 
     const message = `${count} offers successfully canceled`;
 
-    this.logger.log(message);
-
     return {
       statusCode: HttpStatus.OK,
       message,
