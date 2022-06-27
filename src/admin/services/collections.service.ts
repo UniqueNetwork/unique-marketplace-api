@@ -96,7 +96,8 @@ export class CollectionsService implements OnModuleInit {
 
     await this.collectionsRepository.update(id, { status: CollectionStatus.Enabled });
 
-    const message = collection.status === CollectionStatus.Enabled ? `Collection #${id} has already enabled` : `Collection #${id} successfully enabled`;
+    const message =
+      collection.status === CollectionStatus.Enabled ? `Collection #${id} has already enabled` : `Collection #${id} successfully enabled`;
 
     return {
       statusCode: HttpStatus.OK,

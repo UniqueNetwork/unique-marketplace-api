@@ -41,7 +41,9 @@ export class ParseOffersFilterPipe implements PipeTransform<any, TransformationR
       numberOfAttributes: requestArray(value.numberOfAttributes)
         .map((id) =>
           parseIntRequest(id, () => {
-            throw this.exceptionFactory(`Failed to parse traits count. Expected an array of integers, got ${JSON.stringify(value.numberOfAttributes)}`);
+            throw this.exceptionFactory(
+              `Failed to parse traits count. Expected an array of integers, got ${JSON.stringify(value.numberOfAttributes)}`,
+            );
           }),
         )
         .filter((id) => id != null) as number[],

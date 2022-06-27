@@ -110,7 +110,9 @@ export const main = async (moduleRef) => {
     }
     validContract = code.length > 0;
   } else {
-    fail('No contract address provided. You must set CONTRACT_ADDRESS env variable, or override blockchain.unique.contractAddress in config');
+    fail(
+      'No contract address provided. You must set CONTRACT_ADDRESS env variable, or override blockchain.unique.contractAddress in config',
+    );
   }
   if (validContract) {
     const address = config.blockchain.unique.contractAddress;
@@ -148,7 +150,9 @@ export const main = async (moduleRef) => {
       fail(`Invalid contract owner seed (${config.blockchain.unique.contractOwnerSeed})`);
     }
   } else {
-    fail('No contract owner seed provided. You must set CONTRACT_ETH_OWNER_SEED env variable or override blockchain.unique.contractOwnerSeed in config');
+    fail(
+      'No contract owner seed provided. You must set CONTRACT_ETH_OWNER_SEED env variable or override blockchain.unique.contractOwnerSeed in config',
+    );
   }
 
   console.log('\nChecking UNIQUE_COLLECTION_IDS');

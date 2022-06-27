@@ -162,7 +162,13 @@ export const createAuction = async (
     } as CreateAuctionRequest);
 };
 
-export const placeBid = async (testEntities: AuctionTestEntities, collectionId, tokenId, amount = '100', signer?: KeyringPair): Promise<request.Test> => {
+export const placeBid = async (
+  testEntities: AuctionTestEntities,
+  collectionId,
+  tokenId,
+  amount = '100',
+  signer?: KeyringPair,
+): Promise<request.Test> => {
   const {
     app,
     kusamaApi,
@@ -195,7 +201,12 @@ export const withdrawBid = async (
   return request(testEntities.app.getHttpServer()).delete(`/auction/withdraw_bid?${query}`).set({ Authorization: authorization }).send();
 };
 
-export const calculate = async (testEntities: AuctionTestEntities, collectionId: string, tokenId: string, bidderAddress?: string): Promise<request.Test> => {
+export const calculate = async (
+  testEntities: AuctionTestEntities,
+  collectionId: string,
+  tokenId: string,
+  bidderAddress?: string,
+): Promise<request.Test> => {
   return request(testEntities.app.getHttpServer()).post(`/auction/calculate`).send({
     collectionId,
     tokenId,

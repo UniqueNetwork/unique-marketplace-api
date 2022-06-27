@@ -79,7 +79,11 @@ export class DatabaseHelper {
   }
 
   async findAuctionsReadyForWithdraw(): Promise<AuctionEntity[]> {
-    const mintingBids = this.entityManager.createQueryBuilder(BidEntity, 'bid').select('auction_id').distinct().where('bid.status = :bidStatus');
+    const mintingBids = this.entityManager
+      .createQueryBuilder(BidEntity, 'bid')
+      .select('auction_id')
+      .distinct()
+      .where('bid.status = :bidStatus');
 
     return this.entityManager
       .createQueryBuilder(AuctionEntity, 'auction')
@@ -92,7 +96,11 @@ export class DatabaseHelper {
       .getMany();
   }
 
-  private async getAggregatedBid(filter: { auctionId: string; bidStatuses?: BidStatus[]; bidderAddress?: string }): Promise<AggregatedBid | undefined> {
+  private async getAggregatedBid(filter: {
+    auctionId: string;
+    bidStatuses?: BidStatus[];
+    bidderAddress?: string;
+  }): Promise<AggregatedBid | undefined> {
     const result = await this.buildGroupedBidsQuery(filter).getRawOne<AggregatedBidDb>();
 
     return result ? toAggregatedBid(result) : undefined;
@@ -104,7 +112,11 @@ export class DatabaseHelper {
     return result.map(toAggregatedBid);
   }
 
-  private buildGroupedBidsQuery(filter: { auctionId: string; bidStatuses?: BidStatus[]; bidderAddress?: string }): SelectQueryBuilder<AggregatedBidDb> {
+  private buildGroupedBidsQuery(filter: {
+    auctionId: string;
+    bidStatuses?: BidStatus[];
+    bidderAddress?: string;
+  }): SelectQueryBuilder<AggregatedBidDb> {
     const { auctionId, bidStatuses, bidderAddress } = filter;
 
     const query = this.entityManager

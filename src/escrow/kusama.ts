@@ -148,7 +148,9 @@ export class KusamaEscrow extends Escrow {
     this.store.currentBlock = await this.getStartBlock();
     this.store.latestBlock = (await this.getLatestBlockNumber()) - this.config('kusama.waitBlocks');
     logging.log(
-      `Kusama escrow starting from block #${this.store.currentBlock} (mode: ${this.config('kusama.startFromBlock')}, maxBlock: ${this.store.latestBlock})`,
+      `Kusama escrow starting from block #${this.store.currentBlock} (mode: ${this.config('kusama.startFromBlock')}, maxBlock: ${
+        this.store.latestBlock
+      })`,
     );
     logging.log(`Kusama admin address: ${this.admin.address}`);
     logging.log(`Kusama admin address (kusama format): ${this.adminAddress}`);

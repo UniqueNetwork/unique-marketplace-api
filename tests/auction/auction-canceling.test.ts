@@ -90,7 +90,9 @@ describe('Auction cancelling', () => {
     const connection = testEntities.app.get<Connection>('DATABASE_CONNECTION');
     const activeAuction = await connection.manager.findOne(AuctionEntity);
 
-    await request(testEntities.app.getHttpServer()).delete(`/auction/force_close_auction_for_test?collectionId=${collectionId}&tokenId=${tokenId}`).send();
+    await request(testEntities.app.getHttpServer())
+      .delete(`/auction/force_close_auction_for_test?collectionId=${collectionId}&tokenId=${tokenId}`)
+      .send();
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
 

@@ -90,7 +90,10 @@ export class MarketTradeDto {
             }
           }
 
-          if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key)) {
+          if (
+            (item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) &&
+            !['collectionName', 'description'].includes(item.key)
+          ) {
             acc.attributes.push({
               key: item.key,
               value: item.items.length === 1 ? item.items.pop() : item.items,

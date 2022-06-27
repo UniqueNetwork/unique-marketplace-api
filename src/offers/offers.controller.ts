@@ -33,7 +33,10 @@ export class OffersController {
 
   @Get('offer/:collectionId/:tokenId')
   @ApiResponse({ type: OfferContractAskDto, status: HttpStatus.OK })
-  async getOneOffer(@Param('collectionId', ParseIntPipe) collectionId: number, @Param('tokenId', ParseIntPipe) tokenId: number): Promise<OfferContractAskDto> {
+  async getOneOffer(
+    @Param('collectionId', ParseIntPipe) collectionId: number,
+    @Param('tokenId', ParseIntPipe) tokenId: number,
+  ): Promise<OfferContractAskDto> {
     const offer = await this.offersService.getOne({ collectionId, tokenId });
 
     if (offer) {

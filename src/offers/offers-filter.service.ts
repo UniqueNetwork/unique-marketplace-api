@@ -9,7 +9,10 @@ import { OfferAttributes } from './dto/offer-attributes';
 export class OffersFilterService {
   private logger: Logger;
 
-  constructor(@Inject('DATABASE_CONNECTION') private connection: Connection, @InjectSentry() private readonly sentryService: SentryService) {
+  constructor(
+    @Inject('DATABASE_CONNECTION') private connection: Connection,
+    @InjectSentry() private readonly sentryService: SentryService,
+  ) {
     this.logger = new Logger(OffersService.name);
   }
 

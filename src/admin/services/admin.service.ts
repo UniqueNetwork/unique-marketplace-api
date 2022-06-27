@@ -12,7 +12,11 @@ export class AdminService {
   private logger: Logger;
   private readonly adminRepository: Repository<AdminSessionEntity>;
 
-  constructor(@Inject('DATABASE_CONNECTION') private connection: Connection, @Inject('CONFIG') private config: MarketConfig, private jwtService: JwtService) {
+  constructor(
+    @Inject('DATABASE_CONNECTION') private connection: Connection,
+    @Inject('CONFIG') private config: MarketConfig,
+    private jwtService: JwtService,
+  ) {
     this.logger = new Logger(AdminService.name);
     this.adminRepository = connection.manager.getRepository(AdminSessionEntity);
   }
