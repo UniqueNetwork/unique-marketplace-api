@@ -14,7 +14,15 @@ import {
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiConflictResponse, ApiOperation, ApiResponse, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { convertAddress } from '../utils/blockchain/util';
 import { AuctionCreationService } from './services/auction-creation.service';
@@ -65,7 +73,9 @@ export class AuctionController {
   @ApiResponse({ status: HttpStatus.CREATED, type: OfferContractAskDto })
   @ApiBadRequestResponse({ type: BadRequestResponse })
   @ApiConflictResponse({ type: ConflictResponse })
-  async createAuction(@Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
+  async createAuction(
+    @Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto,
+  ): Promise<OfferContractAskDto> {
     try {
       const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
 
@@ -133,7 +143,11 @@ export class AuctionController {
   @ApiUnauthorizedResponse({ type: UnauthorizedResponse })
   @ApiBadRequestResponse({ type: BadRequestResponse })
   @ApiSecurity('address:signature')
-  async cancelAuction(@Query() query: CancelAuctionQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<OfferContractAskDto> {
+  async cancelAuction(
+    @Query() query: CancelAuctionQueryDto,
+    @Headers('Authorization') authorization = '',
+    @Req() req: Request,
+  ): Promise<OfferContractAskDto> {
     AuctionController.checkRequestTimestamp(query.timestamp);
     const [signerAddress = '', signature = ''] = authorization.split(':');
     const queryString = req.originalUrl.split('?')[1];
@@ -202,7 +216,11 @@ export class AuctionController {
   @ApiUnauthorizedResponse({ type: UnauthorizedResponse })
   @ApiBadRequestResponse({ type: BadRequestResponse })
   @ApiSecurity('address:signature')
-  async withdrawChooseBid(@Query() query: WithdrawBidChosenQueryDto, @Headers('Authorization') authorization = '', @Req() req: Request): Promise<void> {
+  async withdrawChooseBid(
+    @Query() query: WithdrawBidChosenQueryDto,
+    @Headers('Authorization') authorization = '',
+    @Req() req: Request,
+  ): Promise<void> {
     AuctionController.checkRequestTimestamp(query.timestamp);
     const [signerAddress = '', signature = ''] = authorization.split(':');
     const queryString = req.originalUrl.split('?')[1];
