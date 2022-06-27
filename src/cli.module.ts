@@ -11,7 +11,9 @@ import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
 import { EscrowModule } from './escrow/module';
 import { RequestLoggerMiddleware } from './utils/logging/request-logger-middleware.service';
 import { CollectionCommandService } from './commands/services/collection.service';
-import { CollectionCommand } from './commands/collection.command';
+import { CheckConfigCommandService } from './commands/services/check-config.service';
+import { CliCommands } from './commands/cli.command';
+import { DeployContractService } from './commands/services/deploy-contract.service';
 
 @Module({
   imports: [
@@ -25,7 +27,7 @@ import { CollectionCommand } from './commands/collection.command';
     EscrowModule,
   ],
   controllers: [],
-  providers: [PlaygroundCommand, CollectionCommandService, CollectionCommand],
+  providers: [PlaygroundCommand, CliCommands, CollectionCommandService, CheckConfigCommandService, DeployContractService],
 })
 export class CLIModule implements NestModule {
   configure(consumer: MiddlewareConsumer): any {
