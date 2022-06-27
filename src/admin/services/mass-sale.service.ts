@@ -88,7 +88,12 @@ export class MassSaleService {
         .call(
           subToEth(signer.address),
           marketContractAddress,
-          this.marketContractInterface.encodeFunctionData('addAsk', [price, '0x0000000000000000000000000000000000000001', collectionContractAddress, tokenId]),
+          this.marketContractInterface.encodeFunctionData('addAsk', [
+            price,
+            '0x0000000000000000000000000000000000000001',
+            collectionContractAddress,
+            tokenId,
+          ]),
           0,
           GAS_LIMIT,
           await this.getGasPrice(),
@@ -147,17 +152,19 @@ export class MassSaleService {
       });
 
       for (const tokenId of tokenIds) {
-        await this.unique.tx.unique.transfer({ Substrate: auctionAddress }, collectionId, tokenId, 1).signAndSend(signer, { nonce: -1 }, async ({ status }) => {
-          if (status.isFinalized) {
-            const blockHash = status.asFinalized;
+        await this.unique.tx.unique
+          .transfer({ Substrate: auctionAddress }, collectionId, tokenId, 1)
+          .signAndSend(signer, { nonce: -1 }, async ({ status }) => {
+            if (status.isFinalized) {
+              const blockHash = status.asFinalized;
 
-            const block = await this.unique.rpc.chain.getBlock(blockHash);
+              const block = await this.unique.rpc.chain.getBlock(blockHash);
 
-            const blockNumber = block.block.header.number.toBigInt();
+              const blockNumber = block.block.header.number.toBigInt();
 
-            subscriber.next({ tokenId, blockNumber });
-          }
-        });
+              subscriber.next({ tokenId, blockNumber });
+            }
+          });
       }
     });
 

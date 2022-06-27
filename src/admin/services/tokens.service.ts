@@ -61,7 +61,12 @@ export class TokenService {
   }
 
   async removeTokenCollection(collection: string) {
-    await this.tokensRepository.createQueryBuilder().delete().from(Tokens).where('collection_id = :collection_id', { collection_id: collection }).execute();
+    await this.tokensRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Tokens)
+      .where('collection_id = :collection_id', { collection_id: collection })
+      .execute();
   }
 
   /**
@@ -90,7 +95,9 @@ export class TokenService {
           );
         }
         if (parseInt(rangeNum[1]) > this.MAX_TOKEN_NUMBER) {
-          throw new BadRequestException(`Wrong token in the last range: ${rangeNum[0]} - [ ${rangeNum[1]} ]! Maximum ${this.MAX_TOKEN_NUMBER}`);
+          throw new BadRequestException(
+            `Wrong token in the last range: ${rangeNum[0]} - [ ${rangeNum[1]} ]! Maximum ${this.MAX_TOKEN_NUMBER}`,
+          );
         }
 
         if (rangeNum[0] === '' || rangeNum[1] === '') {
