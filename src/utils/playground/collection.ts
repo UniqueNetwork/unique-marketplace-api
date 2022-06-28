@@ -9,8 +9,9 @@ export const main = async (moduleRef) => {
   console.log(cyan('WS endpoint:'), config.blockchain.unique.wsEndpoint);
 
   const proxyCollection = ProxyCollection.getInstance(api);
+  const collectionId = 2;
 
-  const collection = await proxyCollection.getById(2);
+  const collection = await proxyCollection.getById(collectionId);
 
   console.dir(collection, { depth: 3 });
 
