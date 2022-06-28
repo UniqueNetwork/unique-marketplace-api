@@ -33,37 +33,6 @@ class CollectionBase {
   }
 }
 
-class CollectionOld extends CollectionBase implements CollectionInterface {
-  async getById(id: number): Promise<CollectionType> {
-    try {
-      const collection = await this.api.query.common.collectionById(id);
-      const humanCollection = collection.toHuman();
-
-      if (humanCollection === null || humanCollection === undefined) {
-        return null;
-      }
-
-      if (humanCollection['properties']) {
-        return null;
-      }
-
-      return {
-        collection: humanCollection,
-        collectionId: id,
-        schema: decodeSchema(humanCollection['constOnChainSchema']),
-        tokenPrefix: humanCollection['tokenPrefix'],
-        offchainSchema: humanCollection['offchainSchema'] || null,
-        name: vec2str(humanCollection['name']) || null,
-        description: vec2str(humanCollection['description']) || null,
-        collectionCover: humanCollection['variableOnChainSchema'] || null,
-        typeAPI: TypeAPI.old,
-      };
-    } catch (error) {
-      return null;
-    }
-  }
-}
-
 class CollectionProperty extends CollectionBase implements CollectionInterface {
   async getById(id: number): Promise<CollectionType> {
     try {
@@ -98,7 +67,6 @@ class CollectionProperty extends CollectionBase implements CollectionInterface {
 }
 
 export class ProxyCollection implements CollectionInterface {
-  private collectionOld: CollectionOld;
   private collectionProperty: CollectionProperty;
   private typeApi: TypeAPI;
   static instace: ProxyCollection;
@@ -120,20 +88,10 @@ export class ProxyCollection implements CollectionInterface {
   async getById(id: number): Promise<CollectionType> {
     let collection = null;
 
-    if (this.typeApi === TypeAPI.properties) {
-      if (this.collectionProperty === null || this.collectionProperty === undefined) {
-        this.collectionProperty = new CollectionProperty(this.api);
-      }
-      collection = await this.collectionProperty.getById(id);
+    if (this.collectionProperty === null || this.collectionProperty === undefined) {
+      this.collectionProperty = new CollectionProperty(this.api);
     }
-
-    if (collection === null || collection === undefined) {
-      if (this.collectionOld === null || this.collectionOld === undefined) {
-        this.collectionOld = new CollectionOld(this.api);
-        this.typeApi = TypeAPI.old;
-      }
-      collection = await this.collectionOld.getById(id);
-    }
+    collection = await this.collectionProperty.getById(id);
 
     if (collection) {
       return collection;

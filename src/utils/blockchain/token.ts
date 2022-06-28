@@ -122,25 +122,15 @@ export class ProxyToken implements TokenInterface {
     let _data = null;
     let _variableData = null;
 
-    if (this.type === TypeAPI.properties) {
-      try {
-        _token = (await this.api.rpc?.unique?.tokenData(collectionId, tokenId)) || null;
-        _tokenHuman = _token.toHuman();
-        const property = mapProperties(_tokenHuman);
-        _data = property?.constData || null;
-        _variableData = property?.variableData || null;
-      } catch (error) {
-        this.type = TypeAPI.old;
-        _token = null;
-      }
-    }
-
-    if (this.type === TypeAPI.old) {
-      _token = await this.api.query.nonfungible.tokenData(collectionId, tokenId);
+    try {
+      _token = (await this.api.rpc?.unique?.tokenData(collectionId, tokenId)) || null;
       _tokenHuman = _token.toHuman();
-      _data = _tokenHuman?.constData || null;
-      _variableData = _tokenHuman?.variableData || null;
-      this.type = TypeAPI.old;
+      const property = mapProperties(_tokenHuman);
+      _data = property?.constData || null;
+      _variableData = property?.variableData || null;
+    } catch (error) {
+      console.error(error);
+      _token = null;
     }
 
     return {
