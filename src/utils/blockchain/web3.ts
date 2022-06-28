@@ -96,7 +96,14 @@ const createEvmCollection = (collectionId: number, from, web3) => {
   return new web3.eth.Contract(nonFungibleAbi, collectionIdToAddress(collectionId), { from });
 };
 
-const executeEthTxOnSub = async (web3, api: ApiPromise, admin, to: any, mkTx: (methods: any) => any, { value = 0 }: { value?: bigint | number } = {}) => {
+const executeEthTxOnSub = async (
+  web3,
+  api: ApiPromise,
+  admin,
+  to: any,
+  mkTx: (methods: any) => any,
+  { value = 0 }: { value?: bigint | number } = {},
+) => {
   const tx = api.tx.evm.call(
     subToEth(admin.address),
     to.options.address,

@@ -5,7 +5,17 @@ import { Connection, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import * as logging from '../utils/logging';
 
-import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex, Collection, SellingMethod } from '../entity';
+import {
+  BlockchainBlock,
+  NFTTransfer,
+  ContractAsk,
+  AccountPairs,
+  MoneyTransfer,
+  MarketTrade,
+  SearchIndex,
+  Collection,
+  SellingMethod,
+} from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { CollectionToken } from '../auction/types';
@@ -46,7 +56,8 @@ export class EscrowService {
   }
 
   async isBlockScanned(blockNum: bigint | number, network?: string): Promise<boolean> {
-    return !!(await this.db.getRepository(BlockchainBlock).findOne({ block_number: `${blockNum}`, network: this.getNetwork(network) }))?.block_number;
+    return !!(await this.db.getRepository(BlockchainBlock).findOne({ block_number: `${blockNum}`, network: this.getNetwork(network) }))
+      ?.block_number;
   }
 
   async getLastScannedBlock(network?: string) {
@@ -168,7 +179,11 @@ export class EscrowService {
     );
   }
 
-  async registerTransfer(blockNum: bigint | number, data: { collectionId: number; tokenId: number; addressFrom: string; addressTo: string }, network?: string) {
+  async registerTransfer(
+    blockNum: bigint | number,
+    data: { collectionId: number; tokenId: number; addressFrom: string; addressTo: string },
+    network?: string,
+  ) {
     const repository = this.db.getRepository(NFTTransfer);
     await repository.insert({
       id: uuid(),
@@ -184,12 +199,16 @@ export class EscrowService {
     logging.log(
       `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
         data.addressFrom
-      }', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
+      }', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${
+        data.addressTo
+      }, block: #${blockNum}, log: 'registerTransfer'}`,
     );
     this.logger.log(
       `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
         data.addressFrom
-      }', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
+      }', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${
+        data.addressTo
+      }, block: #${blockNum}, log: 'registerTransfer'}`,
     );
   }
 
@@ -326,16 +345,20 @@ export class EscrowService {
     logging.log(
       `{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${
         ask.token_id
-      }, price: ${price}, block: ${blockNum}, address_seller: '${ask.address_from}', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(
-        ask.address_from,
-      )}', address_buyer: '${encodeAddress(buyer)}' },  log: 'registerTrade' }`,
+      }, price: ${price}, block: ${blockNum}, address_seller: '${
+        ask.address_from
+      }', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(
+        buyer,
+      )}' },  log: 'registerTrade' }`,
     );
     this.logger.log(
       `{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${
         ask.token_id
-      }, price: ${price}, block: ${blockNum}, address_seller: '${ask.address_from}', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(
-        ask.address_from,
-      )}', address_buyer: '${encodeAddress(buyer)}' },  log: 'registerTrade' }`,
+      }, price: ${price}, block: ${blockNum}, address_seller: '${
+        ask.address_from
+      }', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(
+        buyer,
+      )}' },  log: 'registerTrade' }`,
     );
     await this.buyKSM(parseInt(ask.collection_id), parseInt(ask.token_id), blockNum, network);
   }

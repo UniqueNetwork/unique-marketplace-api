@@ -19,7 +19,10 @@ export class TradesService {
   private sortingColumns = [...this.offerSortingColumns, 'TradeDate'];
   private logger: Logger;
 
-  constructor(@Inject('DATABASE_CONNECTION') private connection: Connection, @InjectSentry() private readonly sentryService: SentryService) {
+  constructor(
+    @Inject('DATABASE_CONNECTION') private connection: Connection,
+    @InjectSentry() private readonly sentryService: SentryService,
+  ) {
     this.logger = new Logger(TradesService.name);
   }
 
@@ -137,7 +140,10 @@ export class TradesService {
    * @see TradesService.get
    * @return ({SelectQueryBuilder<IMarketTrade>})
    */
-  private filterByCollectionIds(query: SelectQueryBuilder<IMarketTrade>, collectionIds: number[] | undefined): SelectQueryBuilder<IMarketTrade> {
+  private filterByCollectionIds(
+    query: SelectQueryBuilder<IMarketTrade>,
+    collectionIds: number[] | undefined,
+  ): SelectQueryBuilder<IMarketTrade> {
     if (collectionIds == null || collectionIds.length <= 0) {
       return query;
     }
@@ -213,7 +219,11 @@ export class TradesService {
     return query;
   }
 
-  private filterByTraits(query: SelectQueryBuilder<IMarketTrade>, traits?: string[], collectionId?: number[]): SelectQueryBuilder<IMarketTrade> {
+  private filterByTraits(
+    query: SelectQueryBuilder<IMarketTrade>,
+    traits?: string[],
+    collectionId?: number[],
+  ): SelectQueryBuilder<IMarketTrade> {
     if ((traits ?? []).length <= 0) {
       return query;
     } else {

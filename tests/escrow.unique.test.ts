@@ -80,7 +80,9 @@ describe('Escrow test', () => {
       from: contractOwner.address,
       ...lib.GAS_ARGS,
     });
-    const contract = await contractAbi.deploy({ data: readBCStatic('MarketPlace.bin') }).send({ from: contractOwner.address, gas: 10000000 });
+    const contract = await contractAbi
+      .deploy({ data: readBCStatic('MarketPlace.bin') })
+      .send({ from: contractOwner.address, gas: 10000000 });
     await contract.methods.setEscrow(contractOwner.address, true).send({ from: contractOwner.address });
     const helpers = lib.contractHelpers(web3, contractOwner.address);
 
@@ -134,11 +136,19 @@ describe('Escrow test', () => {
         description: 'test collection',
         tokenPrefix: 'test',
       });
-      await signTransaction(admin, api.tx.unique.setCollectionLimits(collectionId, { sponsorApproveTimeout: 1 }), 'api.tx.unique.setCollectionLimits'); // TODO: change createCollectionEx
+      await signTransaction(
+        admin,
+        api.tx.unique.setCollectionLimits(collectionId, { sponsorApproveTimeout: 1 }),
+        'api.tx.unique.setCollectionLimits',
+      ); // TODO: change createCollectionEx
       await signTransaction(admin, api.tx.unique.setCollectionSponsor(collectionId, admin.address), 'api.tx.unique.setCollectionSponsor'); // TODO: change createCollectionEx
       //await lib.transferBalanceToEth(api, admin, lib.subToEth(admin.address));
       await signTransaction(admin, api.tx.unique.confirmSponsorship(collectionId), 'api.tx.unique.confirmSponsorship');
-      await signTransaction(admin, api.tx.unique.setConstOnChainSchema(collectionId, JSON.stringify(TraitsSchema)), 'api.tx.unique.setConstOnChainSchema'); // TODO: change createCollectionEx
+      await signTransaction(
+        admin,
+        api.tx.unique.setConstOnChainSchema(collectionId, JSON.stringify(TraitsSchema)),
+        'api.tx.unique.setConstOnChainSchema',
+      ); // TODO: change createCollectionEx
     }
 
     await collectionsService.importById(collectionId, CollectionImportType.Api);
@@ -203,9 +213,16 @@ describe('Escrow test', () => {
     };
   };
 
-  const addAsk = async (tokenId, price, seller, state: { evmCollection; contract; explorer; collectionId; blocks; workEscrow; config; service }) => {
+  const addAsk = async (
+    tokenId,
+    price,
+    seller,
+    state: { evmCollection; contract; explorer; collectionId; blocks; workEscrow; config; service },
+  ) => {
     // Give contract permissions to manipulate token
-    let res = await lib.executeEthTxOnSub(web3, api, seller, state.evmCollection, (m) => m.approve(state.contract.options.address, tokenId));
+    let res = await lib.executeEthTxOnSub(web3, api, seller, state.evmCollection, (m) =>
+      m.approve(state.contract.options.address, tokenId),
+    );
     expect(res.success).toBe(true);
     // Add ask to contract
     res = await lib.executeEthTxOnSub(web3, api, seller, state.contract, (m) =>

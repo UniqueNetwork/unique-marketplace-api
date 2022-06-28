@@ -111,7 +111,12 @@ class UniqueExplorer {
     if (typeof options.modeprm === 'undefined') options.modeprm = { nft: null };
     const creationResult = await signTransaction(
       this.admin,
-      this.api.tx.unique.createCollection(str2vec(options.name), str2vec(options.description), str2vec(options.tokenPrefix), options.modeprm),
+      this.api.tx.unique.createCollection(
+        str2vec(options.name),
+        str2vec(options.description),
+        str2vec(options.tokenPrefix),
+        options.modeprm,
+      ),
       'api.tx.unique.createCollection',
     );
     if (creationResult.status !== TransactionStatus.SUCCESS) {
@@ -135,9 +140,13 @@ class UniqueExplorer {
   async createToken(options: TokenParams, label = 'new token') {
     const creationResult = await signTransaction(
       this.admin,
-      this.api.tx.unique.createItem(options.collectionId, typeof options.owner === 'string' ? { Substrate: options.owner } : options.owner, {
-        nft: { const_data: options.constData, variable_data: options.variableData },
-      }),
+      this.api.tx.unique.createItem(
+        options.collectionId,
+        typeof options.owner === 'string' ? { Substrate: options.owner } : options.owner,
+        {
+          nft: { const_data: options.constData, variable_data: options.variableData },
+        },
+      ),
       'api.tx.unique.createItem',
     );
     if (creationResult.status !== TransactionStatus.SUCCESS) {
@@ -165,7 +174,14 @@ class UniqueExplorer {
   }
 }
 
-type AnyAccountFormat = string | { address: string } | { Ethereum: string } | { ethereum: string } | { Substrate: string } | { substrate: string } | Object;
+type AnyAccountFormat =
+  | string
+  | { address: string }
+  | { Ethereum: string }
+  | { ethereum: string }
+  | { Substrate: string }
+  | { substrate: string }
+  | Object;
 
 type NormalizedAccountFormat = { Ethereum: string } | { Substrate: string } | any;
 

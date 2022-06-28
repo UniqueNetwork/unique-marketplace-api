@@ -28,7 +28,10 @@ export class ParseSortingRequestPipe implements PipeTransform<any, Transformatio
     this.parsingRegex = /(?<order>asc|desc)\((?<column>\w+)\)/i;
   }
 
-  transform(value: UntypedRequest<OfferSortingRequest>, metadata: ArgumentMetadata): TransformationResult<OfferSortingRequest | TradeSortingRequest> {
+  transform(
+    value: UntypedRequest<OfferSortingRequest>,
+    metadata: ArgumentMetadata,
+  ): TransformationResult<OfferSortingRequest | TradeSortingRequest> {
     const types = { OfferSortingRequest: OfferSortingRequest, TradeSortingRequest: TradeSortingRequest };
     const requestCls = types[metadata?.metatype?.name];
     if (!requestCls) {
@@ -60,6 +63,8 @@ export class ParseSortingRequestPipe implements PipeTransform<any, Transformatio
       }
     } catch (error) {}
 
-    throw this.exceptionFactory(`Failed to parse sorting parameter. Expected an array of strings like 'asc(column)' or 'desc(column)'. Got ${str}.`);
+    throw this.exceptionFactory(
+      `Failed to parse sorting parameter. Expected an array of strings like 'asc(column)' or 'desc(column)'. Got ${str}.`,
+    );
   }
 }
