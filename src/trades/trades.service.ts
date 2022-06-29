@@ -209,6 +209,9 @@ export class TradesService {
         `search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%') and search_filter.key not in ('description', 'collectionCover', 'image')`,
         { searchText: text },
       );
+      if (Number(text + 0)) {
+        query.orWhere(`trade.token_id = :tokenId`, { tokenId: Number(text) });
+      }
     }
     return query;
   }
