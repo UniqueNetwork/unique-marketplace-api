@@ -54,7 +54,7 @@ export class DisableCollectionResult {
   data: Collection;
 }
 
-export class MassFixPriceSaleResult {
+export class MassFixPriceSaleResultDto {
   @ApiProperty({ default: HttpStatus.OK })
   statusCode = HttpStatus.OK;
   @ApiProperty()
@@ -69,14 +69,16 @@ export class MassFixPriceSaleDTO {
   @IsPositive()
   @IsInt()
   collectionId: number;
-  @ApiProperty({ example: UNIQUE.toString(), description: `Max value is ${BIGINT_MAX_VALUE}` })
+
+  @ApiProperty({ example: 1_000_000_000_000, description: `Max value is ${BIGINT_MAX_VALUE}`, type: 'string' })
+  @Type(() => BigInt)
   @BigIntLte(BIGINT_MAX_VALUE)
   @IsBigInt()
   @ToBigInt()
   price: bigint;
 }
 
-export class MassAuctionSaleResult {
+export class MassAuctionSaleResultDto {
   @ApiProperty({ default: HttpStatus.OK })
   statusCode = HttpStatus.OK;
   @ApiProperty()

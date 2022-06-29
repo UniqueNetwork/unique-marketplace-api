@@ -7,7 +7,7 @@ import { Observable, Subscriber } from 'rxjs';
 import { Connection, Repository } from 'typeorm';
 import { Interface } from 'ethers/lib/utils';
 
-import { MassFixPriceSaleDTO, MassFixPriceSaleResult, MassAuctionSaleDTO, MassAuctionSaleResult } from '../dto';
+import { MassFixPriceSaleDTO, MassFixPriceSaleResultDto, MassAuctionSaleDTO, MassAuctionSaleResultDto } from '../dto';
 import { CollectionsService } from './collections.service';
 import { MarketConfig } from '../../config/market-config';
 import { collectionIdToAddress, subToEth } from '../../utils/blockchain/web3';
@@ -49,7 +49,7 @@ export class MassSaleService {
    * @param {MassFixPriceSaleDTO} data - mass fix price sale params
    * @return ({Promise<MassFixPriceSaleResult>})
    */
-  async massFixPriceSale(data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResult> {
+  async massFixPriceSale(data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResultDto> {
     const { collectionId, price } = data;
     const { signer, tokenIds } = await this.prepareMassSale(collectionId);
 
@@ -120,7 +120,7 @@ export class MassSaleService {
    * @param {MassAuctionSaleDTO} data - mass auction sale params
    * @return ({Promise<MassAuctionSaleResult>})
    */
-  async massAuctionSale(data: MassAuctionSaleDTO): Promise<MassAuctionSaleResult> {
+  async massAuctionSale(data: MassAuctionSaleDTO): Promise<MassAuctionSaleResultDto> {
     const { collectionId, startPrice, priceStep, days, minutes } = data;
     const { signer, tokenIds } = await this.prepareMassSale(collectionId);
 

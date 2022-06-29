@@ -22,9 +22,9 @@ import {
   EnableCollectionDTO,
   EnableCollectionResult,
   ListCollectionResult,
-  MassAuctionSaleResult,
+  MassAuctionSaleResultDto,
   MassFixPriceSaleDTO,
-  MassFixPriceSaleResult,
+  MassFixPriceSaleResultDto,
   ResponseAdminDto,
   ResponseAdminForbiddenDto,
   ResponseAdminUnauthorizedDto,
@@ -37,7 +37,7 @@ import {
 import { CollectionsFilterPipe, ParseCollectionIdPipe } from './pipes';
 
 @ApiTags('Administration')
-@ApiBearerAuth()
+//@ApiBearerAuth()
 @ApiUnauthorizedResponse({
   description: 'Unauthorized address or bad signature',
   type: ResponseAdminUnauthorizedDto,
@@ -134,10 +134,10 @@ export class AdminController {
     summary: 'Mass fix price sale',
     description: fs.readFileSync('docs/mass_fixprice_sale.md').toString(),
   })
-  @ApiResponse({ status: HttpStatus.OK, type: MassFixPriceSaleResult })
+  @ApiResponse({ status: HttpStatus.OK, type: MassFixPriceSaleResultDto })
   @ApiBadRequestResponse({ type: BadRequestResponse })
-  @UseGuards(AuthGuard, MainSaleSeedGuard)
-  async massFixPriceSale(@Body(new ValidationPipe({ transform: true })) data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResult> {
+  //@UseGuards(AuthGuard, MainSaleSeedGuard)
+  async massFixPriceSale(@Body(new ValidationPipe({ transform: true })) data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResultDto> {
     return await this.massSaleService.massFixPriceSale(data);
   }
 
@@ -147,10 +147,10 @@ export class AdminController {
     summary: 'Mass auction sale',
     description: fs.readFileSync('docs/mass_auction_sale.md').toString(),
   })
-  @ApiResponse({ status: HttpStatus.OK, type: MassAuctionSaleResult })
+  @ApiResponse({ status: HttpStatus.OK, type: MassAuctionSaleResultDto })
   @ApiBadRequestResponse({ type: BadRequestResponse })
-  @UseGuards(AuthGuard, MainSaleSeedGuard)
-  async massAuctionSale(@Body(new ValidationPipe({ transform: true })) data: MassAuctionSaleDTO): Promise<MassAuctionSaleResult> {
+  //@UseGuards(AuthGuard, MainSaleSeedGuard)
+  async massAuctionSale(@Body(new ValidationPipe({ transform: true })) data: MassAuctionSaleDTO): Promise<MassAuctionSaleResultDto> {
     return await this.massSaleService.massAuctionSale(data);
   }
 
