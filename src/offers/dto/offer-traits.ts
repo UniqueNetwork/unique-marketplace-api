@@ -6,7 +6,7 @@ export interface Trait {
   count: number;
 }
 
-class TraitDto implements Trait {
+export class TraitDto implements Trait {
   @Exclude() trait: string;
   @Exclude() count: number;
   @Exclude() key: string;
