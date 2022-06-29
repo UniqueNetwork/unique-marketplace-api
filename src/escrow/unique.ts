@@ -64,7 +64,11 @@ export class UniqueEscrow extends Escrow {
     const web3conn = lib.connectWeb3(this.config('unique.wsEndpoint'));
     const web3 = web3conn.web3;
     web3.eth.accounts.wallet.add(this.contractOwner.privateKey);
-    await func(web3, new web3.eth.Contract(this.getAbi(), this.config('unique.contractAddress')), lib.contractHelpers(web3, this.contractOwner.address));
+    await func(
+      web3,
+      new web3.eth.Contract(this.getAbi(), this.config('unique.contractAddress')),
+      lib.contractHelpers(web3, this.contractOwner.address),
+    );
     web3conn.provider.connection.close();
   }
 
@@ -137,7 +141,10 @@ export class UniqueEscrow extends Escrow {
     if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     const activeAsk = await this.service.getActiveAsk(collectionId, tokenId, this.getNetwork());
     if (activeAsk) {
-      logging.log(`Got duplicate ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum})`, logging.level.WARNING);
+      logging.log(
+        `Got duplicate ask (collectionId: ${collectionId}, tokenId: ${tokenId}, price: ${price}) in block #${blockNum})`,
+        logging.level.WARNING,
+      );
       logging.log(`Changed status to cancelled for old ask #${activeAsk.id}`, logging.level.WARNING);
       await this.service.cancelAsk(collectionId, tokenId, blockNum, this.getNetwork());
     }
@@ -214,7 +221,8 @@ export class UniqueEscrow extends Escrow {
   }
 
   async processWithdrawAllKSM(blockNum: number, extrinsic, events, singer) {
-    const isToContract = this.address2string(extrinsic.args.target).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
+    const isToContract =
+      this.address2string(extrinsic.args.target).toLocaleLowerCase() === this.config('unique.contractAddress').toLocaleLowerCase();
     if (!isToContract) return; // Not our contract
     const eventLogEVM = events.find((e) => e.event.method === 'Log' && e.event.section === 'evm'); // TODO: check this
     if (!eventLogEVM) {
@@ -358,7 +366,9 @@ export class UniqueEscrow extends Escrow {
     this.store.currentBlock = await this.getStartBlock();
     this.store.latestBlock = await this.getLatestBlockNumber();
     logging.log(
-      `Unique escrow starting from block #${this.store.currentBlock} (mode: ${this.config('unique.startFromBlock')}, maxBlock: ${this.store.latestBlock})`,
+      `Unique escrow starting from block #${this.store.currentBlock} (mode: ${this.config('unique.startFromBlock')}, maxBlock: ${
+        this.store.latestBlock
+      })`,
     );
     logging.log(`Unique escrow contract owner address: ${this.contractOwner.address}`);
     logging.log(`Unique escrow contract address: ${this.config('unique.contractAddress')}`);

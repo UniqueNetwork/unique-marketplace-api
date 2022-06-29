@@ -11,11 +11,13 @@ export const main = async (moduleRef) => {
   const Token = ProxyToken.getInstance(api);
   const Collection = ProxyCollection.getInstance(api);
 
-  const collection = await Collection.getById(1);
+  const collectionId = 2;
+  const tokenId = 1;
+  const collection = await Collection.getById(collectionId);
 
   console.dir(collection, { depth: 3 });
 
-  const token = await Token.tokenIdSchema(29, 1, collection.schema);
+  const token = await Token.tokenIdSchema(tokenId, collectionId, collection.schema);
 
   console.dir(token, { depth: 3 });
 

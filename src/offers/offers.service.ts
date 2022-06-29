@@ -46,7 +46,11 @@ export class OffersService {
    * @param {OffersFilter} offersFilter - DTO Offer filter
    * @param {OfferSortingRequest} sort - Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CreationDate), desc(CreationDate)
    */
-  async get(pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest): Promise<PaginationResultDto<OfferContractAskDto>> {
+  async get(
+    pagination: PaginationRequest,
+    offersFilter: OffersFilter,
+    sort: OfferSortingRequest,
+  ): Promise<PaginationResultDto<OfferContractAskDto>> {
     let offers: SelectQueryBuilder<ContractAsk>;
     let paginationResult;
 
@@ -171,7 +175,10 @@ export class OffersService {
         }
       }
 
-      if ((item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) && !['collectionName', 'description'].includes(item.key)) {
+      if (
+        (item.type === TypeAttributToken.String || item.type === TypeAttributToken.Enum) &&
+        !['collectionName', 'description'].includes(item.key)
+      ) {
         acc.attributes.push({
           key: item.key,
           value: item.items.length === 1 ? item.items.pop() : item.items,
@@ -183,7 +190,11 @@ export class OffersService {
     };
   }
 
-  async setPagination(query: SelectQueryBuilder<ContractAsk>, paramenter: PaginationRequest, sort: OfferSortingRequest): Promise<OfferPaginationResult> {
+  async setPagination(
+    query: SelectQueryBuilder<ContractAsk>,
+    paramenter: PaginationRequest,
+    sort: OfferSortingRequest,
+  ): Promise<OfferPaginationResult> {
     function convertorFlatToObject(): (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => any {
       return (acc, item) => {
         const obj = {
@@ -314,7 +325,12 @@ export class OffersService {
   private addRelations(queryBuilder: SelectQueryBuilder<ContractAsk>): void {
     queryBuilder
       .leftJoinAndMapOne('offer.auction', AuctionEntity, 'auction', 'auction.contract_ask_id = offer.id')
-      .leftJoinAndMapOne('offer.block', BlockchainBlock, 'block', 'offer.network = block.network and block.block_number = offer.block_number_ask')
+      .leftJoinAndMapOne(
+        'offer.block',
+        BlockchainBlock,
+        'block',
+        'offer.network = block.network and block.block_number = offer.block_number_ask',
+      )
       .leftJoinAndSelect(
         (subQuery) => {
           return subQuery
@@ -479,7 +495,11 @@ export class OffersService {
    * @see OffersService.get
    * @return SelectQueryBuilder<ContractAsk>
    */
-  private filterByAuction(query: SelectQueryBuilder<ContractAsk>, bidderAddress?: string, isAuction?: boolean | string): SelectQueryBuilder<ContractAsk> {
+  private filterByAuction(
+    query: SelectQueryBuilder<ContractAsk>,
+    bidderAddress?: string,
+    isAuction?: boolean | string,
+  ): SelectQueryBuilder<ContractAsk> {
     if (isAuction !== null) {
       const _auction = isAuction === 'true';
       if (_auction === true) {

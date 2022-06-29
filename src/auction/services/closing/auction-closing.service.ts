@@ -174,7 +174,10 @@ export class AuctionClosingService {
         const price = getPriceWithoutCommission(BigInt(contractAsk.price), this.config.auction.commission);
 
         const getBlockCreatedAt = async (blockNum: bigint | number, blockTimeSec = 6n) => {
-          let block = await this.blockchainBlockRepository.findOne({ block_number: `${blockNum}`, network: this.config.blockchain.unique.network });
+          let block = await this.blockchainBlockRepository.findOne({
+            block_number: `${blockNum}`,
+            network: this.config.blockchain.unique.network,
+          });
           if (!!block) return block.created_at;
           block = await this.blockchainBlockRepository
             .createQueryBuilder('blockchain_block')
@@ -227,9 +230,9 @@ export class AuctionClosingService {
     try {
       const { collection_id, token_id } = contractAsk;
 
-      const nonce = await this.kusamaApi.rpc.system.accountNextIndex(this.auctionKeyring.address);
-
-      const tx = await this.uniqueApi.tx.unique.transfer({ Substrate: winnerAddress }, collection_id, token_id, 1).signAsync(this.auctionKeyring, { nonce });
+      const tx = await this.uniqueApi.tx.unique
+        .transfer({ Substrate: winnerAddress }, collection_id, token_id, 1)
+        .signAsync(this.auctionKeyring);
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 

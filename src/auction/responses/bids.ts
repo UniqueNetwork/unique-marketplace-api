@@ -42,6 +42,15 @@ export class BidsWitdrawByOwnerDto implements BidsWithdraw {
     required: false,
     type: 'array',
     isArray: true,
+    example: [
+      {
+        auctionId: '0dce7bd5-ee2b-4ad1-9918-e8629c3de815',
+        amount: '25350',
+        contractAskId: '7e215757-97fc-48fb-8e1e-58ab2f15c875',
+        collectionId: '16',
+        tokenId: '1',
+      },
+    ],
   })
   leader: Array<BidsWitdrawByOwnerItemDto>;
 
@@ -51,6 +60,17 @@ export class BidsWitdrawByOwnerDto implements BidsWithdraw {
     required: false,
     type: 'array',
     isArray: true,
+    example: [
+      [
+        {
+          auctionId: '0dce7bd5-ee2b-4ad1-9918-e8629c3de815',
+          amount: '25350',
+          contractAskId: '7e215757-97fc-48fb-8e1e-58ab2f15c875',
+          collectionId: '16',
+          tokenId: '1',
+        },
+      ],
+    ],
   })
   withdraw: Array<BidsWitdrawByOwnerItemDto>;
 }

@@ -80,13 +80,28 @@ export const sortToString = (sortFilter: OfferSortingRequest) => {
  * @param {OffersFilter} offersFilter - { collectionId, searchText, searchLocale, minPrice, maxPrice, seller, traitsCount }
  * @param {OfferSortingRequest} sort - { sort: [{ order: 1, column: 'Price' }] } === desc(Price)
  */
-export const searchByFilterOffers = async (app: INestApplication, pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest) => {
+export const searchByFilterOffers = async (
+  app: INestApplication,
+  pagination: PaginationRequest,
+  offersFilter: OffersFilter,
+  sort: OfferSortingRequest,
+) => {
   let filterRequest = '/offers?';
 
   const { page, pageSize } = pagination;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { collectionId, searchLocale, minPrice, maxPrice, seller, numberOfAttributes, attributes: traits, isAuction, bidderAddress } = offersFilter;
+  const {
+    collectionId,
+    searchLocale,
+    minPrice,
+    maxPrice,
+    seller,
+    numberOfAttributes,
+    attributes: traits,
+    isAuction,
+    bidderAddress,
+  } = offersFilter;
 
   let { searchText } = offersFilter;
 

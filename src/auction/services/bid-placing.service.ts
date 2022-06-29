@@ -65,7 +65,12 @@ export class BidPlacingService {
     }
   }
 
-  private async handleBidTxSuccess(placeBidArgs: PlaceBidArgs, oldContractAsk: ContractAsk, userBid: BidEntity, blockNumber: bigint): Promise<void> {
+  private async handleBidTxSuccess(
+    placeBidArgs: PlaceBidArgs,
+    oldContractAsk: ContractAsk,
+    userBid: BidEntity,
+    blockNumber: bigint,
+  ): Promise<void> {
     try {
       await this.bidRepository.update(userBid.id, {
         status: BidStatus.finished,

@@ -23,7 +23,12 @@ describe('Offers service', () => {
 
   describe('GET /offers HttpStatus', () => {
     it('should return response status 200)', async () => {
-      const response = await searchByFilterOffers(app, {}, { collectionId: [], numberOfAttributes: [], attributes: [] }, { sort: [{ order: 1, column: '' }] });
+      const response = await searchByFilterOffers(
+        app,
+        {},
+        { collectionId: [], numberOfAttributes: [], attributes: [] },
+        { sort: [{ order: 1, column: '' }] },
+      );
       expect(response.statusCode).toBe(200);
     });
     it('should return response status 400 (Bad Request) set page=0', async () => {
@@ -35,7 +40,9 @@ describe('Offers service', () => {
         { sort: [{ order: 0, column: '' }] },
       );
       expect(response.statusCode).toBe(400);
-      expect(response.text).toBe('{"statusCode":400,"message":"Parameter page must be a positive integer, value: 0","error":"Bad Request"}');
+      expect(response.text).toBe(
+        '{"statusCode":400,"message":"Parameter page must be a positive integer, value: 0","error":"Bad Request"}',
+      );
     });
   });
 
@@ -61,7 +68,12 @@ describe('Offers service', () => {
     });
 
     it('/offers (GET, list of seven offers)', async () => {
-      const response = await searchByFilterOffers(app, {}, { collectionId: [], numberOfAttributes: [], attributes: [] }, { sort: [{ order: 1, column: '' }] });
+      const response = await searchByFilterOffers(
+        app,
+        {},
+        { collectionId: [], numberOfAttributes: [], attributes: [] },
+        { sort: [{ order: 1, column: '' }] },
+      );
 
       expect(response.statusCode).toBe(200);
       expect(response.body.items.length).toBe(10);
