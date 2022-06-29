@@ -122,6 +122,11 @@ CONTRACT_ADDRESS: '0x74C2d83b868f7E7B7C02B7D0b87C3532a06f392c'
 
 ```yaml
    ...
+   ESCROW_SEED: '//Alice'
+   AUCTION_SEED: '//Bob'
+   MAINSALE_SEED: '//Eve'
+   MARKET_TYPE: 'secondary'
+   ADMIN_LIST: ''
    UNIQUE_WS_ENDPOINT: 'wss://opal.unique.network'
    UNIQUE_NETWORK: 'opal'
    UNIQUE_START_FROM_BLOCK: 'current'
@@ -273,6 +278,9 @@ Available environment variables:
 - `DISABLE_SECURITY`: 'false'
 - `ESCROW_SEED`: '//Alice'
 - `AUCTION_SEED`: '//Bob'
+- `MAINSALE_SEED`: '//Eve'
+- `MARKET_TYPE`: 'secondary'
+- `ADMIN_LIST`: ''
 - `UNIQUE_WS_ENDPOINT`: 'wss://opal.unique.network'
 - `UNIQUE_NETWORK`: 'opal'
 - `UNIQUE_START_FROM_BLOCK`: 'current'
