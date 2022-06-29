@@ -597,33 +597,8 @@ export class OffersService {
   }
 
   async getAttributes(collectionId: number): Promise<OfferTraits | null> {
-    let attributes = [];
     try {
-      attributes = await this.connection.manager.query(
-        `
-      select key, trait, count(trait) from (
-        select traits as trait, collection_id, token_id, key from search_index, unnest(items) traits
-        where locale is not null and collection_id = $1
-    ) as si
-      left join contract_ask ca on ca.collection_id = si.collection_id and ca.token_id = si.token_id
-      where ca.status = 'active'
-    group by key, trait order by key`,
-        [collectionId],
-      );
-
-      attributes = attributes.reduce((previous, current) => {
-        const tempObj = {
-          key: current['trait'],
-          count: +current['count'],
-        };
-
-        if (!previous[current['key']]) {
-          previous[current['key']] = [];
-        }
-
-        previous[current['key']].push(tempObj);
-        return previous;
-      }, {});
+      return this.offersFilterService.attributes(collectionId);
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -635,11 +610,6 @@ export class OffersService {
         error: e.message,
       });
     }
-
-    return {
-      collectionId,
-      attributes,
-    };
   }
 
   async getAttributesCounts(args: OfferAttributesDto): Promise<Array<OfferAttributes>> {
