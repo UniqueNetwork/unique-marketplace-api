@@ -230,11 +230,9 @@ export class AuctionClosingService {
     try {
       const { collection_id, token_id } = contractAsk;
 
-      const nonce = await this.kusamaApi.rpc.system.accountNextIndex(this.auctionKeyring.address);
-
       const tx = await this.uniqueApi.tx.unique
         .transfer({ Substrate: winnerAddress }, collection_id, token_id, 1)
-        .signAsync(this.auctionKeyring, { nonce });
+        .signAsync(this.auctionKeyring);
 
       const { blockNumber } = await this.extrinsicSubmitter.submit(this.uniqueApi, tx);
 
