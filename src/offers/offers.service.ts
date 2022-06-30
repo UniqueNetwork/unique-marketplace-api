@@ -308,7 +308,7 @@ export class OffersService {
       .createQueryBuilder(ContractAsk, 'offer')
       .where('offer.collection_id = :collectionId', { collectionId })
       .andWhere('offer.token_id = :tokenId', { tokenId })
-      .andWhere('offer.status = :status', { status: 'active' });
+      .andWhere('offer.status in (:...status)', { status: ['active', 'removed_by_admin'] });
 
     this.addRelations(queryBuilder);
 
@@ -483,7 +483,6 @@ export class OffersService {
     if (nullOrWhitespace(seller)) {
       return query;
     }
-
     return query.andWhere('offer.address_from = :seller', { seller });
   }
   /**
@@ -589,7 +588,11 @@ export class OffersService {
     query = this.filterByAuction(query, offersFilter.bidderAddress, offersFilter.isAuction);
     query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.attributes);
 
-    return query.andWhere(`offer.status = :status`, { status: 'active' });
+    if (offersFilter.seller) {
+      return query.andWhere('offer.status in (:...status)', { status: ['active', 'removed_by_admin'] });
+    } else {
+      return query.andWhere(`offer.status = :status`, { status: 'active' });
+    }
   }
 
   public get isConnected(): boolean {
