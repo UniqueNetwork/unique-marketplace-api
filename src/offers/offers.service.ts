@@ -308,7 +308,7 @@ export class OffersService {
       .createQueryBuilder(ContractAsk, 'offer')
       .where('offer.collection_id = :collectionId', { collectionId })
       .andWhere('offer.token_id = :tokenId', { tokenId })
-      .andWhere('offer.status = :status', { status: 'active' });
+      .andWhere('offer.status in (:...status)', { status: ['active', 'removed_by_admin'] });
 
     this.addRelations(queryBuilder);
 
