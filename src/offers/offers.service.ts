@@ -483,8 +483,7 @@ export class OffersService {
     if (nullOrWhitespace(seller)) {
       return query;
     }
-    query.andWhere('offer.address_from = :seller', { seller });
-    return query.orWhere('offer.status = :statusRemove', { statusRemove: 'removed_by_admin' });
+    return query.andWhere('offer.address_from = :seller', { seller });
   }
   /**
    * Filter by Auction
@@ -589,7 +588,11 @@ export class OffersService {
     query = this.filterByAuction(query, offersFilter.bidderAddress, offersFilter.isAuction);
     query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.attributes);
 
-    return query.andWhere(`offer.status = :status`, { status: 'active' });
+    if (offersFilter.seller) {
+      return query.andWhere('offer.status in (:...status)', { status: ['active', 'removed_by_admin'] });
+    } else {
+      return query.andWhere(`offer.status = :status`, { status: 'active' });
+    }
   }
 
   public get isConnected(): boolean {
