@@ -6,7 +6,7 @@ services:
     image: postgres:14.1-alpine
     container_name: develop-postgres
     environment:
-      POSTGRES_DB: 'marketplace_db'
+      POSTGRES_DB: 'marketplace_dbtest'
       POSTGRES_USER: 'postgresman'
       POSTGRES_PASSWORD: 'test12345'
       POSTGRES_PORT: '5432'
