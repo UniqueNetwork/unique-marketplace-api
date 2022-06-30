@@ -10,7 +10,7 @@ import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { BlockchainBlock, ContractAsk } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs } from '../types';
+import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, AuctionStatus } from '../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { encodeAddress } from '@polkadot/util-crypto';
 
@@ -41,6 +41,14 @@ export class BidPlacingService {
 
     let contractAsk: ContractAsk;
     let nextUserBid: BidEntity;
+
+    const balance = BigInt((await this.kusamaApi.query.system.account(placeBidArgs.bidderAddress)).data.free.toJSON());
+
+    const bidsBalance = await this.getBidsBalance(placeBidArgs.collectionId, placeBidArgs.tokenId, placeBidArgs.bidderAddress);
+
+    if (BigInt(placeBidArgs.amount) > balance + bidsBalance) {
+      throw new BadRequestException('Insufficient funds to bet');
+    }
 
     try {
       [contractAsk, nextUserBid] = await this.tryPlacePendingBid(placeBidArgs);
@@ -167,9 +175,9 @@ export class BidPlacingService {
       const { minBidderAmount, bidderPendingAmount, priceStep, contractPendingPrice } = calculationInfo;
       const amount = BigInt(placeBidArgs.amount);
 
-      this.logger.debug(`${this.tryPlacePendingBid.name}: ${stringify({... placeBidArgs, ...calculationInfo })}`);
+      this.logger.debug(`${this.tryPlacePendingBid.name}: ${stringify({ ...placeBidArgs, ...calculationInfo })}`);
 
-      if ((contractPendingPrice >= priceStep) && (amount < priceStep)) {
+      if (contractPendingPrice >= priceStep && amount < priceStep) {
         throw new BadRequestException(`Min price step is ${priceStep}`);
       }
 
@@ -205,5 +213,20 @@ export class BidPlacingService {
     };
 
     return this.connection.transaction<[ContractAsk, BidEntity]>('REPEATABLE READ', placeWithTransaction);
+  }
+
+  private async getBidsBalance(collectionId: number, tokenId: number, bidderAddress: string) {
+    const bids = await this.bidRepository
+      .createQueryBuilder('bids')
+      .leftJoinAndSelect('bids.auction', 'auctions')
+      .leftJoinAndSelect('auctions.contractAsk', 'contract_ask')
+      .where('bids.bidderAddress = :bidderAddress', { bidderAddress: encodeAddress(bidderAddress) })
+      .andWhere('bids.status = :status', { status: BidStatus.finished })
+      .andWhere('auctions.status = :auctionsStatus', { auctionsStatus: AuctionStatus.active })
+      .andWhere('contract_ask.collection_id = :collectionId', { collectionId })
+      .andWhere('contract_ask.token_id = :tokenId', { tokenId })
+      .getMany();
+
+    return bids.reduce((acc, bid) => acc + BigInt(bid.balance), BigInt(0));
   }
 }
