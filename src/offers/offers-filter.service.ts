@@ -4,25 +4,27 @@ import { Connection, SelectQueryBuilder } from 'typeorm';
 import { OffersService } from './offers.service';
 import { ContractAsk, OfferFilters } from '../entity';
 import { OfferAttributes } from './dto/offer-attributes';
-import { OfferTraits, TraitDto } from './dto';
+import { OffersFilter, OfferTraits, TraitDto } from './dto';
+import { PaginationRequest } from '../utils/pagination/pagination-request';
+import { OfferSortingRequest } from '../utils/sorting/sorting-request';
+import { OffersQuerySortHelper } from './offers-query-sort-helper';
+import { priceTransformer } from '../utils/price-transformer';
+import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 
 @Injectable()
 export class OffersFilterService {
   private logger: Logger;
+  private readonly offersQuerySortHelper: OffersQuerySortHelper;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     @InjectSentry() private readonly sentryService: SentryService,
   ) {
     this.logger = new Logger(OffersService.name);
+    this.offersQuerySortHelper = new OffersQuerySortHelper(connection);
   }
 
   public addSearchIndex(queryBuilder: SelectQueryBuilder<ContractAsk>): SelectQueryBuilder<ContractAsk> {
-    return queryBuilder;
-  }
-
-  public offerFilters(): SelectQueryBuilder<OfferFilters> {
-    const queryBuilder = this.connection.createQueryBuilder(OfferFilters, 'offer_filters');
     return queryBuilder;
   }
 
@@ -34,11 +36,6 @@ export class OffersFilterService {
   public async attributes(collectionId: number): Promise<OfferTraits | null> {
     let attributes = [];
     try {
-      /**
-       * select distinct key, traits,
-       count(traits) over (partition by traits, key)
-       from v_offers_search where  collection_id  = 1 and locale is not null
-       */
       attributes = (await this.connection.manager
         .createQueryBuilder()
         .select(['key', 'traits as trait ', 'count(traits) over (partition by traits, key) as count'])
@@ -108,5 +105,144 @@ export class OffersFilterService {
         error: e.message,
       });
     }
+  }
+  /**
+   * Filter by collection id
+   * @param query {SelectQueryBuilder<OfferFilters>} The query to filter
+   * @param collectionIds {number[]} The collection ids to filter
+   * @private
+   * @returns {SelectQueryBuilder<OfferFilters>}
+   */
+  private byCollectionId(query: SelectQueryBuilder<OfferFilters>, collectionIds?: number[]): SelectQueryBuilder<OfferFilters> {
+    if ((collectionIds ?? []).length <= 0) {
+      return query;
+    }
+    return query.andWhere('v_offers_search.collection_id in (:...collectionIds)', { collectionIds });
+  }
+
+  private byMaxPrice(query: SelectQueryBuilder<OfferFilters>, maxPrice?: bigint): SelectQueryBuilder<OfferFilters> {
+    if (!maxPrice) {
+      return query;
+    }
+    return query.andWhere('v_offers_search.offer_price <= :maxPrice', {
+      maxPrice: priceTransformer.to(maxPrice),
+    });
+  }
+
+  private byMinPrice(query: SelectQueryBuilder<OfferFilters>, minPrice?: bigint): SelectQueryBuilder<OfferFilters> {
+    if (!minPrice) {
+      return query;
+    }
+    return query.andWhere('v_offers_search.offer_price >= :minPrice', {
+      minPrice: priceTransformer.to(minPrice),
+    });
+  }
+
+  private bySeller(query: SelectQueryBuilder<OfferFilters>, seller?: string): SelectQueryBuilder<OfferFilters> {
+    if (nullOrWhitespace(seller)) {
+      return query;
+    }
+    return query.andWhere('v_offers_search.offer_address_from = :seller', { seller });
+  }
+
+  private bySearch(
+    query: SelectQueryBuilder<OfferFilters>,
+    search?: string,
+    locale?: string,
+    numberOfAttributes?: number[],
+  ): SelectQueryBuilder<OfferFilters> {
+    return query;
+  }
+  /**
+   *
+   * @param query
+   * @returns
+   */
+  private pagination(
+    query: SelectQueryBuilder<OfferFilters>,
+    pagination: PaginationRequest,
+  ): { query: SelectQueryBuilder<OfferFilters>; page: number; pageSize: number } {
+    const page = pagination.page ?? 1;
+    const pageSize = pagination.pageSize ?? 10;
+    const offset = (page - 1) * pageSize;
+
+    const queryLimit = query.limit(pageSize).offset(offset);
+
+    return {
+      query: queryLimit,
+      page,
+      pageSize,
+    };
+  }
+
+  private prepareQuery(query: SelectQueryBuilder<OfferFilters>): SelectQueryBuilder<any> {
+    return this.connection
+      .createQueryBuilder()
+      .select([
+        'v_offers_search_offer_id as offer_id',
+        'v_offers_search_offer_status as offer_status',
+        'v_offers_search_collection_id as collection_id',
+        'v_offers_search_token_id as token_id',
+        'v_offers_search_offer_network as offer_network',
+        'v_offers_search_offer_price as offer_price',
+        'v_offers_search_offer_currency as offer_currency',
+        'v_offers_search_offer_address_from as offer_address_from',
+        'v_offers_search_offer_address_to as offer_address_to',
+        'v_offers_search_offer_block_number_ask as offer_block_number_ask',
+        'v_offers_search_offer_block_number_cancel as offer_block_number_cancel',
+        'v_offers_search_offer_block_number_buy as offer_block_number_buy',
+        'v_offers_search_auction_id as auction_id',
+        'v_offers_search_auction_created_at as auction_created_at',
+        'v_offers_search_auction_updated_at as auction_updated_at',
+        'v_offers_search_auction_price_step as auction_price_step',
+        'v_offers_search_auction_start_price as auction_start_price',
+        'v_offers_search_auction_status as auction_status',
+        'v_offers_search_auction_stop_at as auction_stop_at',
+        'v_offers_search_offer_created_at_ask as offer_created_at_ask',
+      ])
+      .distinct()
+      .from(`(${query.getQuery()})`, '_filter')
+      .setParameters(query.getParameters());
+  }
+
+  private async countQuery(query: SelectQueryBuilder<OfferFilters>): Promise<number> {
+    const countQuery = this.connection
+      .createQueryBuilder()
+      .select('count(offer_id) as count')
+      .from(`(${query.getQuery()})`, '_count')
+      .setParameters(query.getParameters());
+
+    const count = await countQuery.getRawOne();
+    return +count?.count || 0;
+  }
+
+  private sortBy(query: SelectQueryBuilder<OfferFilters>, sortBy: OfferSortingRequest): SelectQueryBuilder<OfferFilters> {
+    query = this.offersQuerySortHelper.applyFlatSort(query, sortBy);
+    return query;
+  }
+
+  public async filter(offersFilter: OffersFilter, pagination: PaginationRequest, sort: OfferSortingRequest): Promise<any> {
+    let queryFilter = this.connection.manager.createQueryBuilder(OfferFilters, 'v_offers_search');
+    //Filert by collection id
+    queryFilter = this.byCollectionId(queryFilter, offersFilter.collectionId);
+    queryFilter = this.byMaxPrice(queryFilter, offersFilter.maxPrice);
+    queryFilter = this.byMinPrice(queryFilter, offersFilter.minPrice);
+    queryFilter = this.bySeller(queryFilter, offersFilter.seller);
+
+    queryFilter = this.prepareQuery(queryFilter);
+
+    const itemsCount = await this.countQuery(queryFilter);
+
+    queryFilter = this.sortBy(queryFilter, sort);
+
+    const itemQuery = this.pagination(queryFilter, pagination);
+    const items = await itemQuery.query.getRawMany();
+
+    return {
+      items,
+      itemsCount,
+      page: itemQuery.page,
+      pageSize: itemQuery.pageSize,
+    };
   }
 }

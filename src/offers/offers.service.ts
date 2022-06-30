@@ -57,8 +57,11 @@ export class OffersService {
     try {
       offers = await this.contractAskRepository.createQueryBuilder('offer');
       this.addRelations(offers);
-
       offers = this.filter(offers, offersFilter);
+
+      const _test = await this.offersFilterService.filter(offersFilter, pagination, sort);
+      console.log('test->', _test);
+
       paginationResult = await this.setPagination(offers, pagination, sort);
     } catch (e) {
       this.logger.error(e.message);
