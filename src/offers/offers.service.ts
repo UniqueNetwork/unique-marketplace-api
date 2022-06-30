@@ -483,8 +483,8 @@ export class OffersService {
     if (nullOrWhitespace(seller)) {
       return query;
     }
-
-    return query.andWhere('offer.address_from = :seller', { seller });
+    query.andWhere('offer.address_from = :seller', { seller });
+    return query.orWhere('offer.status = :statusRemove', { statusRemove: 'removed_by_admin' });
   }
   /**
    * Filter by Auction
