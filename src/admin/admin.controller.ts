@@ -137,7 +137,9 @@ export class AdminController {
   @ApiResponse({ status: HttpStatus.OK, type: MassFixPriceSaleResultDto })
   @ApiBadRequestResponse({ type: BadRequestResponse })
   //@UseGuards(AuthGuard, MainSaleSeedGuard)
-  async massFixPriceSale(@Body(new ValidationPipe({ transform: true })) data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResultDto> {
+  async massFixPriceSale(
+    @Body(new ValidationPipe({ transform: true })) data: MassFixPriceSaleDTO,
+  ): Promise<MassFixPriceSaleResultDto | unknown> {
     return await this.massSaleService.massFixPriceSale(data);
   }
 

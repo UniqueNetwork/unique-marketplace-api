@@ -49,7 +49,8 @@ export class MassSaleService {
    * @param {MassFixPriceSaleDTO} data - mass fix price sale params
    * @return ({Promise<MassFixPriceSaleResult>})
    */
-  async massFixPriceSale(data: MassFixPriceSaleDTO): Promise<MassFixPriceSaleResultDto> {
+  async massFixPriceSale(data: MassFixPriceSaleDTO): Promise<unknown | MassFixPriceSaleResultDto> {
+    this.checkData(data);
     const { collectionId, price } = data;
     const { signer, tokenIds } = await this.prepareMassSale(collectionId);
 
@@ -115,6 +116,13 @@ export class MassSaleService {
     };
   }
 
+  private checkData(data: MassFixPriceSaleDTO): void {
+    const reg = /^[0-9]*$/;
+    if (data.price.toString().match(reg) === null) throw new BadRequestException('Price must be a number');
+    if (Number(data.price) <= 0) throw new BadRequestException('The price cannot be negative');
+    if (!reg.test(String(data.collectionId))) throw new BadRequestException('Invalid collection id');
+    if (!reg.test(String(data.price))) throw new BadRequestException('Invalid price number');
+  }
   /**
    * Mass auction sale
    * @param {MassAuctionSaleDTO} data - mass auction sale params
