@@ -51,23 +51,13 @@ export class OffersFilter {
   public searchLocale?: string;
 
   @ApiProperty({
-    name: 'attributes',
-    items: {
-      type: 'object',
-      properties: {
-        key: {
-          type: 'string',
-        },
-        attribute: {
-          type: 'string',
-        },
-      },
-    },
+    name: 'traits',
+    items: { type: 'string', default: '' },
     required: false,
     type: 'array',
     isArray: true,
   })
-  public attributes?: Array<filterAttributes>;
+  public attributes?: string[];
 
   @ApiProperty({
     required: false,

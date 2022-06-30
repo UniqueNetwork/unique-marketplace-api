@@ -1,10 +1,13 @@
 import { Exclude, Type } from 'class-transformer';
+import { TraitDto } from '../../offers/dto';
 
 export interface PaginationResult<T> {
   items: T[];
   itemsCount: number;
   page: number;
   pageSize: number;
+  attributes?: Array<any>;
+  attributesCount?: Array<any>;
 }
 
 export class PaginationResultDto<T> implements PaginationResult<T> {
@@ -25,4 +28,6 @@ export class PaginationResultDto<T> implements PaginationResult<T> {
   itemsCount: number;
   page: number;
   pageSize: number;
+  attributes?: Array<any>;
+  attributesCount?: Array<any>;
 }
