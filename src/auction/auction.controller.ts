@@ -46,6 +46,7 @@ import { TraceInterceptor } from '../utils/sentry';
 import { BadRequestResponse, BidsWitdrawByOwnerDto, ConflictResponse, UnauthorizedResponse } from './responses';
 import * as fs from 'fs';
 import { InjectUniqueAPI, InjectKusamaAPI } from '../blockchain';
+import { DateHelper } from '../utils/date-helper';
 
 @ApiTags('Auction')
 @Controller('auction')
@@ -76,7 +77,24 @@ export class AuctionController {
   async createAuction(
     @Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto,
   ): Promise<OfferContractAskDto> {
-    return await this.auctionCreationService.createAuction(createAuctionRequest);
+    DateHelper.checkDateAndMinutes(createAuctionRequest.days, createAuctionRequest.minutes);
+    try {
+      const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
+
+      this.logger.debug(
+        `Create an auction - collectionId: ${txInfo.args.collection_id},ownerAddress: ${txInfo.signerAddress}, tokenId: ${txInfo.args.item_id}`,
+      );
+      return await this.auctionCreationService.create({
+        ...createAuctionRequest,
+        collectionId: txInfo.args.collection_id,
+        ownerAddress: txInfo.signerAddress,
+        tokenId: txInfo.args.item_id,
+      });
+    } catch (error) {
+      await this.auctionCreationService.saveFailedAuction(createAuctionRequest);
+
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Post('place_bid')
