@@ -23,6 +23,15 @@ const ToBigInt = Transform(({ value }: { value: any }): bigint | any => {
 });
 
 export class CreateAuctionRequestDto implements CreateAuctionRequest {
+  @IsOptional()
+  collectionId: string;
+
+  @IsOptional()
+  tokenId: string;
+
+  @IsOptional()
+  ownerAddress: string;
+
   @ApiProperty({ example: '100' })
   @ToBigInt
   @IsBigInt()
@@ -46,7 +55,7 @@ export class CreateAuctionRequestDto implements CreateAuctionRequest {
   @Type(() => Number)
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(59)
   minutes: number;
 

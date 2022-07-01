@@ -76,23 +76,7 @@ export class AuctionController {
   async createAuction(
     @Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto,
   ): Promise<OfferContractAskDto> {
-    try {
-      const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
-
-      this.logger.debug(
-        `Create an auction - collectionId: ${txInfo.args.collection_id},ownerAddress: ${txInfo.signerAddress}, tokenId: ${txInfo.args.item_id}`,
-      );
-      return await this.auctionCreationService.create({
-        ...createAuctionRequest,
-        collectionId: txInfo.args.collection_id,
-        ownerAddress: txInfo.signerAddress,
-        tokenId: txInfo.args.item_id,
-      });
-    } catch (error) {
-      await this.auctionCreationService.saveFailedAuction(createAuctionRequest);
-
-      throw new BadRequestException(error.message);
-    }
+    return await this.auctionCreationService.createAuction(createAuctionRequest);
   }
 
   @Post('place_bid')
