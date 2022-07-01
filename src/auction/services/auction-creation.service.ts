@@ -17,8 +17,6 @@ import { InjectSentry, SentryService } from '../../utils/sentry';
 import { subToEth } from '../../utils/blockchain/web3';
 import { CreateAskAndBroadcastArgs } from '../types/auction';
 import { InjectUniqueAPI } from '../../blockchain';
-import { CreateAuctionRequestDto } from '../requests';
-import { TxDecoder } from './helpers/tx-decoder';
 
 export type CreateAuctionArgs = {
   collectionId: string;
@@ -41,7 +39,7 @@ type FailedAuctionArgs = {
 @Injectable()
 export class AuctionCreationService {
   private readonly logger = new Logger(AuctionCreationService.name);
-  private readonly txDecoder: TxDecoder;
+
   private readonly auctionRepository: Repository<AuctionEntity>;
   private blockchainBlockRepository: Repository<BlockchainBlock>;
   private readonly contractAskRepository: Repository<ContractAsk>;
@@ -61,39 +59,6 @@ export class AuctionCreationService {
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
   }
 
-  /**
-   * Create data auction
-   * @param createAuctionRequest
-   * @returns {Promise<OfferContractAskDto>}
-   */
-  async createAuction(createAuctionRequest: CreateAuctionRequestDto): Promise<OfferContractAskDto> {
-    const { days, minutes } = createAuctionRequest;
-    DateHelper.checkDateAndMinutes(days, minutes);
-    try {
-      const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
-
-      this.logger.debug(
-        `Create an auction - collectionId: ${txInfo.args.collection_id},ownerAddress: ${txInfo.signerAddress}, tokenId: ${txInfo.args.item_id}`,
-      );
-      return await this.create({
-        ...createAuctionRequest,
-        collectionId: txInfo.args.collection_id,
-        ownerAddress: txInfo.signerAddress,
-        tokenId: txInfo.args.item_id,
-      });
-    } catch (error) {
-      await this.saveFailedAuction(createAuctionRequest);
-
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  /**
-   * Check owner of token
-   * @param {Number} collectionId - collection id
-   * @param {Number} tokenId - token id
-   * @returns {Promise<boolean>}
-   */
   async checkOwner(collectionId: number, tokenId: number): Promise<boolean> {
     const token = (await this.uniqueApi.query.nonfungible.tokenData(collectionId, tokenId)).toJSON();
     const owner = token['owner'];
@@ -148,10 +113,6 @@ export class AuctionCreationService {
     return offer;
   }
 
-  /**
-   * Create ask and broadcast
-   * @param data
-   */
   async createAskAndBroadcast(data: CreateAskAndBroadcastArgs): Promise<OfferContractAskDto> {
     const { blockNumber, collectionId, tokenId, ownerAddress, startPrice, priceStep, stopAt } = data;
 
@@ -204,10 +165,6 @@ export class AuctionCreationService {
     return offer;
   }
 
-  /**
-   * Save failed auction
-   * @param args
-   */
   async saveFailedAuction(args: FailedAuctionArgs): Promise<void> {
     await this.auctionRepository.save({
       id: uuid(),
