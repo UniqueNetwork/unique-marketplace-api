@@ -37,7 +37,7 @@ import {
 import { CollectionsFilterPipe, ParseCollectionIdPipe } from './pipes';
 
 @ApiTags('Administration')
-//@ApiBearerAuth()
+@ApiBearerAuth()
 @ApiUnauthorizedResponse({
   description: 'Unauthorized address or bad signature',
   type: ResponseAdminUnauthorizedDto,
@@ -136,7 +136,7 @@ export class AdminController {
   })
   @ApiResponse({ status: HttpStatus.OK, type: MassFixPriceSaleResultDto })
   @ApiBadRequestResponse({ type: BadRequestResponse })
-  //@UseGuards(AuthGuard, MainSaleSeedGuard)
+  @UseGuards(AuthGuard, MainSaleSeedGuard)
   async massFixPriceSale(
     @Body(new ValidationPipe({ transform: true })) data: MassFixPriceSaleDTO,
   ): Promise<MassFixPriceSaleResultDto | unknown> {
@@ -151,7 +151,7 @@ export class AdminController {
   })
   @ApiResponse({ status: HttpStatus.OK, type: MassAuctionSaleResultDto })
   @ApiBadRequestResponse({ type: BadRequestResponse })
-  //@UseGuards(AuthGuard, MainSaleSeedGuard)
+  @UseGuards(AuthGuard, MainSaleSeedGuard)
   async massAuctionSale(@Body(new ValidationPipe({ transform: true })) data: MassAuctionSaleDTO): Promise<MassAuctionSaleResultDto> {
     return await this.massSaleService.massAuctionSale(data);
   }
