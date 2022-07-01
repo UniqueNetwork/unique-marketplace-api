@@ -1,7 +1,19 @@
-## Mass cancel
+## Mass cancel auction & offers
 
-Cancel ALL secondary market offers
+### Cancel ALL secondary market offers
 
-For fix price offers dont cancel asks in smart contract, just change status
+This method performs the cancellation of all offers and auctions.
 
-For auction offers set stop date to current time and finish auctions
+Auctions are canceled according to a simple principle:
+
+1. Stops the auction
+2. The last high bid wins the auction
+3. The token is given to the winner
+4. The losers are refunded their bid amount
+5. The owner of the bid token is paid the amount minus commission
+
+Offers are canceled according to a simple principle:
+
+1. The offer is transferred to the status `removed_by_admin`
+2. The owner of the offer can remove the token from sale in the `My tokens` section
+
