@@ -47,11 +47,7 @@ export class ParseOffersFilterPipe implements PipeTransform<any, TransformationR
           }),
         )
         .filter((id) => id != null) as number[],
-      attributes: requestArrayObject(value.attributes)
-        .filter((id) => id != null)
-        .map((item) => {
-          return JSON.parse(item);
-        }) as Array<filterAttributes>,
+      attributes: requestArray(value.attributes).filter((id) => id != null) as string[],
       bidderAddress: value.bidderAddress,
       isAuction: value?.isAuction || null,
     });

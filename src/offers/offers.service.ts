@@ -4,7 +4,7 @@ import { Connection, Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeAttributToken, Bid } from '../auction/types';
 
 import { OffersQuerySortHelper } from './offers-query-sort-helper';
-import { OfferTraits, OfferContractAskDto, filterAttributes, OffersFilter, OfferAttributesDto, OfferAttributes } from './dto';
+import { OfferTraits, OfferContractAskDto, filterAttributes, OffersFilter, OfferAttributesDto, OfferAttributes, TraitDto } from './dto';
 import { BlockchainBlock, ContractAsk, SearchIndex, AuctionEntity, BidEntity } from '../entity';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
@@ -14,6 +14,7 @@ import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 import { priceTransformer } from '../utils/price-transformer';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersFilterService } from './offers-filter.service';
+import { OffersFilterType, OffersItemType } from './types';
 
 type OfferPaginationResult = {
   items: ContractAsk[];
@@ -25,8 +26,6 @@ type OfferPaginationResult = {
 @Injectable()
 export class OffersService {
   private logger: Logger;
-  private readonly contractAskRepository: Repository<ContractAsk>;
-  private readonly searchIndexRepository: Repository<SearchIndex>;
   private offersQuerySortHelper: OffersQuerySortHelper;
 
   constructor(
@@ -35,8 +34,6 @@ export class OffersService {
     private readonly offersFilterService: OffersFilterService,
   ) {
     this.logger = new Logger(OffersService.name);
-    this.contractAskRepository = connection.manager.getRepository(ContractAsk);
-    this.searchIndexRepository = connection.manager.getRepository(SearchIndex);
     this.offersQuerySortHelper = new OffersQuerySortHelper(connection);
   }
   /**
@@ -51,15 +48,10 @@ export class OffersService {
     offersFilter: OffersFilter,
     sort: OfferSortingRequest,
   ): Promise<PaginationResultDto<OfferContractAskDto>> {
-    let offers: SelectQueryBuilder<ContractAsk>;
-    let paginationResult;
+    let offers;
 
     try {
-      offers = await this.contractAskRepository.createQueryBuilder('offer');
-      this.addRelations(offers);
-
-      offers = this.filter(offers, offersFilter);
-      paginationResult = await this.setPagination(offers, pagination, sort);
+      offers = await this.offersFilterService.filter(offersFilter, pagination, sort);
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -73,8 +65,12 @@ export class OffersService {
     }
 
     return new PaginationResultDto(OfferContractAskDto, {
-      ...paginationResult,
-      items: paginationResult.items.map(OfferContractAskDto.fromContractAsk),
+      page: offers.page,
+      pageSize: offers.pageSize,
+      itemsCount: offers.itemsCount,
+      items: (this.parseItems(offers.items) as any as Array<ContractAsk>).map(OfferContractAskDto.fromContractAsk),
+      attributes: offers.attributes as Array<TraitDto>,
+      attributesCount: offers.attributesCount,
     });
   }
 
@@ -188,6 +184,44 @@ export class OffersService {
 
       return acc;
     };
+  }
+
+  private parseItems(items: Array<OffersFilterType>): Array<OffersItemType> {
+    function convertorFlatToObject(): (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => any {
+      return (acc, item) => {
+        const obj = {
+          collection_id: +item.collection_id,
+          token_id: +item.token_id,
+          price: item.offer_price,
+          currency: +item.offer_currency,
+          address_from: item.offer_address_from,
+          created_at: new Date(item.offer_created_at_ask),
+          auction: null,
+          tokenDescription: {},
+        };
+
+        if (item.auction_id) {
+          obj.auction = Object.assign(
+            {},
+            {
+              id: item.auction_id,
+              createdAt: new Date(item.auction_created_at),
+              updatedAt: new Date(item.auction_updated_at),
+              priceStep: item.auction_price_step,
+              startPrice: item.auction_start_price,
+              status: item.auction_status,
+              stopAt: new Date(item.auction_stop_at),
+              bids: [],
+            },
+          );
+        }
+
+        acc.push(obj);
+        return acc;
+      };
+    }
+
+    return items.reduce(convertorFlatToObject(), []);
   }
 
   async setPagination(
@@ -586,7 +620,6 @@ export class OffersService {
     query = this.filterBySeller(query, offersFilter.seller);
     query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.numberOfAttributes);
     query = this.filterByAuction(query, offersFilter.bidderAddress, offersFilter.isAuction);
-    query = this.filterByTraits(query, offersFilter.collectionId, offersFilter.attributes);
 
     if (offersFilter.seller) {
       return query.andWhere('offer.status in (:...status)', { status: ['active', 'removed_by_admin'] });
