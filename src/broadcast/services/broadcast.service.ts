@@ -72,6 +72,16 @@ export class BroadcastService {
     this.server.in(roomId).emit('bidPlaced', offer);
   }
 
+  sendAuctionError(offer: OfferContractAskDto, message: string): void {
+    const roomId = BroadcastService.getAuctionRoomId(offer);
+    this.logger.error(`[Emit] errorMessage - ${roomId} - ${JSON.stringify(offer)}`);
+    const error = {
+      offer: JSON.stringify(offer),
+      message,
+    };
+    this.server.in(roomId).emit('errorMessage', `${error}`);
+  }
+
   sendAuctionStopped(offer: OfferContractAskDto): void {
     const roomId = BroadcastService.getAuctionRoomId(offer);
 

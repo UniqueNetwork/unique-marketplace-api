@@ -7,6 +7,7 @@ export type ServerToClientEvents = {
   bidPlaced: (offer: OfferContractAskDto) => void;
   auctionStopped: (offer: OfferContractAskDto) => void;
   auctionClosed: (offer: OfferContractAskDto) => void;
+  errorMessage: (message: string) => void;
 };
 
 export type TokenIds = { collectionId: number; tokenId: number };
