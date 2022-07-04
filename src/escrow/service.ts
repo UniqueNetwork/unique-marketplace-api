@@ -1,7 +1,7 @@
 import { SearchIndexService } from '../auction/services/search-index.service';
 import { ModuleRef } from '@nestjs/core';
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { Connection, Repository } from 'typeorm';
+import { Connection, In, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import * as logging from '../utils/logging';
 
@@ -86,7 +86,7 @@ export class EscrowService {
       collection_id: collectionId.toString(),
       token_id: tokenId.toString(),
       network: this.getNetwork(network),
-      status: ASK_STATUS.ACTIVE,
+      status: In([ASK_STATUS.ACTIVE, ASK_STATUS.REMOVED_BY_ADMIN]),
     });
   }
 
@@ -139,7 +139,7 @@ export class EscrowService {
       {
         collection_id: collectionId.toString(),
         token_id: tokenId.toString(),
-        status: ASK_STATUS.ACTIVE,
+        status: In([ASK_STATUS.ACTIVE, ASK_STATUS.REMOVED_BY_ADMIN]),
         network: this.getNetwork(network),
       },
       { status: ASK_STATUS.CANCELLED, block_number_cancel: `${blockNumber}` },
