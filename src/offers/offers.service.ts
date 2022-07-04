@@ -49,9 +49,15 @@ export class OffersService {
     sort: OfferSortingRequest,
   ): Promise<PaginationResultDto<OfferContractAskDto>> {
     let offers;
+    let items = [];
+    let auctionIds: Array<number> = [];
+    let bids = [];
 
     try {
       offers = await this.offersFilterService.filter(offersFilter, pagination, sort);
+      auctionIds = this.getAuctionIds(offers.items);
+      bids = await this.getBids(auctionIds);
+      items = this.parseItems(offers.items, bids) as any as Array<ContractAsk>;
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -68,17 +74,14 @@ export class OffersService {
       page: offers.page,
       pageSize: offers.pageSize,
       itemsCount: offers.itemsCount,
-      items: (this.parseItems(offers.items) as any as Array<ContractAsk>).map(OfferContractAskDto.fromContractAsk),
+      items: items.map(OfferContractAskDto.fromContractAsk),
       attributes: offers.attributes as Array<TraitDto>,
       attributesCount: offers.attributesCount,
     });
   }
 
   private getAuctionIds(items: Array<any>): Array<number> {
-    return items
-      .filter((item) => item?.auction !== null)
-      .map((item) => item.auction.id)
-      .filter((id) => id !== null);
+    return items.filter((item) => item?.auction_id !== null).map((item) => item?.auction_id);
   }
 
   private async getBids(auctionIds: Array<number>): Promise<Array<Partial<Bid>>> {
@@ -186,7 +189,7 @@ export class OffersService {
     };
   }
 
-  private parseItems(items: Array<OffersFilterType>): Array<OffersItemType> {
+  private parseItems(items: Array<OffersFilterType>, bids: Partial<Bid>[]): Array<OffersItemType> {
     function convertorFlatToObject(): (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => any {
       return (acc, item) => {
         const obj = {
@@ -211,7 +214,7 @@ export class OffersService {
               startPrice: item.auction_start_price,
               status: item.auction_status,
               stopAt: new Date(item.auction_stop_at),
-              bids: [],
+              bids: bids.filter((bid) => bid.auctionId === item.auction_id) as any as BidEntity[],
             },
           );
         }

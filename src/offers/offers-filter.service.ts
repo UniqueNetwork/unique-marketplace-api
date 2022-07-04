@@ -170,8 +170,12 @@ export class OffersFilterService {
     return query.andWhere('v_offers_search.total_items in (:...numberOfAttributes)', { numberOfAttributes });
   }
 
-  private byTraits(query: SelectQueryBuilder<OfferFilters>, collectionIds?: number[], traits?: string[]): SelectQueryBuilder<OfferFilters> {
-    if ((traits ?? []).length <= 0) {
+  private byFindAttributes(
+    query: SelectQueryBuilder<OfferFilters>,
+    collectionIds?: number[],
+    attributes?: string[],
+  ): SelectQueryBuilder<OfferFilters> {
+    if ((attributes ?? []).length <= 0) {
       return query;
     } else {
       if ((collectionIds ?? []).length <= 0) {
@@ -182,7 +186,7 @@ export class OffersFilterService {
       } else {
         query
           .andWhere('v_offers_search.collection_id in (:...collectionIds)', { collectionIds })
-          .andWhere('array [:...traits] <@ v_offers_search.list_items', { traits });
+          .andWhere('array [:...traits] <@ v_offers_search.list_items', { traits: attributes });
       }
     }
     return query;
@@ -347,7 +351,7 @@ export class OffersFilterService {
     // Filter by auction
     queryFilter = this.byAuction(queryFilter, offersFilter.bidderAddress, offersFilter.isAuction);
     // Filter by traits
-    queryFilter = this.byTraits(queryFilter, offersFilter.collectionId, offersFilter.attributes);
+    queryFilter = this.byFindAttributes(queryFilter, offersFilter.collectionId, offersFilter.attributes);
 
     const attributes = await this.byAttributes(queryFilter).getRawMany();
     const attributesCount = await this.byAttributesCount(queryFilter);
@@ -361,6 +365,8 @@ export class OffersFilterService {
     const itemQuery = this.pagination(queryFilter, pagination);
 
     const items = await itemQuery.query.getRawMany();
+
+    console.log(items);
 
     return {
       items,
