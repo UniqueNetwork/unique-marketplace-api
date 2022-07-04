@@ -57,9 +57,9 @@ export class OffersQuerySortHelper {
       case 'price':
         return 'offer_price';
       case 'tokenid':
-        return 'offer_token_id';
+        return 'token_id';
       case 'creationdate':
-        return 'block_created_at';
+        return 'offer_created_at_ask';
     }
     return 'offer_block_number_ask';
   }

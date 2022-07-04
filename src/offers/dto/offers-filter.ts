@@ -51,7 +51,7 @@ export class OffersFilter {
   public searchLocale?: string;
 
   @ApiProperty({
-    name: 'traits',
+    name: 'attributes',
     items: { type: 'string', default: '' },
     required: false,
     type: 'array',
