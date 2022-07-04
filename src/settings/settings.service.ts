@@ -25,14 +25,15 @@ export class SettingsService {
 
   async prepareSettings(): Promise<SettingsDto> {
     const { blockchain, auction, marketType, mainSaleSeed, adminList } = this.config;
-
+    const mainSaleAddress = this.config.mainSaleSeed ? await seedToAddress(mainSaleSeed) : '';
     const collectionIds = await this.getCollectionIds();
     const allowedTokens = await this.getAllowedTokens();
     const administrators = adminList.split(',').map((value) => value.trim());
+
     const settings: SettingsDto = {
       marketType: marketType,
       administrators: administrators,
-      mainSaleSeedAddress: await seedToAddress(mainSaleSeed),
+      mainSaleSeedAddress: mainSaleAddress,
       blockchain: {
         escrowAddress: await seedToAddress(blockchain.escrowSeed),
         unique: {
