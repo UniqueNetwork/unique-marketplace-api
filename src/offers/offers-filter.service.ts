@@ -144,9 +144,12 @@ export class OffersFilterService {
 
   private bySeller(query: SelectQueryBuilder<OfferFilters>, seller?: string): SelectQueryBuilder<OfferFilters> {
     if (nullOrWhitespace(seller)) {
+      query.andWhere('v_offers_search.offer_status = :status', { status: 'active' });
       return query;
     }
-    return query.andWhere('v_offers_search.offer_address_from = :seller', { seller });
+    return query
+      .andWhere('v_offers_search.offer_address_from = :seller', { seller })
+      .andWhere('v_offers_search.offer_status in (...:offer_status)', { offer_status: ['active', 'removed_by_admin'] });
   }
 
   private byLocale(query: SelectQueryBuilder<OfferFilters>, locale?: string): SelectQueryBuilder<OfferFilters> {

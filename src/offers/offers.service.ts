@@ -52,12 +52,14 @@ export class OffersService {
     let items = [];
     let auctionIds: Array<number> = [];
     let bids = [];
+    let searchIndex = [];
 
     try {
       offers = await this.offersFilterService.filter(offersFilter, pagination, sort);
       auctionIds = this.getAuctionIds(offers.items);
       bids = await this.getBids(auctionIds);
-      items = this.parseItems(offers.items, bids) as any as Array<ContractAsk>;
+      searchIndex = await this.getSearchIndex(this.sqlCollectionIdTokenId(offers.items));
+      items = this.parseItems(offers.items, bids, searchIndex) as any as Array<ContractAsk>;
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -189,7 +191,9 @@ export class OffersService {
     };
   }
 
-  private parseItems(items: Array<OffersFilterType>, bids: Partial<Bid>[]): Array<OffersItemType> {
+  private parseItems(items: Array<OffersFilterType>, bids: Partial<Bid>[], searchIndex: Partial<SearchIndex>[]): Array<OffersItemType> {
+    const parseSearchIndex = this.parseSearchIndex;
+
     function convertorFlatToObject(): (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => any {
       return (acc, item) => {
         const obj = {
@@ -200,7 +204,11 @@ export class OffersService {
           address_from: item.offer_address_from,
           created_at: new Date(item.offer_created_at_ask),
           auction: null,
-          tokenDescription: {},
+          tokenDescription: searchIndex
+            .filter((index) => index.collection_id === item.collection_id && index.token_id === item.token_id)
+            .reduce(parseSearchIndex(), {
+              attributes: [],
+            }),
         };
 
         if (item.auction_id) {
@@ -395,240 +403,6 @@ export class OffersService {
         '_bids',
         '_bids.auc_id = auction.id',
       );
-  }
-
-  /**
-   * Filter by Collection ID
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {Array<number>} collectionIds - Array collection ID
-   * @private
-   * @see OffersService.get
-   * @return {SelectQueryBuilder<ContractAsk>}
-   */
-  private filterByCollectionId(query: SelectQueryBuilder<ContractAsk>, collectionIds?: number[]): SelectQueryBuilder<ContractAsk> {
-    if ((collectionIds ?? []).length <= 0) {
-      return query;
-    }
-
-    return query.andWhere('offer.collection_id in (:...collectionIds)', {
-      collectionIds,
-    });
-  }
-
-  /**
-   * Filter by Max Price
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {BigInt} maxPrice - Int max price
-   * @private
-   * @see OffersService.get
-   * @return {SelectQueryBuilder<ContractAsk>}
-   */
-  private filterByMaxPrice(query: SelectQueryBuilder<ContractAsk>, maxPrice?: bigint): SelectQueryBuilder<ContractAsk> {
-    if (maxPrice == null) {
-      return query;
-    }
-    return query.andWhere('offer.price <= :maxPrice', {
-      maxPrice: priceTransformer.to(maxPrice),
-    });
-    // return query.andWhere('offer.price <= :maxPrice', { maxPrice: maxPrice });
-  }
-
-  /**
-   * Filter by Min Price
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {BigInt} minPrice - Int mix price
-   * @private
-   * @see OffersService.get
-   * @return {SelectQueryBuilder<ContractAsk>}
-   */
-  private filterByMinPrice(query: SelectQueryBuilder<ContractAsk>, minPrice?: bigint): SelectQueryBuilder<ContractAsk> {
-    if (minPrice == null) {
-      return query;
-    }
-
-    return query.andWhere('offer.price >= :minPrice', {
-      minPrice: priceTransformer.to(minPrice),
-    });
-  }
-
-  /**
-   * Filter by Min Price
-   * @description  Fetches from SearchIndex by searchText based on collection id and token id
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {String} text - Search field from SearchIndex in which traits are specified
-   * @param {String} locale -
-   * @param {number[]} numberOfAttributes -
-   * @private
-   * @see OffersService.get
-   * @return SelectQueryBuilder<ContractAsk>
-   */
-  private filterBySearchText(
-    query: SelectQueryBuilder<ContractAsk>,
-    text?: string,
-    locale?: string,
-    numberOfAttributes?: number[],
-  ): SelectQueryBuilder<ContractAsk> {
-    if ((numberOfAttributes ?? []).length !== 0) {
-      query.leftJoinAndSelect(
-        (subQuery) => {
-          return subQuery
-            .select(['_i.collection_id', '_i.token_id', 'sum(array_count) over (partition by _i.collection_id, _i.token_id) as amount'])
-            .distinct()
-            .from((qb) => {
-              return qb
-                .select(['_s.collection_id as collection_id', '_s.token_id as token_id', 'array_length(_s.items, 1) as array_count'])
-                .distinct()
-                .from(SearchIndex, '_s')
-                .leftJoinAndSelect(ContractAsk, 'ca', 'ca.collection_id = _s.collection_id and ca.token_id = _s.token_id')
-                .andWhere('_s.type in (:...types)', { types: ['Enum', 'String'] })
-                .andWhere('_s.key not in (:...keys)', {
-                  keys: ['collectionCover', 'description', 'collectionName'],
-                })
-                .andWhere('ca.status = :status', { status: 'active' });
-            }, '_i');
-        },
-        '_count_token',
-        '_count_token.collection_id = offer.collection_id and _count_token.token_id = offer.token_id',
-      );
-
-      query.andWhere('_count_token.amount in (:...numberOfAttributes)', { numberOfAttributes });
-    }
-
-    if (!nullOrWhitespace(text)) {
-      query.andWhere(`search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%')`, {
-        searchText: text,
-      });
-    }
-
-    if (!nullOrWhitespace(locale)) {
-      query.andWhere('(search_filter.locale is null OR search_filter.locale = :locale)', { locale: locale });
-    }
-
-    return query;
-  }
-
-  /**
-   * Filter by Seller
-   * @description  Generates a data request where address_from == seller
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {String} seller - Seller Hash
-   * @private
-   * @see OffersService.get
-   * @return SelectQueryBuilder<ContractAsk>
-   */
-  private filterBySeller(query: SelectQueryBuilder<ContractAsk>, seller?: string): SelectQueryBuilder<ContractAsk> {
-    if (nullOrWhitespace(seller)) {
-      return query;
-    }
-    return query.andWhere('offer.address_from = :seller', { seller });
-  }
-  /**
-   * Filter by Auction
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {String} bidderAddress - bidder address for bids in auction
-   * @param {Boolean} isAuction - flag for checking auctions in offers
-   * @private
-   * @see OffersService.get
-   * @return SelectQueryBuilder<ContractAsk>
-   */
-  private filterByAuction(
-    query: SelectQueryBuilder<ContractAsk>,
-    bidderAddress?: string,
-    isAuction?: boolean | string,
-  ): SelectQueryBuilder<ContractAsk> {
-    if (isAuction !== null) {
-      const _auction = isAuction === 'true';
-      if (_auction === true) {
-        query.andWhere('auction.id is not null');
-      } else {
-        query.andWhere('auction.id is null');
-      }
-    }
-
-    if (!nullOrWhitespace(bidderAddress)) {
-      query.andWhere('(_bids.bidder_address = :bidderAddress)', {
-        bidderAddress,
-      });
-    }
-
-    return query;
-  }
-  /**
-   * Filter by Traits
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {Array<number>} collectionIds - Array collection ID
-   * @param {Array<string>} attributes - Array traits for token
-   * @private
-   * @see OffersService.get
-   * @return SelectQueryBuilder<ContractAsk>
-   */
-  private filterByTraits(
-    query: SelectQueryBuilder<ContractAsk>,
-    collectionIds?: number[],
-    attributes?: Array<filterAttributes>,
-  ): SelectQueryBuilder<ContractAsk> {
-    if ((attributes ?? []).length <= 0) {
-      return query;
-    } else {
-      if ((collectionIds ?? []).length <= 0) {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Not found collectionIds. Please set collectionIds to offer by filter',
-        });
-      } else {
-        query.leftJoinAndSelect(
-          (subQuery) => {
-            return subQuery.select(['collection_id', 'token_id', 'attributes']).from((qb) => {
-              return qb
-                .select(['collection_id', 'token_id', 'array_agg(attributes) attributes'])
-                .from((_qb) => {
-                  return _qb
-                    .select(['collection_id', 'token_id', 'unnest(items) as attributes'])
-                    .from(SearchIndex, '_si')
-                    .where('_si.type = :type', { type: 'Enum' })
-                    .andWhere('_si.collection_id IN (:...collectionIds)', { collectionIds });
-                }, '_t')
-                .groupBy('collection_id')
-                .addGroupBy('token_id');
-            }, '_f');
-          },
-          '_attiributes',
-          '_attiributes.collection_id = offer.collection_id and _attiributes.token_id = offer.token_id',
-        );
-
-        const filterAttributes = attributes.reduce((previous, current) => {
-          previous.push(current['attribute']);
-          return previous;
-        }, []);
-
-        query.andWhere('array [:...filterAttributes] <@ _attiributes.attributes', { filterAttributes });
-
-        return query;
-      }
-    }
-  }
-
-  /**
-   * Filter all create OffersFilter Dto
-   * @param {SelectQueryBuilder<ContractAsk>} query - Selecting data from the ContractAsk table
-   * @param {OffersFilter} offersFilter - All filters combined into one create OffersFilter Dto
-   * @private
-   * @see OffersService.get
-   * @return SelectQueryBuilder<ContractAsk>
-   */
-  private filter(query: SelectQueryBuilder<ContractAsk>, offersFilter: OffersFilter): SelectQueryBuilder<ContractAsk> {
-    query = this.filterByCollectionId(query, offersFilter.collectionId);
-    query = this.filterByMaxPrice(query, offersFilter.maxPrice);
-    query = this.filterByMinPrice(query, offersFilter.minPrice);
-    query = this.filterBySeller(query, offersFilter.seller);
-    query = this.filterBySearchText(query, offersFilter.searchText, offersFilter.searchLocale, offersFilter.numberOfAttributes);
-    query = this.filterByAuction(query, offersFilter.bidderAddress, offersFilter.isAuction);
-
-    if (offersFilter.seller) {
-      return query.andWhere('offer.status in (:...status)', { status: ['active', 'removed_by_admin'] });
-    } else {
-      return query.andWhere(`offer.status = :status`, { status: 'active' });
-    }
   }
 
   public get isConnected(): boolean {
