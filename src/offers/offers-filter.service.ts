@@ -369,8 +369,6 @@ export class OffersFilterService {
 
     const items = await itemQuery.query.getRawMany();
 
-    console.log(items);
-
     return {
       items,
       itemsCount,
