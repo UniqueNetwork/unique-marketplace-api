@@ -79,13 +79,17 @@ export class MarketTradeDto {
 
           if (item.type === TypeAttributToken.ImageURL) {
             const image = String(item.items.pop());
-            if (image.search('ipfs-gateway.usetech.com') !== -1) {
+            if (image.search('ipfs.unique.network') !== -1) {
               acc[`${item.key}`] = image;
             } else {
-              if (image) {
-                acc[`${item.key}`] = `http://ipfs-gateway.usetech.com/ipfs/${image}`;
+              if (image.search('https://') !== -1 && image.search('http://') !== 0) {
+                acc[`${item.key}`] = image;
               } else {
-                acc[`${item.key}`] = null;
+                if (image) {
+                  acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+                } else {
+                  acc[`${item.key}`] = null;
+                }
               }
             }
           }
