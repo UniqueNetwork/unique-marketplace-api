@@ -12,6 +12,7 @@ import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersFilterService } from './offers-filter.service';
 import { OffersFilterType, OffersItemType } from './types';
+import { BidStatus } from '../auction/types';
 
 @Injectable()
 export class OffersService {
@@ -77,8 +78,9 @@ export class OffersService {
   private async bids(auctionIds: Array<number>): Promise<Array<Partial<Bid>>> {
     const queryBuilder = this.connection.manager
       .createQueryBuilder(BidEntity, 'bid')
-      .select(['created_at', 'updated_at', 'amount', 'auction_id', 'bidder_address', 'balance'])
-      .where('bid.amount > 0');
+      .select(['created_at', 'updated_at', 'amount', 'auction_id', 'bidder_address', 'balance', 'status'])
+      .where('bid.amount > 0')
+      .andWhere('bid.status != :status', { status: BidStatus.error });
 
     if (Array.isArray(auctionIds) && auctionIds?.length > 0) {
       queryBuilder.andWhere('bid.auction_id in (:...auctionIds)', {
