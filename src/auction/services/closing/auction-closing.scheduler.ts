@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
 import { MarketConfig } from '../../../config/market-config';
 import { AuctionClosingService } from './auction-closing.service';
 import { clearIntervalAsync, setIntervalAsync, SetIntervalAsyncTimer } from 'set-interval-async/dynamic';
@@ -14,7 +14,7 @@ export class AuctionClosingScheduler implements OnApplicationShutdown {
   constructor(
     private readonly auctionClosingService: AuctionClosingService,
     @Inject('CONFIG') private config: MarketConfig,
-    @InjectSentry() private readonly sentryService: SentryService
+    @InjectSentry() private readonly sentryService: SentryService,
   ) {}
 
   startIntervals(stopMs = 5000, withdrawMs = 10_000): void {
@@ -36,26 +36,27 @@ export class AuctionClosingScheduler implements OnApplicationShutdown {
       const promises = [];
 
       if (this.stoppingInterval) {
-        promises.push(clearIntervalAsync(this.stoppingInterval).then(() => {
-          this.logger.debug(`stopped stoppingInterval`);
-        }));
+        promises.push(
+          clearIntervalAsync(this.stoppingInterval).then(() => {
+            this.logger.debug(`stopped stoppingInterval`);
+          }),
+        );
       }
 
       if (this.withdrawingInterval) {
-        promises.push(clearIntervalAsync(this.withdrawingInterval).then(() => {
-          this.logger.debug(`stopped withdrawingInterval`);
-        }));
+        promises.push(
+          clearIntervalAsync(this.withdrawingInterval).then(() => {
+            this.logger.debug(`stopped withdrawingInterval`);
+          }),
+        );
       }
-
 
       for (const item of promises) {
         await item();
       }
-
     } catch (error) {
       this.logger.error(error);
       this.sentryService.instance().captureException(error);
-
     } finally {
       this.logger.debug(`ready`);
     }

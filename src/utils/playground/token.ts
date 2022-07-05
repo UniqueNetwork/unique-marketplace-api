@@ -2,7 +2,7 @@ import { cyan } from 'cli-color';
 import * as unique from '../blockchain/unique';
 import { ProxyCollection, ProxyToken } from '../blockchain';
 
-export const main = async (moduleRef, args: string[]) => {
+export const main = async (moduleRef) => {
   const config = moduleRef.get('CONFIG', { strict: false });
   const api = await unique.connectApi(config.blockchain.unique.wsEndpoint, false);
 
@@ -11,9 +11,13 @@ export const main = async (moduleRef, args: string[]) => {
   const Token = ProxyToken.getInstance(api);
   const Collection = ProxyCollection.getInstance(api);
 
-  const collection = await Collection.getById(1);
+  const collectionId = 2;
+  const tokenId = 1;
+  const collection = await Collection.getById(collectionId);
 
-  const token = await Token.tokenIdSchema(64, 1, collection.schema);
+  console.dir(collection, { depth: 3 });
+
+  const token = await Token.tokenIdSchema(tokenId, collectionId, collection.schema);
 
   console.dir(token, { depth: 3 });
 

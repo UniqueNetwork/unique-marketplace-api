@@ -1,35 +1,45 @@
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { ApiPromise } from '@polkadot/api';
-import { SettingsDto } from './dto/settings.dto';
+import { Connection, Not, Repository } from 'typeorm';
+
+import { SettingsDto } from './dto';
+
 import { convertAddress, seedToAddress } from '../utils/blockchain/util';
 import { MarketConfig } from '../config/market-config';
-import { Connection, Repository } from 'typeorm';
-import { SettingsEntity } from '../entity/settings';
+import { Collection } from '../entity';
+import { CollectionStatus } from '../admin/types/collection';
+import { UNIQUE_API_PROVIDER } from '../blockchain';
 
 @Injectable()
 export class SettingsService {
-  private preparedSettings: SettingsDto = null;
-  private readonly settingsRepository: Repository<SettingsEntity>;
   private readonly logger = new Logger(SettingsService.name);
+  private readonly collectionsRepository: Repository<Collection>;
 
   constructor(
-    @Inject('DATABASE_CONNECTION') private connection: Connection,
     @Inject('CONFIG') private config: MarketConfig,
-    @Inject(forwardRef(() => 'UNIQUE_API')) private uniqueApi: ApiPromise,
+    @Inject(forwardRef(() => UNIQUE_API_PROVIDER)) private uniqueApi: ApiPromise,
+    @Inject('DATABASE_CONNECTION') private connection: Connection,
   ) {
-    this.settingsRepository = connection.getRepository(SettingsEntity);
+    this.collectionsRepository = connection.getRepository(Collection);
   }
 
   async prepareSettings(): Promise<SettingsDto> {
-    const { blockchain, auction } = this.config;
-    const statusMarket = await this.getStatusMarketType();
+    const { blockchain, auction, marketType, mainSaleSeed, adminList } = this.config;
+    const mainSaleAddress = this.config.mainSaleSeed ? await seedToAddress(mainSaleSeed) : '';
+    const collectionIds = await this.getCollectionIds();
+    const allowedTokens = await this.getAllowedTokens();
+    const administrators = adminList.split(',').map((value) => value.trim());
+
     const settings: SettingsDto = {
-      marketType: statusMarket,
+      marketType: marketType,
+      administrators: administrators,
+      mainSaleSeedAddress: mainSaleAddress,
       blockchain: {
         escrowAddress: await seedToAddress(blockchain.escrowSeed),
         unique: {
           wsEndpoint: blockchain.unique.wsEndpoint,
-          collectionIds: blockchain.unique.collectionIds,
+          collectionIds,
+          allowedTokens,
           contractAddress: blockchain.unique.contractAddress,
         },
         kusama: {
@@ -53,8 +63,6 @@ export class SettingsService {
       }
     }
 
-    this.preparedSettings = settings;
-
     return settings;
   }
 
@@ -62,8 +70,19 @@ export class SettingsService {
     return await this.prepareSettings();
   }
 
-  private async getStatusMarketType() {
-    const statusMarketType = await this.settingsRepository.findOne({ where: { name: 'market_status' } });
-    return statusMarketType.property;
+  async getCollectionIds(): Promise<number[]> {
+    const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
+
+    return collections.map((i) => Number(i.id));
+  }
+
+  private async getAllowedTokens(): Promise<any> {
+    const collections = await this.collectionsRepository.find({
+      status: CollectionStatus.Enabled,
+      allowedTokens: Not(''),
+    });
+    return collections.map((i) => {
+      return { collection: Number(i.id), tokens: i.allowedTokens };
+    });
   }
 }

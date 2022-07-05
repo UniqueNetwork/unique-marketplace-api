@@ -1,11 +1,11 @@
 import { HttpStatus } from '@nestjs/common';
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ApiPromise } from '@polkadot/api';
-import { Hash,  } from '@polkadot/types/interfaces';
+import { Hash } from '@polkadot/types/interfaces';
+import { IExtrinsic } from '@polkadot/types/types';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { stringify } from '@polkadot/util';
-import { IExtrinsic } from '@polkadot/types/types';
-import '@polkadot/api-augment/polkadot'
+import '@polkadot/api-augment/polkadot';
 
 export type SubmitResult = {
   isSucceed: boolean;
@@ -19,19 +19,17 @@ export class ExtrinsicSubmitter {
   async submit(api: ApiPromise, tx: string | SubmittableExtrinsic<any>): Promise<SubmitResult> {
     const extrinsic = typeof tx === 'string' ? api.createType('Extrinsic', tx) : tx;
     const extrinsicHuman = stringify(extrinsic.toHuman());
-    const _extrinsic = <IExtrinsic>extrinsic;
-    const extrinsicHash = _extrinsic.hash as any as Hash;
 
-    const blockHash = await this.waitFinalized(api, _extrinsic);
-    const txResult = await this.checkIsSucceed(api, extrinsicHash, blockHash);
+    const blockHash = await this.waitFinalized(api, extrinsic);
+    const txResult = await this.checkIsSucceed(api, extrinsic.hash, blockHash);
 
     this.logger.debug(`${extrinsicHuman}; ${stringify(txResult)}`);
 
     if (!txResult.isSucceed) {
-      this.logger.warn(`Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`)
+      this.logger.warn(`Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`);
       throw new BadRequestException({
         statusCode: HttpStatus.CONFLICT,
-        message: `Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`
+        message: `Failed at block # ${txResult.blockNumber} (${blockHash.toHex()})`,
       });
     }
 

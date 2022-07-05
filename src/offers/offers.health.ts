@@ -1,8 +1,7 @@
-import { BaseHealthIndicator } from '../utils/health/indicators/base-health.indicator';
-import { HealthIndicator } from '../utils/health/interfaces/health-indicator.interface';
 import { PrometheusService } from '../utils/prometheus/prometheus.service';
 import { HealthIndicatorResult } from '@nestjs/terminus';
 import { OffersService } from './offers.service';
+import { BaseHealthIndicator, HealthIndicator } from '../utils/health';
 
 export class OffersHealthIndicator extends BaseHealthIndicator implements HealthIndicator {
   public readonly name = 'OffersHealthIndicator';

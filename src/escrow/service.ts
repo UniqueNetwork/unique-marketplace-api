@@ -1,30 +1,41 @@
-import { SearchIndexService } from "../auction/services/search-index.service";
+import { SearchIndexService } from '../auction/services/search-index.service';
 import { ModuleRef } from '@nestjs/core';
-import { Injectable, Inject, Logger } from "@nestjs/common";
-import { Connection } from 'typeorm';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Connection, In, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import * as logging from '../utils/logging';
 
-import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex } from '../entity';
+import {
+  BlockchainBlock,
+  NFTTransfer,
+  ContractAsk,
+  AccountPairs,
+  MoneyTransfer,
+  MarketTrade,
+  SearchIndex,
+  Collection,
+  SellingMethod,
+} from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { CollectionToken } from "../auction/types";
+import { CollectionToken } from '../auction/types';
+import { CollectionStatus } from '../admin/types/collection';
 
 @Injectable()
 export class EscrowService {
-  private logger = new Logger(EscrowService.name)
-  constructor(
-    @Inject('DATABASE_CONNECTION') private db: Connection,
-    @Inject('CONFIG') private config,
-    private moduleRef: ModuleRef
-    ) {}
+  private readonly collectionsRepository: Repository<Collection>;
+  private logger = new Logger(EscrowService.name);
+
+  constructor(@Inject('DATABASE_CONNECTION') private db: Connection, @Inject('CONFIG') private config, private moduleRef: ModuleRef) {
+    this.collectionsRepository = db.getRepository(Collection);
+  }
 
   getNetwork(network?: string): string {
     if (!network) return this.config.blockchain.unique.network;
     return network;
   }
 
-  async getBlockCreatedAt(blockNum: bigint | number, network?: string, blockTimeSec: bigint = 6n): Promise<Date> {
+  async getBlockCreatedAt(blockNum: bigint | number, network?: string, blockTimeSec = 6n): Promise<Date> {
     const repository = this.db.getRepository(BlockchainBlock);
     let block = await repository.findOne({ block_number: `${blockNum}`, network: this.getNetwork(network) });
     if (!!block) return block.created_at;
@@ -38,7 +49,7 @@ export class EscrowService {
       .limit(1)
       .getOne();
     if (!!block) {
-      let difference = BigInt(blockNum) - BigInt(block.block_number);
+      const difference = BigInt(blockNum) - BigInt(block.block_number);
       return new Date(block.created_at.getTime() + Number(difference * 1000n * blockTimeSec)); // predict time for next block
     }
     return new Date();
@@ -75,13 +86,20 @@ export class EscrowService {
       collection_id: collectionId.toString(),
       token_id: tokenId.toString(),
       network: this.getNetwork(network),
-      status: ASK_STATUS.ACTIVE,
+      status: In([ASK_STATUS.ACTIVE, ASK_STATUS.REMOVED_BY_ADMIN]),
     });
   }
 
   async registerAsk(
     blockNum: bigint | number,
-    data: { collectionId: number; tokenId: number; addressFrom: string; addressTo: string; price: number; currency: string },
+    data: {
+      collectionId: number;
+      tokenId: number;
+      addressFrom: string;
+      addressTo: string;
+      price: number;
+      currency: string;
+    },
     network?: string,
   ) {
     const repository = this.db.getRepository(ContractAsk);
@@ -97,10 +115,22 @@ export class EscrowService {
       price: data.price.toString(),
       currency: data.currency,
       created_at_ask: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     });
-    logging.log(`{subject:'Created active offer', thread: 'registerAsk', address: '${data.addressFrom}', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${data.addressTo}, block: ${blockNum}, normalAddress: { address: '${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`);
-    this.logger.log(`{subject:'Created active offer', thread: 'registerAsk', address: '${data.addressFrom}', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${data.addressTo}, block: ${blockNum}, normalAddress: { address: ${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`);
+    logging.log(
+      `{subject:'Created active offer', thread: 'registerAsk', address: '${
+        data.addressFrom
+      }', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${
+        data.addressTo
+      }, block: ${blockNum}, normalAddress: { address: '${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`,
+    );
+    this.logger.log(
+      `{subject:'Created active offer', thread: 'registerAsk', address: '${
+        data.addressFrom
+      }', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${
+        data.addressTo
+      }, block: ${blockNum}, normalAddress: { address: ${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`,
+    );
   }
 
   async cancelAsk(collectionId: number, tokenId: number, blockNumber: bigint, network?: string) {
@@ -109,13 +139,21 @@ export class EscrowService {
       {
         collection_id: collectionId.toString(),
         token_id: tokenId.toString(),
-        status: ASK_STATUS.ACTIVE,
+        status: In([ASK_STATUS.ACTIVE, ASK_STATUS.REMOVED_BY_ADMIN]),
         network: this.getNetwork(network),
       },
       { status: ASK_STATUS.CANCELLED, block_number_cancel: `${blockNumber}` },
     );
-    logging.log(`{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(network)}', log: 'cancelAsk' }`)
-    this.logger.log(`{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(network)}', log: 'cancelAsk' }`)
+    logging.log(
+      `{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(
+        network,
+      )}', log: 'cancelAsk' }`,
+    );
+    this.logger.log(
+      `{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(
+        network,
+      )}', log: 'cancelAsk' }`,
+    );
   }
 
   async buyKSM(collectionId: number, tokenId: number, blockNumber: bigint, network?: string) {
@@ -129,8 +167,16 @@ export class EscrowService {
       },
       { status: ASK_STATUS.BOUGHT, block_number_buy: `${blockNumber}` },
     );
-    logging.log(`{subject:'Got buyKSM', thread:'offer update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network:'${this.getNetwork(network)}', status: 'ACTIVE', log:'buyKSM' }`)
-    this.logger.log(`{subject:'Got buyKSM', thread:'offer update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(network)}', status: 'ACTIVE', log:'buyKSM' }`)
+    logging.log(
+      `{subject:'Got buyKSM', thread:'offer update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network:'${this.getNetwork(
+        network,
+      )}', status: 'ACTIVE', log:'buyKSM' }`,
+    );
+    this.logger.log(
+      `{subject:'Got buyKSM', thread:'offer update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(
+        network,
+      )}', status: 'ACTIVE', log:'buyKSM' }`,
+    );
   }
 
   async registerTransfer(
@@ -150,13 +196,29 @@ export class EscrowService {
       created_at: new Date(),
       updated_at: new Date(),
     });
-    logging.log(`{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${data.addressFrom}', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`)
-    this.logger.log(`{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${data.addressFrom}', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}` )
+    logging.log(
+      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
+        data.addressFrom
+      }', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${
+        data.addressTo
+      }, block: #${blockNum}, log: 'registerTransfer'}`,
+    );
+    this.logger.log(
+      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
+        data.addressFrom
+      }', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${
+        data.addressTo
+      }, block: #${blockNum}, log: 'registerTransfer'}`,
+    );
   }
 
   async getTokenTransfers(collectionId: number, tokenId: number, network: string) {
     const repository = this.db.getRepository(NFTTransfer);
-    return repository.find({ network: this.getNetwork(network), collection_id: collectionId.toString(), token_id: tokenId.toString() });
+    return repository.find({
+      network: this.getNetwork(network),
+      collection_id: collectionId.toString(),
+      token_id: tokenId.toString(),
+    });
   }
 
   async addBlock(blockNum: bigint | number, timestamp: number, network?: string) {
@@ -167,7 +229,7 @@ export class EscrowService {
 
   async modifyContractBalance(amount, address, blockNumber, network: string): Promise<MoneyTransfer> {
     const repository = this.db.getRepository(MoneyTransfer);
-    let transfer = repository.create({
+    const transfer = repository.create({
       id: uuid(),
       amount,
       block_number: blockNumber,
@@ -180,8 +242,16 @@ export class EscrowService {
       currency: '2', // TODO: check this
     });
     await repository.save(transfer);
-    logging.log(`{subject:'Unique deposit for money transfer', amount: ${amount}, address: '${address}', address_normal: '${encodeAddress(address)}', status: 'PENDING',  block: ${blockNumber}, log: 'modifyContractBalance' }`)
-    this.logger.log(`{subject:'Unique deposit for money transfer', amount: ${amount}, address: '${address}', address_normal: '${encodeAddress(address)}', status: 'PENDING',  block: ${blockNumber}, log: 'modifyContractBalance' }`)
+    logging.log(
+      `{subject:'Unique deposit for money transfer', amount: ${amount}, address: '${address}', address_normal: '${encodeAddress(
+        address,
+      )}', status: 'PENDING',  block: ${blockNumber}, log: 'modifyContractBalance' }`,
+    );
+    this.logger.log(
+      `{subject:'Unique deposit for money transfer', amount: ${amount}, address: '${address}', address_normal: '${encodeAddress(
+        address,
+      )}', status: 'PENDING',  block: ${blockNumber}, log: 'modifyContractBalance' }`,
+    );
     return transfer;
   }
 
@@ -199,8 +269,16 @@ export class EscrowService {
       extra: { address },
       currency: '2', // TODO: check this
     });
-    logging.log(`{ subject:'Transfer money Kusama', thread: 'withdraw', amount: ${amount},  address: '${address}', address_normal: '${encodeAddress(address)}', status: 'PENDING',   block: ${blockNumber} , log: 'registerKusamaWithdraw'}`)
-    this.logger.log(`{ subject:'Transfer money Kusama', thread: 'withdraw', amount: ${amount}, address: '${address}', address_normal: '${encodeAddress(address)}', status: 'PENDING', block: ${blockNumber} , log: 'registerKusamaWithdraw'}`)
+    logging.log(
+      `{ subject:'Transfer money Kusama', thread: 'withdraw', amount: ${amount},  address: '${address}', address_normal: '${encodeAddress(
+        address,
+      )}', status: 'PENDING',   block: ${blockNumber} , log: 'registerKusamaWithdraw'}`,
+    );
+    this.logger.log(
+      `{ subject:'Transfer money Kusama', thread: 'withdraw', amount: ${amount}, address: '${address}', address_normal: '${encodeAddress(
+        address,
+      )}', status: 'PENDING', block: ${blockNumber} , log: 'registerKusamaWithdraw'}`,
+    );
   }
 
   async getPendingContractBalance(network: string) {
@@ -233,7 +311,7 @@ export class EscrowService {
 
   async updateMoneyTransferStatus(id, status: string) {
     await this.db.getRepository(MoneyTransfer).update({ id }, { status, updated_at: new Date() });
-    this.logger.log(`Transfer status update ${status} in ${id}`)
+    this.logger.log(`Transfer status update ${status} in ${id}`);
   }
 
   async getTradeSellerAndBuyer(buyer: string, seller: string, price: string): Promise<MarketTrade> {
@@ -245,9 +323,8 @@ export class EscrowService {
     });
   }
 
-  async registerTrade(buyer: string, price: bigint, ask: ContractAsk, blockNum: bigint, network?: string) {
+  async registerTrade(buyer: string, price: bigint, ask: ContractAsk, blockNum: bigint, originPrice: bigint, network?: string) {
     const repository = this.db.getRepository(MarketTrade);
-
     await repository.insert({
       id: uuid(),
       collection_id: ask.collection_id,
@@ -261,19 +338,59 @@ export class EscrowService {
       block_number_buy: `${blockNum}`,
       ask_created_at: await this.getBlockCreatedAt(BigInt(ask.block_number_ask), network),
       buy_created_at: await this.getBlockCreatedAt(blockNum, network),
+      status: SellingMethod.FixedPrice,
+      originPrice: `${originPrice}`,
+      commission: `${originPrice - price}`,
     });
-    logging.log(`{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${ask.token_id}, price: ${price}, block: ${blockNum}, address_seller: '${ask.address_from}', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(buyer)}' },  log: 'registerTrade' }`)
-    this.logger.log(`{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${ask.token_id}, price: ${price}, block: ${blockNum}, address_seller: '${ask.address_from}', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(buyer)}' },  log: 'registerTrade' }`)
+    logging.log(
+      `{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${
+        ask.token_id
+      }, price: ${price}, block: ${blockNum}, address_seller: '${
+        ask.address_from
+      }', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(
+        buyer,
+      )}' },  log: 'registerTrade' }`,
+    );
+    this.logger.log(
+      `{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${
+        ask.token_id
+      }, price: ${price}, block: ${blockNum}, address_seller: '${
+        ask.address_from
+      }', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(
+        buyer,
+      )}' },  log: 'registerTrade' }`,
+    );
     await this.buyKSM(parseInt(ask.collection_id), parseInt(ask.token_id), blockNum, network);
   }
 
-  async getSearchIndexTraits( collectionId: number, tokenId: number, network?: string){
+  async getSearchIndexTraits(collectionId: number, tokenId: number, network?: string) {
     const repository = this.db.getRepository(SearchIndex);
-    return await repository.find({ collection_id: collectionId.toString(), token_id: tokenId.toString(), network: this.getNetwork(network) , is_trait: true })
+    return await repository.find({
+      collection_id: collectionId.toString(),
+      token_id: tokenId.toString(),
+      network: this.getNetwork(network),
+      is_trait: true,
+    });
   }
 
-  async addSearchIndexes(token:CollectionToken): Promise<void> {
+  async addSearchIndexes(token: CollectionToken): Promise<void> {
     const searchIndex = this.moduleRef.get(SearchIndexService, { strict: false });
     return searchIndex.addSearchIndexIfNotExists(token);
+  }
+
+  /**
+   * Get enabled collections ids from database
+   * @return ({Promise<number[]>})
+   */
+  async getCollectionIds(): Promise<number[]> {
+    const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
+
+    return collections.map((i) => Number(i.id));
+  }
+
+  async setCollectionIds(id: string, data: any) {
+    const entity = this.collectionsRepository.create({ id: id, ...data });
+    await this.collectionsRepository.save(entity);
+    logging.log(`Adding #${id} to collection table`);
   }
 }

@@ -1,7 +1,7 @@
 import { AuctionTestEntities, getAuctionTestEntities } from './base';
 
 import { Connection, Repository } from 'typeorm';
-import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk } from '../../src/entity';
+import { AuctionEntity, BlockchainBlock, ContractAsk } from '../../src/entity';
 import { ASK_STATUS } from '../../src/escrow/constants';
 import '@polkadot/api-augment/polkadot';
 import { v4 as uuid } from 'uuid';
@@ -9,7 +9,7 @@ import { AuctionStatus } from '../../src/auction/types';
 import { AuctionClosingService } from '../../src/auction/services/closing/auction-closing.service';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { TxDecoder } from '../../src/auction/services/helpers/tx-decoder';
-import * as request from 'supertest';
+import request from 'supertest';
 import { DateHelper } from '../../src/utils/date-helper';
 
 describe('Auction cancelling', () => {
@@ -20,7 +20,6 @@ describe('Auction cancelling', () => {
   let tryParseTx: (tx: SubmittableExtrinsic<any>) => Record<string, any>;
   let contractAsksRepository: Repository<ContractAsk>;
   let auctionsRepository: Repository<AuctionEntity>;
-  let bidsRepository: Repository<BidEntity>;
   let blocksRepository: Repository<BlockchainBlock>;
 
   beforeAll(async () => {
@@ -42,7 +41,6 @@ describe('Auction cancelling', () => {
     const connection = testEntities.app.get<Connection>('DATABASE_CONNECTION');
     contractAsksRepository = connection.getRepository(ContractAsk);
     auctionsRepository = connection.getRepository(AuctionEntity);
-    bidsRepository = connection.getRepository(BidEntity);
     blocksRepository = connection.getRepository(BlockchainBlock);
 
     const offerId = uuid();
@@ -87,7 +85,7 @@ describe('Auction cancelling', () => {
   });
 
   it('closes auction', async () => {
-    const { seller, market, buyer, anotherBuyer } = testEntities.actors;
+    const { seller, market } = testEntities.actors;
     const auctionClosingService = testEntities.app.get(AuctionClosingService);
     const connection = testEntities.app.get<Connection>('DATABASE_CONNECTION');
     const activeAuction = await connection.manager.findOne(AuctionEntity);
@@ -100,7 +98,11 @@ describe('Auction cancelling', () => {
 
     await auctionClosingService.auctionsStoppingIntervalHandler();
     const stoppedAuction = await connection.manager.findOne(AuctionEntity);
-    expect(stoppedAuction).toEqual({ ...activeAuction, status: AuctionStatus.stopped, stopAt: expect.any(Date) });
+    expect(stoppedAuction).toEqual({
+      ...activeAuction,
+      status: AuctionStatus.stopped,
+      stopAt: expect.any(Date),
+    });
 
     await auctionClosingService.auctionsWithdrawingIntervalHandler();
 

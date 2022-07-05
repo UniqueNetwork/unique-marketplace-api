@@ -1,19 +1,17 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import * as logging from '../logging';
-import { transactionStatus, signTransaction } from './polka';
 import { RPC } from './rpc';
 
-
-const connectApi = async function (url, exitOnDisconnect=true, type = 'mainnet') {
+const connectApi = async function (url: string, exitOnDisconnect = true, type = 'mainnet') {
   const wsProvider = new WsProvider(url);
 
   const api = new ApiPromise({
     provider: wsProvider,
-    rpc: { unique:  RPC(type) },
+    rpc: { unique: RPC(type) },
   });
 
   api.on('disconnected', async (value) => {
-    if(!exitOnDisconnect) return;
+    if (!exitOnDisconnect) return;
     logging.log(`[unique] disconnected: ${value}`, logging.level.WARNING);
     process.exit(1);
   });
@@ -26,8 +24,6 @@ const connectApi = async function (url, exitOnDisconnect=true, type = 'mainnet')
   await api.isReady;
 
   return api;
-}
+};
 
-
-
-export { transactionStatus, signTransaction, connectApi }
+export { connectApi };

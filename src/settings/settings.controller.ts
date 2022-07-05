@@ -1,29 +1,17 @@
-import { Controller, Get, HttpStatus, Patch, Query } from '@nestjs/common';
+import { Controller, Get, HttpStatus } from '@nestjs/common';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
+
 import { SettingsService } from './settings.service';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { SettingsDto } from './dto/settings.dto';
-import * as fs from 'fs';
-import { MarketTypeStatusEnum } from './interfaces/market.interface';
-import { MarketTypeService } from './market.service';
+import { SettingsDto } from './dto';
 
 @ApiTags('Settings')
 @Controller('settings')
 export class SettingsController {
-  constructor(private readonly settingsService: SettingsService, private readonly marketTypeService: MarketTypeService) {}
+  constructor(private readonly settingsService: SettingsService) {}
 
   @Get('/')
   @ApiResponse({ type: SettingsDto, status: HttpStatus.OK })
   async getSettings(): Promise<SettingsDto> {
-    return await this.settingsService.getSettings();
-  }
-
-  @Patch('/market/change')
-  @ApiOperation({
-    summary: 'Change market type',
-    description: fs.readFileSync('docs/market-type.md').toString(),
-  })
-  @ApiQuery({ name: 'status', enum: MarketTypeStatusEnum, example: MarketTypeStatusEnum['secondary'] })
-  async setTypeMarket(@Query('status') status: MarketTypeStatusEnum = MarketTypeStatusEnum.secondary) {
-    return await this.marketTypeService.changeMarketType(status);
+    return this.settingsService.getSettings();
   }
 }

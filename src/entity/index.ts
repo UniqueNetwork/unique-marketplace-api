@@ -6,3 +6,7 @@ export * from './market-trade';
 export * from './money-transfer';
 export * from './account-pairs';
 export * from '../auction/entities';
+export * from './collection';
+export * from './tokens';
+export * from './offer-filters';
+export * from './auction-bids';

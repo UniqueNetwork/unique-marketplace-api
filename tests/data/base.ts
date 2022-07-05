@@ -8,49 +8,47 @@ import { ignoreQueryCase, useGlobalPipes } from '../../src/utils/application';
 import { OfferSortingRequest } from '../../src/utils/sorting/sorting-request';
 import { PaginationRequest } from '../../src/utils/pagination/pagination-request';
 import { OffersFilter } from '../../src/offers/dto/offers-filter';
-import * as request from 'supertest';
+import request from 'supertest';
 import { getConnectionOptions } from '../../src/database/connection-options';
-import { MarketConfig } from "../../src/config/market-config";
+import { MarketConfig } from '../../src/config/market-config';
 
 const testConfigFactory = (extra?: Partial<MarketConfig>) => (): MarketConfig => {
-    let config = getConfig();
-    config.postgresUrl = config.testingPostgresUrl;
-    config = { ...config, ...(extra || {}) };
-    return config;
+  let config = getConfig();
+  config.postgresUrl = config.testingPostgresUrl;
+  config = { ...config, ...(extra || {}) };
+  return config;
 };
 
 type OverrideProviders = (builder: TestingModuleBuilder) => void;
 
 export const initApp = async (config?: Partial<MarketConfig>, overrideProviders?: OverrideProviders): Promise<INestApplication> => {
-    const testingModuleBuilder = await Test.createTestingModule({
-        imports: [AppModule],
-    });
+  const testingModuleBuilder = await Test.createTestingModule({
+    imports: [AppModule],
+  });
 
-    testingModuleBuilder
-      .overrideProvider('CONFIG')
-      .useFactory({ factory: testConfigFactory(config) })
+  testingModuleBuilder.overrideProvider('CONFIG').useFactory({ factory: testConfigFactory(config) });
 
-    if (overrideProviders) overrideProviders(testingModuleBuilder);
+  if (overrideProviders) overrideProviders(testingModuleBuilder);
 
-    const moduleFixture = await testingModuleBuilder.compile();
+  const moduleFixture = await testingModuleBuilder.compile();
 
-    const app = moduleFixture.createNestApplication();
-    ignoreQueryCase(app);
-    useGlobalPipes(app);
+  const app = moduleFixture.createNestApplication();
+  ignoreQueryCase(app);
+  useGlobalPipes(app);
 
-    return app;
+  return app;
 };
 
 export const getMigrationsConnection = async (config, logging = false) => {
-    const connectionOptions = getConnectionOptions(config, true, logging);
-    return await createConnection({ ...connectionOptions, name: 'migrations' });
+  const connectionOptions = getConnectionOptions(config, true, logging);
+  return await createConnection({ ...connectionOptions, name: 'migrations' });
 };
 
 export const runMigrations = async (config) => {
-    const connection = await getMigrationsConnection(config);
-    await connection.dropDatabase();
-    await connection.runMigrations({ transaction: 'all' });
-    await connection.close();
+  const connection = await getMigrationsConnection(config);
+  await connection.dropDatabase();
+  await connection.runMigrations({ transaction: 'all' });
+  await connection.close();
 };
 
 /**
@@ -59,19 +57,19 @@ export const runMigrations = async (config) => {
  * @param {String} filterData
  */
 export const sortToString = (sortFilter: OfferSortingRequest) => {
-    let filterData: string = '';
-    let { sort } = sortFilter;
-    if (sort.length !== 0) {
-        sort.map((value) => {
-            if (value.column === undefined || value.column === '') {
-                return filterData;
-            } else {
-                value.order === 0 ? (filterData = `&sort=asc%28${value.column}%29`) : (filterData = `&sort=desc%28${value.column}%29`);
-            }
-        });
-    }
+  let filterData = '';
+  const { sort } = sortFilter;
+  if (sort.length !== 0) {
+    sort.map((value) => {
+      if (value.column === undefined || value.column === '') {
+        return filterData;
+      } else {
+        value.order === 0 ? (filterData = `&sort=asc%28${value.column}%29`) : (filterData = `&sort=desc%28${value.column}%29`);
+      }
+    });
+  }
 
-    return filterData;
+  return filterData;
 };
 
 /**
@@ -82,12 +80,17 @@ export const sortToString = (sortFilter: OfferSortingRequest) => {
  * @param {OffersFilter} offersFilter - { collectionId, searchText, searchLocale, minPrice, maxPrice, seller, traitsCount }
  * @param {OfferSortingRequest} sort - { sort: [{ order: 1, column: 'Price' }] } === desc(Price)
  */
-export const searchByFilterOffers = async (app: INestApplication, pagination: PaginationRequest, offersFilter: OffersFilter, sort: OfferSortingRequest) => {
-
+export const searchByFilterOffers = async (
+  app: INestApplication,
+  pagination: PaginationRequest,
+  offersFilter: OffersFilter,
+  sort: OfferSortingRequest,
+) => {
   let filterRequest = '/offers?';
 
   const { page, pageSize } = pagination;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {
     collectionId,
     searchLocale,
@@ -97,7 +100,8 @@ export const searchByFilterOffers = async (app: INestApplication, pagination: Pa
     numberOfAttributes,
     attributes: traits,
     isAuction,
-    bidderAddress } = offersFilter;
+    bidderAddress,
+  } = offersFilter;
 
   let { searchText } = offersFilter;
 
@@ -111,14 +115,14 @@ export const searchByFilterOffers = async (app: INestApplication, pagination: Pa
 
   searchLocale ? (filterRequest += `&searchLocale=${searchLocale}`) : filterRequest;
 
+  /*
   traits.length !== 0 ? traits.forEach(
     (trait) => (filterRequest += `&traits=${trait.split(' ').join('%20')}`)
   ) : filterRequest;
-
-  isAuction  ? (filterRequest += `&isAuction=${isAuction}`) : filterRequest;
+  */
+  isAuction ? (filterRequest += `&isAuction=${isAuction}`) : filterRequest;
 
   bidderAddress ? (filterRequest += `&bidderAddress=${bidderAddress}`) : filterRequest;
-
 
   if (searchText) {
     searchText = searchText.split(' ').join('%20');

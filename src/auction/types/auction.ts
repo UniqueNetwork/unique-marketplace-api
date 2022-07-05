@@ -25,7 +25,7 @@ export enum AuctionStatus {
    */
   ended = 'ended',
 
-  failed = 'failed'
+  failed = 'failed',
 }
 
 export interface Auction {
@@ -45,3 +45,13 @@ export interface Auction {
 
   contractAskId?: string;
 }
+
+export type CreateAskAndBroadcastArgs = {
+  blockNumber: string;
+  collectionId: string;
+  tokenId: string;
+  ownerAddress: string;
+  startPrice: bigint;
+  priceStep: bigint;
+  stopAt: Date;
+};

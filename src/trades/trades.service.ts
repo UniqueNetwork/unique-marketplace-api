@@ -1,4 +1,3 @@
-import { TradesFilter } from './dto/trade-filter';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 
@@ -9,9 +8,9 @@ import { equalsIgnoreCase } from '../utils/string/equals-ignore-case';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
 import { paginate } from '../utils/pagination/paginate';
-import { MarketTradeDto } from './dto/trade-dto';
+import { MarketTradeDto, TradesFilter } from './dto';
 import { MarketTrade, SearchIndex } from '../entity';
-import { IMarketTrade } from './interfaces/trade.interface';
+import { IMarketTrade } from './interfaces';
 import { InjectSentry, SentryService } from '../utils/sentry';
 
 @Injectable()
@@ -83,7 +82,7 @@ export class TradesService {
     return new PaginationResultDto(MarketTradeDto, {
       ...paginationResult,
       items: paginationResult.items.map(MarketTradeDto.fromTrade),
-    })
+    });
   }
 
   /**
@@ -95,11 +94,11 @@ export class TradesService {
    * @return ({SelectQueryBuilder<IMarketTrade>})
    */
   private applySort(query: SelectQueryBuilder<IMarketTrade>, sort: TradeSortingRequest): SelectQueryBuilder<IMarketTrade> {
-    let params = [];
+    const params = [];
 
     if (JSON.stringify(sort.sort).includes('TradeDate') === false) sort.sort.push({ order: 1, column: 'TradeDate' });
 
-    for (let param of sort.sort ?? []) {
+    for (const param of sort.sort ?? []) {
       let column = this.sortingColumns.find((column) => equalsIgnoreCase(param.column, column));
 
       if (column === 'tokenid' || column === 'TokenId') {
@@ -124,8 +123,8 @@ export class TradesService {
     }
 
     let first = true;
-    for (let param of params) {
-      let table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'trade' : 'trade';
+    for (const param of params) {
+      const table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'trade' : 'trade';
       query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
       first = false;
     }
@@ -164,64 +163,72 @@ export class TradesService {
     if (nullOrWhitespace(accountId)) {
       return query;
     }
-    return query.andWhere('(trade.address_seller = :accountId OR trade.address_buyer = :accountId)', { accountId: accountId });
+    return query.andWhere('(trade.address_seller = :accountId OR trade.address_buyer = :accountId)', {
+      accountId: accountId,
+    });
   }
   public get isConnected(): boolean {
     return true;
   }
 
-  private filterByTokenIds(
-    query: SelectQueryBuilder<IMarketTrade>,
-    tokenIds: number[] | undefined,
-  ): SelectQueryBuilder<IMarketTrade> {
+  private filterByTokenIds(query: SelectQueryBuilder<IMarketTrade>, tokenIds: number[] | undefined): SelectQueryBuilder<IMarketTrade> {
     if (tokenIds === null || tokenIds.length <= 0) {
       return query;
     }
     return query.andWhere('trade.token_id in (:...tokenIds)', { tokenIds });
   }
 
-  private addRelations(
-    queryBuilder: SelectQueryBuilder<IMarketTrade>
-  ): void {
+  private addRelations(queryBuilder: SelectQueryBuilder<IMarketTrade>): void {
     queryBuilder
       .leftJoinAndMapMany(
         'trade.search_index',
         SearchIndex,
         'search_index',
-        'trade.network = search_index.network and trade.collection_id = search_index.collection_id and trade.token_id = search_index.token_id'
+        'trade.network = search_index.network and trade.collection_id = search_index.collection_id and trade.token_id = search_index.token_id',
       )
       .leftJoinAndMapMany(
         'trade.search_filter',
-        (subQuery => {
-          return subQuery.select([
-            'collection_id',
-            'network',
-            'token_id',
-            'is_trait',
-            'locale',
-            'key',
-            'array_length(items, 1) as count_items',
-            'items',
-            'unnest(items) traits'
-          ])
+        (subQuery) => {
+          return subQuery
+            .select([
+              'collection_id',
+              'network',
+              'token_id',
+              'is_trait',
+              'locale',
+              'key',
+              'array_length(items, 1) as count_items',
+              'items',
+              'unnest(items) traits',
+            ])
             .from(SearchIndex, 'sf')
-            .where(`sf.type not in ('ImageURL')`)
-        }),
+            .where(`sf.type not in ('ImageURL')`);
+        },
         'search_filter',
-        'trade.network = search_filter.network and trade.collection_id = search_filter.collection_id and trade.token_id = search_filter.token_id'
-      )
+        'trade.network = search_filter.network and trade.collection_id = search_filter.collection_id and trade.token_id = search_filter.token_id',
+      );
   }
 
   private filterBySearchText(query: SelectQueryBuilder<IMarketTrade>, text?: string): SelectQueryBuilder<IMarketTrade> {
     if (!nullOrWhitespace(text)) {
-      query.andWhere(`search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%') and search_filter.key not in ('description', 'collectionCover', 'image')`, { searchText: text })
+      query.andWhere(
+        `search_filter.traits ILIKE CONCAT('%', cast(:searchText as text), '%') and search_filter.key not in ('description', 'collectionCover', 'image')`,
+        { searchText: text },
+      );
+      if (Number(text + 0)) {
+        query.orWhere(`trade.token_id = :tokenId`, { tokenId: Number(text) });
+      }
     }
     return query;
   }
 
-  private filterByTraits(query: SelectQueryBuilder<IMarketTrade>, traits?: string[], collectionId?: number[]): SelectQueryBuilder<IMarketTrade> {
+  private filterByTraits(
+    query: SelectQueryBuilder<IMarketTrade>,
+    traits?: string[],
+    collectionId?: number[],
+  ): SelectQueryBuilder<IMarketTrade> {
     if ((traits ?? []).length <= 0) {
-      return query
+      return query;
     } else {
       if ((collectionId ?? []).length <= 0) {
         throw new BadRequestException({
@@ -229,10 +236,9 @@ export class TradesService {
           message: 'Not found collectionIds. Please set collectionIds to offer by filter',
         });
       } else {
-
         query.andWhere('array [:...traits] <@ search_filter.items', { traits });
 
-        return query
+        return query;
       }
     }
   }

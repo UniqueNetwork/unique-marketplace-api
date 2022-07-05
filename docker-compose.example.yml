@@ -7,7 +7,7 @@ x-marketplace: &marketplace-backend
   image: marketplace-backend
   restart: unless-stopped
   env_file:
-      - ./.env-local
+    - ./.env-local
   depends_on:
     - marketplace-postgres
 

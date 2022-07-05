@@ -7,6 +7,6 @@ import { ConfigModule } from '../config/module';
 @Module({
   providers: [EscrowCommand, EscrowService],
   exports: [EscrowCommand, EscrowService],
-  imports: [DatabaseModule, ConfigModule]
+  imports: [DatabaseModule, ConfigModule],
 })
 export class EscrowModule {}

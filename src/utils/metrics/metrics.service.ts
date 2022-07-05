@@ -9,8 +9,5 @@ export class MetricsService {
     return this.promClientService.metrics;
   }
 
-  constructor(
-    private promClientService: PrometheusService,
-    private healthService: HealthService
-  ) {}
+  constructor(private promClientService: PrometheusService, private healthService: HealthService) {}
 }

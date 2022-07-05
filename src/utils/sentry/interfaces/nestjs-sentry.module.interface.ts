@@ -2,26 +2,19 @@ import { ModuleMetadata, Type } from '@nestjs/common';
 import { Options } from '@sentry/types';
 
 export interface SentryModuleOptions extends Options {
-
-    expressTracing?: boolean;
-
+  expressTracing?: boolean;
 }
 
 export type SentryModuleOptionsFactory = {
-
-    createNestjsSentryModuleOptions(): Promise<SentryModuleOptions> | SentryModuleOptions;
-
-}
+  createNestjsSentryModuleOptions(): Promise<SentryModuleOptions> | SentryModuleOptions;
+};
 
 export interface SentryModuleAsyncOptions extends Pick<ModuleMetadata, 'imports'> {
+  inject?: any[];
 
-    inject?: any[];
+  useClass?: Type<SentryModuleOptionsFactory>;
 
-    useClass?: Type<SentryModuleOptionsFactory>;
+  useExisting?: Type<SentryModuleOptionsFactory>;
 
-    useExisting?: Type<SentryModuleOptionsFactory>;
-
-    useFactory?: ( ...args: any[] ) => Promise<SentryModuleOptions> | SentryModuleOptions;
-
+  useFactory?: (...args: any[]) => Promise<SentryModuleOptions> | SentryModuleOptions;
 }
-

@@ -13,6 +13,7 @@ import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, AuctionStatus } from '../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { encodeAddress } from '@polkadot/util-crypto';
+import { InjectKusamaAPI } from '../../blockchain';
 
 @Injectable()
 export class BidPlacingService {
@@ -26,7 +27,7 @@ export class BidPlacingService {
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
     private broadcastService: BroadcastService,
-    @Inject('KUSAMA_API') private kusamaApi: ApiPromise,
+    @InjectKusamaAPI() private kusamaApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
   ) {
@@ -55,8 +56,8 @@ export class BidPlacingService {
 
       const offer = OfferContractAskDto.fromContractAsk(contractAsk);
 
-      await this.broadcastService.sendBidPlaced(offer);
-      this.logger.debug(``)
+      this.broadcastService.sendBidPlaced(offer);
+      this.logger.debug(``);
       return offer;
     } catch (error) {
       this.logger.warn(error);
@@ -130,7 +131,9 @@ export class BidPlacingService {
       const databaseHelper = new DatabaseHelper(entityManager);
       const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
-      const { auction: { id: auctionId } } = contractAsk;
+      const {
+        auction: { id: auctionId },
+      } = contractAsk;
       const price = BigInt(contractAsk.price);
       const startPrice = BigInt(contractAsk.auction.startPrice);
       const priceStep = BigInt(contractAsk.auction.priceStep);
@@ -142,8 +145,7 @@ export class BidPlacingService {
 
       let minBidderAmount = price - bidderPendingAmount;
 
-      const isFirstBid = price === startPrice && (
-        await databaseHelper.getAuctionPendingWinner({ auctionId }) === undefined);
+      const isFirstBid = price === startPrice && (await databaseHelper.getAuctionPendingWinner({ auctionId })) === undefined;
 
       if (minBidderAmount > 0 && !isFirstBid) {
         minBidderAmount += priceStep;
@@ -203,7 +205,9 @@ export class BidPlacingService {
       });
 
       contractAsk.price = userNextPendingAmount.toString();
-      await transactionEntityManager.update(ContractAsk, contractAsk.id, { price: userNextPendingAmount.toString() });
+      await transactionEntityManager.update(ContractAsk, contractAsk.id, {
+        price: userNextPendingAmount.toString(),
+      });
 
       await transactionEntityManager.save(BidEntity, nextUserBid);
 

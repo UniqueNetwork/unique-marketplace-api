@@ -1,1 +1,1 @@
-export * from './sentry-nestjs.tokens'
+export * from './sentry-nestjs.tokens';

@@ -7,7 +7,7 @@ function validateLte(num: unknown, max: bigint): boolean {
 /**
  * Checks if the first number is less than or equal to the second.
  */
-export function BigIntLte(maxValue: number, validationOptions?: ValidationOptions): PropertyDecorator {
+export function BigIntLte(maxValue: bigint, validationOptions?: ValidationOptions): PropertyDecorator {
   return ValidateBy(
     {
       name: 'BigIntLte',
@@ -15,11 +15,11 @@ export function BigIntLte(maxValue: number, validationOptions?: ValidationOption
       validator: {
         validate: (value, args): boolean => validateLte(value, args.constraints[0]),
         defaultMessage: buildMessage(
-          eachPrefix => eachPrefix + '$property must not be greater than $constraint1',
-          validationOptions
+          (eachPrefix) => eachPrefix + '$property must not be greater than $constraint1. $property must be a string',
+          validationOptions,
         ),
       },
     },
-    validationOptions
+    validationOptions,
   );
 }

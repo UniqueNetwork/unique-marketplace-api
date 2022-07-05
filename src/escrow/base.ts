@@ -28,15 +28,15 @@ export class Escrow {
   config(path, defaultVal = null) {
     const getOption = (path) => {
       let val = this.configObj;
-      for (let key of path.split('.')) {
+      for (const key of path.split('.')) {
         val = val[key];
       }
       return val;
     };
-    let defaultOption = getOption(`blockchain.${path}`);
-    let val = typeof defaultOption !== 'undefined' ? defaultOption : defaultVal;
+    const defaultOption = getOption(`blockchain.${path}`);
+    const val = typeof defaultOption !== 'undefined' ? defaultOption : defaultVal;
     if (this.configMode === Escrow.MODE_PROD) return val;
-    let testingVal = getOption(`blockchain.testing.${path}`);
+    const testingVal = getOption(`blockchain.testing.${path}`);
     return typeof testingVal !== 'undefined' ? testingVal : val;
   }
 
@@ -79,9 +79,15 @@ export class Escrow {
     throw Error('NotImplemented');
   }
 
-  async scanBlock(blockNum: bigint | number, force: boolean = false) {
+  async beforeBlockScan(): Promise<void> {
+    throw Error('NotImplemented: beforeBlockScan');
+  }
+
+  async scanBlock(blockNum: bigint | number, force = false) {
     const network = this.getNetwork();
     if (!force && (await this.service.isBlockScanned(blockNum, network))) return; // Block already scanned
+
+    await this.beforeBlockScan();
 
     const blockHash = await this.api.rpc.chain.getBlockHash(blockNum);
 
@@ -90,14 +96,14 @@ export class Escrow {
 
     let timestamp = null;
 
-    for (let [extrinsicIndex, ex] of signedBlock.block.extrinsics.entries()) {
-      let isSuccess = this.isSuccessfulExtrinsic(allRecords, extrinsicIndex);
+    for (const [extrinsicIndex, ex] of signedBlock.block.extrinsics.entries()) {
+      const isSuccess = this.isSuccessfulExtrinsic(allRecords, extrinsicIndex);
       if (ex.method.section === this.SECTION_TIMESTAMP && ex.method.method === 'set') {
         timestamp = ex.method.toJSON().args.now;
         continue;
       }
 
-      let extrinsicEvents = allRecords
+      const extrinsicEvents = allRecords
         .filter(({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(extrinsicIndex))
         .map((e) => e.toHuman());
 
@@ -106,10 +112,12 @@ export class Escrow {
     if (timestamp !== null) await this.service.addBlock(blockNum, timestamp, network);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async extractBlockData(blockNum, isSuccess, rawExtrinsic, events) {
     throw Error('NotImplemented');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async processBlock(blockNum, force = false) {
     throw Error('NotImplemented');
   }
@@ -123,9 +131,9 @@ export class Escrow {
   }
 
   async getStartBlock() {
-    let startFromBlock = this.getStartFromBlock();
+    const startFromBlock = this.getStartFromBlock();
     if (startFromBlock === 'latest') return this.greaterThenZero((await this.getLatestBlockNumber()) - 10);
-    let latestBlock = await this.service.getLastScannedBlock(this.getNetwork());
+    const latestBlock = await this.service.getLastScannedBlock(this.getNetwork());
     if (latestBlock?.block_number) return parseInt(latestBlock.block_number);
     if (startFromBlock === 'current') return this.greaterThenZero((await this.getLatestBlockNumber()) - 10);
     return parseInt(`${startFromBlock}`);
@@ -133,7 +141,7 @@ export class Escrow {
 
   async mainLoop() {
     while (true) {
-      let lastLatest = this.store.latestBlock;
+      const lastLatest = this.store.latestBlock;
       if (this.store.currentBlock % 10 === 0) logging.log(`Scanning block #${this.store.currentBlock}`);
       await this.processBlock(this.store.currentBlock);
       this.store.currentBlock += 1;

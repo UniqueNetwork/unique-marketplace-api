@@ -2,9 +2,9 @@ version: "3.5"
 
 
 services:
-  test-postgres:
+  develop-postgres:
     image: postgres:14.1-alpine
-    container_name: test-postgres
+    container_name: develop-postgres
     environment:
       POSTGRES_DB: 'marketplace_dbtest'
       POSTGRES_USER: 'postgresman'

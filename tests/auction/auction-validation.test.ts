@@ -1,4 +1,4 @@
-import * as request from 'supertest';
+import request from 'supertest';
 
 import { AuctionTestEntities, getAuctionTestEntities } from './base';
 import { AuctionCreationService } from '../../src/auction/services/auction-creation.service';
@@ -23,7 +23,9 @@ describe('Auction validation', () => {
     const auctionCreationService = testEntities.app.get(AuctionCreationService);
     auctionCreationService.create = jest.fn();
 
-    const transferFromSubstrateTx = await uniqueApi.tx.unique.transfer({ Substrate: market.uniqueAddress }, '1', '1', 1).signAsync(seller.keyring);
+    const transferFromSubstrateTx = await uniqueApi.tx.unique
+      .transfer({ Substrate: market.uniqueAddress }, '1', '1', 1)
+      .signAsync(seller.keyring);
 
     const transferFromSubstrate = await request(testEntities.app.getHttpServer()).post('/auction/create_auction').send({
       tokenOwner: seller.keyring.address,

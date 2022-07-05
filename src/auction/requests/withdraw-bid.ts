@@ -1,4 +1,4 @@
-import { ArrayMinSize, IsArray, isArray, IsInt, IsNotEmpty, IsString, Min, ValidateNested } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { Type } from 'class-transformer';
@@ -6,17 +6,17 @@ import { Type } from 'class-transformer';
 export type WithdrawBidQuery = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & { timestamp: number };
 
 export type ItemAuctionId = {
-  auctionId: string
+  auctionId: string;
 };
 
 export type WithdrawBidChosen = {
   timestamp: number;
-  auctionId: Array<ItemAuctionId>
-}
+  auctionId: Array<ItemAuctionId>;
+};
 
 export type OwnerWithdrawBids = {
   owner: string;
-}
+};
 
 // todo - unite with CancelAuctionRequest entity?
 export class WithdrawBidQueryDto implements WithdrawBidQuery {
@@ -56,19 +56,19 @@ export class WithdrawBidChosenQueryDto {
     name: 'auctionId',
     items: {
       type: 'string',
-      default: ''
+      default: '',
     },
     minItems: 1,
     required: true,
     type: 'array',
-    isArray: true
+    isArray: true,
   })
   //@ValidateNested({each: true})
-  auctionId: Array<string>
+  auctionId: Array<string>;
 }
 
 export class OwnerWithdrawBidQueryDto implements OwnerWithdrawBids {
-  @ApiProperty({example: '5DcJgDMWhg6NP3QEvikFnuyjdtXc42YznBiJJWqb93SAmzqq'})
+  @ApiProperty({ example: '5DcJgDMWhg6NP3QEvikFnuyjdtXc42YznBiJJWqb93SAmzqq' })
   @Type(() => String)
   @IsString()
   @IsNotEmpty()

@@ -10,6 +10,7 @@ import { CollectionToken, TokenInfo, TypeAttributToken } from '../types';
 import { ProxyCollection, ProxyToken } from '../../utils/blockchain';
 import { CollectionType } from '../../utils/blockchain/collection';
 import '@polkadot/api-augment/polkadot';
+import { InjectUniqueAPI } from '../../blockchain';
 
 @Injectable()
 export class SearchIndexService {
@@ -21,7 +22,7 @@ export class SearchIndexService {
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
-    @Inject('UNIQUE_API') private uniqueApi: ApiPromise,
+    @InjectUniqueAPI() private uniqueApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
   ) {
     this.network = this.config.blockchain.unique.network;
@@ -64,7 +65,7 @@ export class SearchIndexService {
 
   private getCollectionCover(collection: CollectionType): string {
     if (collection?.collectionCover) {
-      return JSON.parse(collection?.collectionCover)?.collectionCover
+      return JSON.parse(collection?.collectionCover)?.collectionCover;
     }
     if (collection?.offchainSchema) {
       return collection.offchainSchema.replace('{id}', '1');
@@ -123,7 +124,7 @@ export class SearchIndexService {
     if (token.constData) {
       const tokenData = token.constData;
       try {
-        for (let k of this.getKeywords(collection.schema.NFTMeta, tokenData.human)) {
+        for (const k of this.getKeywords(collection.schema.NFTMeta, tokenData.human)) {
           keywords.push(k);
         }
       } catch (e) {
@@ -142,8 +143,8 @@ export class SearchIndexService {
           locale: null,
           key: 'image',
           items: [JSON.parse(dataObj[key]).ipfs],
-          type: TypeAttributToken.ImageURL
-        }
+          type: TypeAttributToken.ImageURL,
+        };
         continue;
       }
       if (resolvedType && resolvedType.constructor.name.toString() === 'Enum') {
@@ -186,6 +187,18 @@ export class SearchIndexService {
   }
 
   async saveSearchIndex(collectionToken: CollectionToken, items: TokenInfo[]): Promise<void> {
+    const total = items
+      .filter(
+        (i) =>
+          [TypeAttributToken.Enum, TypeAttributToken.String].includes(i.type) &&
+          !['collectionCover', 'prefix', 'description', 'collectionName', 'tokenId', 'image'].includes(i.key),
+      )
+      .reduce((acc, item) => {
+        return acc + item.items.length;
+      }, 0);
+
+    const listItems = this.setListItems(items);
+
     const searchIndexItems: SearchIndex[] = items.map((item) =>
       this.repository.create({
         id: uuid(),
@@ -197,10 +210,36 @@ export class SearchIndexService {
         key: item.key,
         is_trait: item.is_trait,
         type: item.type,
+        count_item: this.setCountItem(item),
+        total_items: total,
+        list_items: listItems,
       }),
     );
 
     await this.repository.save(searchIndexItems);
+  }
+
+  private setCountItem(item: TokenInfo): number {
+    if (
+      [TypeAttributToken.Enum, TypeAttributToken.String].includes(item.type) &&
+      !['collectionCover', 'prefix', 'description', 'collectionName'].includes(item.key)
+    ) {
+      return 0;
+    }
+    return item.items.length;
+  }
+
+  private setListItems(items: TokenInfo[]): string[] {
+    return items
+      .filter(
+        (i) =>
+          [TypeAttributToken.Enum, TypeAttributToken.String].includes(i.type) &&
+          !['collectionCover', 'prefix', 'description', 'collectionName', 'tokenId', 'image'].includes(i.key),
+      )
+      .reduce((acc, item) => {
+        acc = [...acc, ...item.items];
+        return acc;
+      }, []);
   }
 
   async updateSearchIndex(): Promise<void> {

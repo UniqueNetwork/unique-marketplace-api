@@ -2,14 +2,15 @@ import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { expressMiddleware as prometheusMiddleware } from 'prometheus-api-metrics';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { yellow } from 'cli-color';
+import { yellow, green } from 'cli-color';
 import { AppModule } from './app.module';
 import { runMigrations } from './database/migrations';
 import { ignoreQueryCase, useGlobalPipes } from './utils/application';
 import * as fs from 'fs';
 import { promises } from 'fs';
 import { join } from 'path';
-import { PostgresIoAdapter } from "./broadcast/services/postgres-io.adapter";
+import { PostgresIoAdapter } from './broadcast/services/postgres-io.adapter';
+import helmet from 'helmet';
 
 const APP_NAME_PREFIX = 'unique-marketplace-api';
 const logger = new Logger('NestApplication');
@@ -18,6 +19,15 @@ const initSwagger = (app: INestApplication, config, pkg) => {
   const swaggerConf = new DocumentBuilder()
     .setTitle(config.swagger.title)
     .setDescription(fs.readFileSync('docs/description.md').toString())
+    .addBearerAuth()
+    .addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: 'Authorization',
+      },
+      'address:signature',
+    )
     .setVersion(pkg.version)
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConf);
@@ -27,15 +37,26 @@ const initSwagger = (app: INestApplication, config, pkg) => {
 let app: INestApplication;
 
 async function bootstrap() {
-  app = await NestFactory.create(AppModule,{logger: ['log', 'error', 'warn','debug']});
+  app = await NestFactory.create(AppModule, { logger: ['log', 'error', 'warn', 'debug'] });
   const config = app.get('CONFIG');
-  const pkg = JSON.parse(
-    await promises.readFile(join('.', 'package.json'), 'utf8'),
-  );
+  const pkg = JSON.parse(await promises.readFile(join('.', 'package.json'), 'utf8'));
   if (config.autoDBMigrations) await runMigrations(config, 'migrations');
 
-  if (config.disableSecurity) app.enableCors();
+  if (config.disableSecurity) {
+    // app.use((req, res, next) => {
+    //   res.header('Access-Control-Allow-Origin', '*');
+    //   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS,HEAD');
+    //   res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Signature, Authorization');
+    //   next();
+    // });
 
+    app.enableCors({
+      allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe, Signature, Authorization',
+      origin: true,
+      credentials: true,
+    });
+    app.use(helmet());
+  }
   app.use(
     prometheusMiddleware({
       additionalLabels: ['app'],
@@ -52,8 +73,10 @@ async function bootstrap() {
   ignoreQueryCase(app);
   useGlobalPipes(app);
 
+  console.log(pkg.version);
+
   await app.listen(config.listenPort, () => {
-    logger.log(`Nest application listening on port: ${yellow(config.listenPort)}`);
+    logger.log(`Nest application listening on port: ${yellow(config.listenPort)} ${green('version:')} ${yellow(pkg.version)}`);
   });
 }
 

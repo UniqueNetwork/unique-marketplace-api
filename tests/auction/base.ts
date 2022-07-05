@@ -2,7 +2,7 @@ import { ApiPromise } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 
-import * as request from 'supertest';
+import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 
 import { ExtrinsicSubmitter } from '../../src/auction/services/helpers/extrinsic-submitter';
@@ -14,9 +14,9 @@ import { MarketConfig } from '../../src/config/market-config';
 import { connect as connectSocket, Socket } from 'socket.io-client';
 import { ClientToServerEvents, ServerToClientEvents } from '../../src/broadcast/types';
 import { u8aToHex } from '@polkadot/util';
-import { OfferContractAskDto} from "../../src/offers/dto/offer-dto";
-import { SearchIndex } from "../../src/entity";
-import { Connection } from "typeorm";
+import { OfferContractAskDto } from '../../src/offers/dto/offer-dto';
+import { SearchIndex } from '../../src/entity';
+import { Connection } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 
 type Actor = {
@@ -101,7 +101,7 @@ export const getAuctionTestEntities = async (): Promise<AuctionTestEntities> => 
       value: `${collectionId}/${tokenId}`,
       is_trait: false,
     });
-  }
+  };
 
   return {
     app,
@@ -164,9 +164,11 @@ export const createAuction = async (
 
 export const placeBid = async (
   testEntities: AuctionTestEntities,
-  collectionId, tokenId, amount = '100',
+  collectionId,
+  tokenId,
+  amount = '100',
   signer?: KeyringPair,
-  ): Promise<request.Test> => {
+): Promise<request.Test> => {
   const {
     app,
     kusamaApi,
@@ -196,10 +198,7 @@ export const withdrawBid = async (
 
   const authorization = `${address || signer.address}:${u8aToHex(signature)}`;
 
-  return request(testEntities.app.getHttpServer())
-    .delete(`/auction/withdraw_bid?${query}`)
-    .set({ 'Authorization': authorization })
-    .send();
+  return request(testEntities.app.getHttpServer()).delete(`/auction/withdraw_bid?${query}`).set({ Authorization: authorization }).send();
 };
 
 export const calculate = async (
@@ -215,11 +214,7 @@ export const calculate = async (
   });
 };
 
-export const fetchOffer = (
-  testEntities: AuctionTestEntities,
-  collectionId: string,
-  tokenId: string,
-): Promise<OfferContractAskDto> => {
+export const fetchOffer = (testEntities: AuctionTestEntities, collectionId: string, tokenId: string): Promise<OfferContractAskDto> => {
   return request(testEntities.app.getHttpServer())
     .get(`/offer/${collectionId}/${tokenId}`)
     .then((response) => response.body as OfferContractAskDto);

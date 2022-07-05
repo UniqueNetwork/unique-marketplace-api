@@ -1,11 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
-import {
-  BroadcastIOServer,
-  BroadcastIOSocket,
-  TokenIds,
-  BroadcastIOEmitter,
-} from "../types";
-import { OfferContractAskDto } from "../../offers/dto/offer-dto";
+import { Injectable, Logger } from '@nestjs/common';
+import { BroadcastIOServer, BroadcastIOSocket, TokenIds, BroadcastIOEmitter } from '../types';
+import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 
 @Injectable()
 export class BroadcastService {
@@ -50,17 +45,17 @@ export class BroadcastService {
     socket.on('unsubscribeFromAuction', async (ids) => {
       const roomId = BroadcastService.getAuctionRoomId(ids);
 
-      this.logger.debug(`Socket ${socket.id} unsubscribeFrom ${roomId}`)
+      this.logger.debug(`Socket ${socket.id} unsubscribeFrom ${roomId}`);
 
       await socket.leave(roomId);
     });
 
     socket.on('disconnecting', (reason) => {
-      this.logger.debug(`Socket ${socket.id} disconnecting; Reason ${reason}`)
+      this.logger.debug(`Socket ${socket.id} disconnecting; Reason ${reason}`);
     });
 
     socket.on('disconnect', (reason) => {
-      this.logger.debug(`Socket ${socket.id} disconnected; Reason ${reason}`)
+      this.logger.debug(`Socket ${socket.id} disconnected; Reason ${reason}`);
     });
   }
 
