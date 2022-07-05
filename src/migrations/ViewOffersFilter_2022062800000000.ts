@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class FilterSearch_2206280000000 implements MigrationInterface {
-  name = 'FilterSearch_2206280000000';
+export class ViewOffersFilter_2022062800000000 implements MigrationInterface {
+  name = 'ViewOffersFilter_2022062800000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
