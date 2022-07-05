@@ -163,7 +163,7 @@ export class OffersService {
         if (image.search('ipfs.unique.network') !== -1) {
           acc[`${item.key}`] = image;
         } else {
-          if (image.search('https://') !== -1) {
+          if (image.search('https://') !== -1 && image.search('http://') !== 0) {
             acc[`${item.key}`] = image;
           } else {
             if (image) {
