@@ -46,6 +46,7 @@ import { TraceInterceptor } from '../utils/sentry';
 import { BadRequestResponse, BidsWitdrawByOwnerDto, ConflictResponse, UnauthorizedResponse } from './responses';
 import * as fs from 'fs';
 import { InjectUniqueAPI, InjectKusamaAPI } from '../blockchain';
+import { DateHelper } from '../utils/date-helper';
 
 @ApiTags('Auction')
 @Controller('auction')
@@ -76,6 +77,7 @@ export class AuctionController {
   async createAuction(
     @Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto,
   ): Promise<OfferContractAskDto> {
+    DateHelper.checkDateAndMinutes(createAuctionRequest.days, createAuctionRequest.minutes);
     try {
       const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
 
