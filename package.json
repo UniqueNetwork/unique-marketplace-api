@@ -1,6 +1,6 @@
 {
   "name": "unique-marketplace-api",
-  "version": "1.6.17",
+  "version": "1.7.1",
   "description": "Backend project for unique marketplace",
   "author": "Unique Network",
   "private": true,
@@ -26,6 +26,9 @@
     "migration:revert": "npm run typeorm -- migration:revert",
     "schema:log": "npm run typeorm -- schema:log",
     "prepare": "husky install",
+    "release:major": "changelog -M",
+    "release:minor": "changelog -m",
+    "release:patch": "changelog -p",
     "docs": "npx @compodoc/compodoc -p tsconfig.json -s",
     "lint": "eslint \"{src,apps,libs,tests}/**/*.ts\" --fix"
   },

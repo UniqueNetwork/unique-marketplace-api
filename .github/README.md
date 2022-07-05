@@ -109,6 +109,12 @@ $ nano docker-compose.yml
 $ docker-compose up -d  marketplace-api
 ```
 
+If you get an error that the container cannot be started, you may need to execute the following command first: 
+
+```
+sudo chmod 777 /var/run/docker.sock
+``` 
+
 ### Step 3: Migration database
 
 ```shell
