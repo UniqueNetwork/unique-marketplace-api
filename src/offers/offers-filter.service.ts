@@ -149,7 +149,7 @@ export class OffersFilterService {
     }
     return query
       .andWhere('v_offers_search.offer_address_from = :seller', { seller })
-      .andWhere('v_offers_search.offer_status in (...:offer_status)', { offer_status: ['active', 'removed_by_admin'] });
+      .andWhere('v_offers_search.offer_status in (:...offer_status)', { offer_status: ['active', 'removed_by_admin'] });
   }
 
   private byLocale(query: SelectQueryBuilder<OfferFilters>, locale?: string): SelectQueryBuilder<OfferFilters> {
@@ -337,6 +337,22 @@ export class OffersFilterService {
         amount: +item.amount,
       };
     });
+  }
+
+  private byCollectionTokenId(query: SelectQueryBuilder<OfferFilters>, collectionId: number, tokenId: number): SelectQueryBuilder<any> {
+    return query
+      .andWhere('v_offers_search.collection_id = :collectionId', { collectionId })
+      .andWhere('v_offers_search.token_id = :tokenId', { tokenId })
+      .andWhere('v_offers_search.offer_status in (:...status)', { status: ['active', 'removed_by_admin'] });
+  }
+
+  public async filterByOne(collectionId: number, tokenId: number): Promise<any> {
+    let queryFilter = this.connection.manager.createQueryBuilder(OfferFilters, 'v_offers_search');
+    queryFilter = this.byCollectionTokenId(queryFilter, collectionId, tokenId);
+    queryFilter = this.prepareQuery(queryFilter);
+    const itemQuery = await this.pagination(queryFilter, { page: 1, pageSize: 1 });
+    const items = await itemQuery.query.getRawMany();
+    return items;
   }
 
   public async filter(offersFilter: OffersFilter, pagination: PaginationRequest, sort: OfferSortingRequest): Promise<any> {
