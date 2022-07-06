@@ -19,8 +19,8 @@ export class MarketService implements OnModuleInit {
 
     this.logger.debug('Closing all secondary market offers ...');
 
-    const { message } = await this.massCancelingService.massCancel();
+    //const { message } = await this.massCancelingService.massCancel();
 
-    this.logger.debug(message);
+    //this.logger.debug(message);
   }
 }
