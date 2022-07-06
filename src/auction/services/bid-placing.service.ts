@@ -53,22 +53,22 @@ export class BidPlacingService {
 
     try {
       [contractAsk, nextUserBid] = await this.tryPlacePendingBid(placeBidArgs);
-      return OfferContractAskDto.fromContractAsk(contractAsk);
+
+      const offer = OfferContractAskDto.fromContractAsk(contractAsk);
+
+      this.broadcastService.sendBidPlaced(offer);
+      this.logger.debug(``);
+      return offer;
     } catch (error) {
       this.logger.warn(error);
+
       throw new BadRequestException(error.message);
     } finally {
       if (contractAsk && nextUserBid) {
         await this.extrinsicSubmitter
           .submit(this.kusamaApi, tx)
-          .then(({ blockNumber }) => {
-            this.broadcastService.sendBidPlaced(OfferContractAskDto.fromContractAsk(contractAsk));
-            this.handleBidTxSuccess(placeBidArgs, contractAsk, nextUserBid, blockNumber);
-          })
-          .catch(() => {
-            this.broadcastService.sendAuctionError(OfferContractAskDto.fromContractAsk(contractAsk), 'Bid is not finished');
-            this.handleBidTxFail(placeBidArgs, contractAsk, nextUserBid);
-          });
+          .then(({ blockNumber }) => this.handleBidTxSuccess(placeBidArgs, contractAsk, nextUserBid, blockNumber))
+          .catch(() => this.handleBidTxFail(placeBidArgs, contractAsk, nextUserBid));
       }
     }
   }

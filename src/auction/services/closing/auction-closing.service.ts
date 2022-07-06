@@ -137,17 +137,16 @@ export class AuctionClosingService {
       }),
     ); */
 
-    const getPriceWithoutCommission = (price: bigint, commission: number) => (price * 100n) / BigInt(100 + commission);
-
     if (winner) {
       const { bidderAddress: winnerAddress, totalAmount: finalPrice } = winner;
 
-      const ownerPrice = getPriceWithoutCommission(finalPrice, this.config.auction.commission);
+      const marketFee = (finalPrice * BigInt(this.config.auction.commission)) / 100n;
+      const ownerPrice = finalPrice - marketFee;
 
       let message = AuctionClosingService.getIdentityMessage(contractAsk, winnerAddress, finalPrice);
       message += ` is winner;\n`;
       message += `going to send ${ownerPrice} to owner (${address_from});\n`;
-      message += `market fee is ${finalPrice - ownerPrice};\n`;
+      message += `market fee is ${marketFee};\n`;
       this.logger.log(message);
 
       await this.sendTokenToWinner(contractAsk, winnerAddress);
@@ -169,6 +168,10 @@ export class AuctionClosingService {
         await this.auctionRepository.update(auction.id, { status: AuctionStatus.ended });
 
         const contractAskDb = await this.contractAskRepository.findOne(contractAsk.id);
+
+        const getPriceWithoutCommission = (price: bigint, commission: number) => (price * 100n) / BigInt(100 + commission);
+
+        const price = getPriceWithoutCommission(BigInt(contractAsk.price), this.config.auction.commission);
 
         const getBlockCreatedAt = async (blockNum: bigint | number, blockTimeSec = 6n) => {
           let block = await this.blockchainBlockRepository.findOne({
@@ -200,7 +203,7 @@ export class AuctionClosingService {
           collection_id: contractAskDb.collection_id,
           token_id: contractAskDb.token_id,
           network: this.config.blockchain.unique.network,
-          price: `${ownerPrice}`,
+          price: `${price}`,
           currency: contractAskDb.currency,
           address_seller: contractAskDb.address_from,
           address_buyer: winnerAddress,
@@ -210,7 +213,7 @@ export class AuctionClosingService {
           buy_created_at,
           originPrice: `${contractAskDb.price}`,
           status: SellingMethod.Auction,
-          commission: `${BigInt(contractAsk.price) - ownerPrice}`,
+          commission: `${BigInt(contractAsk.price) - price}`,
         });
       }
     } else {
