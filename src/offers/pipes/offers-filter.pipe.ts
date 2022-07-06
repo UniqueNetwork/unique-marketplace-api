@@ -4,6 +4,7 @@ import { ErrorHttpStatusCode, HttpErrorByCode } from '@nestjs/common/utils/http-
 import { TransformationResult } from '../../utils/type-generators/transformation-result';
 import { UntypedRequest } from '../../utils/type-generators/untyped-request';
 import { parseBigIntRequest, parseCollectionIdRequest, parseIntRequest, requestArray } from '../../utils/parsers';
+import { OffersFilter } from '../dto/offers-filter';
 
 export interface ParseOffersFilterPipeOptions {
   errorHttpStatusCode?: ErrorHttpStatusCode;
