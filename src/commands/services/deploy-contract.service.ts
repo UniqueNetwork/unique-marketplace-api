@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import * as lib from '../../utils/blockchain/web3';
 import { MarketConfig } from '../../config/market-config';
 import * as unique from '../../utils/blockchain/unique';
-import { ApiPromise } from '@polkadot/api';
 import { evmToAddress } from '@polkadot/util-crypto';
 import * as util from '../../utils/blockchain/util';
 import * as logging from '../../utils/logging';

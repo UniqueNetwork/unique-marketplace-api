@@ -1,10 +1,9 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Collection } from '../../entity/collection';
-import { IsInt, IsOptional, IsPositive, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
 import { BIGINT_MAX_VALUE, U32_MAX_VALUE } from '../constants';
 import { Transform, Type } from 'class-transformer';
-import { UNIQUE } from '../../utils/blockchain/web3';
 import { IsBigInt, BigIntGte, BigIntLte } from '../../offers/decorators';
 
 const ToBigInt = () =>

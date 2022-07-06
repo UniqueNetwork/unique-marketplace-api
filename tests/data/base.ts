@@ -90,18 +90,7 @@ export const searchByFilterOffers = async (
 
   const { page, pageSize } = pagination;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const {
-    collectionId,
-    searchLocale,
-    minPrice,
-    maxPrice,
-    seller,
-    numberOfAttributes,
-    attributes: traits,
-    isAuction,
-    bidderAddress,
-  } = offersFilter;
+  const { collectionId, searchLocale, minPrice, maxPrice, seller, numberOfAttributes, isAuction, bidderAddress } = offersFilter;
 
   let { searchText } = offersFilter;
 

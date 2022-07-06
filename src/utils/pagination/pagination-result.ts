@@ -1,5 +1,4 @@
 import { Exclude, Type } from 'class-transformer';
-import { TraitDto } from '../../offers/dto';
 
 export interface PaginationResult<T> {
   items: T[];
