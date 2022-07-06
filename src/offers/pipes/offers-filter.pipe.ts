@@ -3,8 +3,7 @@ import { ErrorHttpStatusCode, HttpErrorByCode } from '@nestjs/common/utils/http-
 
 import { TransformationResult } from '../../utils/type-generators/transformation-result';
 import { UntypedRequest } from '../../utils/type-generators/untyped-request';
-import { filterAttributes, OffersFilter } from '../dto/offers-filter';
-import { parseBigIntRequest, parseCollectionIdRequest, parseIntRequest, requestArray, requestArrayObject } from '../../utils/parsers';
+import { parseBigIntRequest, parseCollectionIdRequest, parseIntRequest, requestArray } from '../../utils/parsers';
 
 export interface ParseOffersFilterPipeOptions {
   errorHttpStatusCode?: ErrorHttpStatusCode;
