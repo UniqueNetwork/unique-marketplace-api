@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectUniqueAPI } from '../blockchain';
 import { MarketConfig } from '../config/market-config';
 import * as lib from '../utils/blockchain/web3';
@@ -10,8 +10,11 @@ export class AllowedListService {
   private web3conn;
   private web3;
   private contractOwner;
+  private logger: Logger;
 
-  constructor(@InjectUniqueAPI() private unique, @Inject('CONFIG') private config: MarketConfig) {}
+  constructor(@InjectUniqueAPI() private unique, @Inject('CONFIG') private config: MarketConfig) {
+    this.logger = new Logger(AllowedListService.name);
+  }
 
   /**
    * Initialize the web3 connection
@@ -53,12 +56,14 @@ export class AllowedListService {
     if (!isAllowed) {
       try {
         await helpers.methods.toggleAllowed(contract.options.address, ethAddress, true).send({ from: this.contractOwner.address });
+        this.logger.log(`${address} added to the allowed list`);
         return {
           statusCode: HttpStatus.OK,
           message: 'Address added to the allowed list',
           isAllowed: true,
         };
       } catch (error) {
+        this.logger.log(`${address} not added to the allowed list`);
         return {
           statusCode: HttpStatus.BAD_REQUEST,
           message: error.message,
@@ -66,6 +71,7 @@ export class AllowedListService {
         };
       }
     } else {
+      this.logger.log(`${address} already in the allowed list`);
       return {
         statusCode: HttpStatus.OK,
         message: 'Address already in the allowed list',
