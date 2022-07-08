@@ -6,7 +6,7 @@ import { KeyringPair } from '@polkadot/keyring/types';
 
 import { BroadcastService } from '../../../broadcast/services/broadcast.service';
 import { AuctionEntity } from '../../entities';
-import { BlockchainBlock, ContractAsk, MarketTrade, SellingMethod } from '../../../entity';
+import { BlockchainBlock, ContractAsk, MarketTrade, SellingMethod, MoneyTransfer } from '../../../entity';
 import { DatabaseHelper } from '../helpers/database-helper';
 import { AuctionStatus, BidStatus } from '../../types';
 import { BidWithdrawService } from '../bid-withdraw.service';
@@ -17,6 +17,7 @@ import { MarketConfig } from '../../../config/market-config';
 import { OfferContractAskDto } from '../../../offers/dto/offer-dto';
 import { AuctionCredentials } from '../../providers';
 import { InjectSentry, SentryService } from '../../../utils/sentry';
+import { MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from '../../../escrow/constants';
 
 @Injectable()
 export class AuctionClosingService {
@@ -27,6 +28,7 @@ export class AuctionClosingService {
   private blockchainBlockRepository: Repository<BlockchainBlock>;
   private auctionKeyring: KeyringPair;
   private tradeRepository: Repository<MarketTrade>;
+  private moneyTransferRepository: Repository<MoneyTransfer>;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
@@ -45,6 +47,7 @@ export class AuctionClosingService {
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
     this.auctionKeyring = auctionCredentials.keyring;
     this.tradeRepository = connection.manager.getRepository(MarketTrade);
+    this.moneyTransferRepository = connection.getRepository(MoneyTransfer);
   }
 
   async auctionsStoppingIntervalHandler(): Promise<void> {
@@ -158,11 +161,25 @@ export class AuctionClosingService {
 
       const extrinsic = await this.extrinsicSubmitter
         .submit(this.kusamaApi, tx)
-        .then(() => {
+        .then(async () => {
           this.logger.log(`transfer done`);
           return true;
         })
-        .catch((error) => this.logger.warn(`transfer failed with ${error.toString()}`));
+        .catch(async (error) => {
+          this.logger.warn(`transfer failed with ${error.toString()}`);
+          await this.moneyTransferRepository.save({
+            id: uuid(),
+            amount: `-${ownerPrice}`,
+            block_number: contractAsk.block_number_ask,
+            network: 'kusama',
+            type: MONEY_TRANSFER_TYPES.TRANSFER_TO_SELLER,
+            status: MONEY_TRANSFER_STATUS.FAILED,
+            created_at: new Date(),
+            updated_at: new Date(),
+            extra: { address: address_from },
+            currency: '2', // TODO: check this
+          });
+        });
 
       if (extrinsic) {
         await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.BOUGHT, address_to: winnerAddress });
@@ -211,6 +228,18 @@ export class AuctionClosingService {
           originPrice: `${contractAskDb.price}`,
           status: SellingMethod.Auction,
           commission: `${BigInt(contractAsk.price) - ownerPrice}`,
+        });
+        await this.moneyTransferRepository.save({
+          id: uuid(),
+          amount: `-${ownerPrice}`,
+          block_number: contractAskDb.block_number_buy,
+          network: 'kusama',
+          type: MONEY_TRANSFER_TYPES.TRANSFER_TO_SELLER,
+          status: MONEY_TRANSFER_STATUS.COMPLETED,
+          created_at: new Date(),
+          updated_at: new Date(),
+          extra: { address: address_from },
+          currency: '2', // TODO: check this
         });
       }
     } else {

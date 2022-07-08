@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, ForbiddenException, HttpStatus, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { MarketConfig } from '../../config/market-config';
 import { hexToU8a } from '@polkadot/util';
 import { signatureVerify } from '@polkadot/util-crypto';
