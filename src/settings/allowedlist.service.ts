@@ -3,7 +3,6 @@ import { InjectUniqueAPI } from '../blockchain';
 import { MarketConfig } from '../config/market-config';
 import * as lib from '../utils/blockchain/web3';
 import * as util from '../utils/blockchain/util';
-import { ethers } from 'ethers';
 
 @Injectable()
 export class AllowedListService {
