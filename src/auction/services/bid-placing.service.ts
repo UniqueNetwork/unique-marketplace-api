@@ -7,13 +7,14 @@ import { v4 as uuid } from 'uuid';
 import { AuctionEntity, BidEntity } from '../entities';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
-import { BlockchainBlock, ContractAsk } from '../../entity';
+import { BlockchainBlock, ContractAsk, MoneyTransfer } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, AuctionStatus } from '../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { InjectKusamaAPI } from '../../blockchain';
+import { MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from '../../escrow/constants';
 
 @Injectable()
 export class BidPlacingService {
@@ -23,6 +24,7 @@ export class BidPlacingService {
   private readonly auctionRepository: Repository<AuctionEntity>;
   private blockchainBlockRepository: Repository<BlockchainBlock>;
   private readonly contractAskRepository: Repository<ContractAsk>;
+  private moneyTransferRepository: Repository<MoneyTransfer>;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
@@ -35,6 +37,7 @@ export class BidPlacingService {
     this.contractAskRepository = connection.getRepository(ContractAsk);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
+    this.moneyTransferRepository = connection.getRepository(MoneyTransfer);
   }
 
   async placeBid(placeBidArgs: PlaceBidArgs): Promise<OfferContractAskDto> {
@@ -61,7 +64,7 @@ export class BidPlacingService {
       if (contractAsk && nextUserBid) {
         await this.extrinsicSubmitter
           .submit(this.kusamaApi, tx)
-          .then(({ blockNumber }) => {
+          .then(async ({ blockNumber }) => {
             this.broadcastService.sendBidPlaced(OfferContractAskDto.fromContractAsk(contractAsk));
             this.handleBidTxSuccess(placeBidArgs, contractAsk, nextUserBid, blockNumber);
           })
@@ -83,6 +86,18 @@ export class BidPlacingService {
       await this.bidRepository.update(userBid.id, {
         status: BidStatus.finished,
         blockNumber: blockNumber.toString(),
+      });
+      await this.moneyTransferRepository.save({
+        id: uuid(),
+        amount: placeBidArgs.amount,
+        block_number: oldContractAsk.block_number_ask,
+        network: 'kusama',
+        type: MONEY_TRANSFER_TYPES.BID,
+        status: MONEY_TRANSFER_STATUS.COMPLETED,
+        created_at: new Date(),
+        updated_at: new Date(),
+        extra: { address: placeBidArgs.bidderAddress },
+        currency: '2', // TODO: check this
       });
     } catch (error) {
       const fullError = {
@@ -110,6 +125,18 @@ export class BidPlacingService {
         const newWinner = await databaseHelper.getAuctionPendingWinner({ auctionId });
         const newOfferPrice = newWinner ? newWinner.totalAmount.toString() : oldContractAsk.auction.startPrice;
         await transactionEntityManager.update(ContractAsk, oldContractAsk.id, { price: newOfferPrice });
+      });
+      await this.moneyTransferRepository.save({
+        id: uuid(),
+        amount: placeBidArgs.amount,
+        block_number: oldContractAsk.block_number_ask,
+        network: 'kusama',
+        type: MONEY_TRANSFER_TYPES.BID,
+        status: MONEY_TRANSFER_STATUS.FAILED,
+        created_at: new Date(),
+        updated_at: new Date(),
+        extra: { address: placeBidArgs.bidderAddress },
+        currency: '2', // TODO: check this
       });
     } catch (error) {
       const fullError = {

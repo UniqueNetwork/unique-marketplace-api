@@ -1,7 +1,8 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
+
 import { AuctionEntity, BidEntity } from '../entities';
-import { ContractAsk } from '../../entity';
+import { ContractAsk, MoneyTransfer } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
@@ -14,6 +15,7 @@ import { encodeAddress } from '@polkadot/util-crypto';
 import { BidsWitdrawByOwner, BidsWithdraw } from '../responses';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 import { InjectKusamaAPI } from '../../blockchain';
+import { MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from '../../escrow/constants';
 
 type BidWithdrawArgs = {
   collectionId: number;
@@ -33,6 +35,7 @@ export class BidWithdrawService {
   private readonly bidRepository: Repository<BidEntity>;
   private readonly auctionRepository: Repository<AuctionEntity>;
   private readonly contractAskRepository: Repository<ContractAsk>;
+  private moneyTransferRepository: Repository<MoneyTransfer>;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
@@ -46,6 +49,7 @@ export class BidWithdrawService {
     this.bidRepository = connection.manager.getRepository(BidEntity);
     this.auctionRepository = connection.manager.getRepository(AuctionEntity);
     this.contractAskRepository = connection.getRepository(ContractAsk);
+    this.moneyTransferRepository = connection.getRepository(MoneyTransfer);
   }
 
   async withdrawBidByBidder(args: BidWithdrawArgs): Promise<void> {
@@ -101,6 +105,18 @@ export class BidWithdrawService {
         this.logger.debug(
           `Bid make Withdraw transfer id: ${withdrawingBid.id},  status: ${BidStatus.finished}, blockNumber: ${blockNumber.toString()} `,
         );
+        await this.moneyTransferRepository.save({
+          id: uuid(),
+          amount: `-${amount}`,
+          block_number: `${blockNumber}`,
+          network: 'kusama',
+          type: MONEY_TRANSFER_TYPES.BID_WITHDRAW,
+          status: MONEY_TRANSFER_STATUS.COMPLETED,
+          created_at: new Date(),
+          updated_at: new Date(),
+          extra: { address: withdrawingBid.bidderAddress },
+          currency: '2', // TODO: check this
+        });
       })
       .catch(async (error) => {
         const fullError = {
@@ -112,6 +128,18 @@ export class BidWithdrawService {
         this.logger.error(JSON.stringify(fullError));
 
         await this.bidRepository.update(withdrawingBid.id, { status: BidStatus.error });
+        await this.moneyTransferRepository.save({
+          id: uuid(),
+          amount: `-${amount}`,
+          block_number: `${withdrawingBid.blockNumber}`,
+          network: 'kusama',
+          type: MONEY_TRANSFER_TYPES.BID_WITHDRAW,
+          status: MONEY_TRANSFER_STATUS.FAILED,
+          created_at: new Date(),
+          updated_at: new Date(),
+          extra: { address: withdrawingBid.bidderAddress },
+          currency: '2', // TODO: check this
+        });
       });
   }
 
