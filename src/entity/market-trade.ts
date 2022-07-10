@@ -1,3 +1,4 @@
+import { ContractAsk } from './contract-ask';
 import { Column, Entity, OneToOne } from 'typeorm';
 import { SearchIndex } from './search-index';
 
@@ -59,4 +60,7 @@ export class MarketTrade {
 
   @OneToOne(() => SearchIndex)
   search_index: SearchIndex;
+
+  @OneToOne(() => ContractAsk)
+  offers: ContractAsk;
 }

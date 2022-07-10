@@ -1,3 +1,5 @@
+import { AuctionEntity, BidEntity } from './../auction/entities';
+import { ContractAsk } from './../entity';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 
@@ -56,6 +58,7 @@ export class TradesService {
       tradesQuery = this.applySort(tradesQuery, sort);
 
       paginationResult = await paginate(tradesQuery, paginationRequest);
+      console.dir(paginationResult, { depth: 3 });
     } catch (e) {
       this.logger.error(e);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -186,6 +189,12 @@ export class TradesService {
         'search_index',
         'trade.network = search_index.network and trade.collection_id = search_index.collection_id and trade.token_id = search_index.token_id',
       )
+      .leftJoinAndMapOne(
+        'trade.offers',
+        ContractAsk,
+        'offers',
+        'trade.block_number_ask = offers.block_number_ask and trade.block_number_buy = offers.block_number_buy and trade.token_id = offers.token_id and  trade.collection_id = offers.collection_id',
+      )
       .leftJoinAndMapMany(
         'trade.search_filter',
         (subQuery) => {
@@ -241,5 +250,14 @@ export class TradesService {
         return query;
       }
     }
+  }
+
+  public async getByAuction(auctionId: string): Promise<any> {
+    const auction = await this.connection.manager
+      .createQueryBuilder(AuctionEntity, 'auction')
+      .leftJoinAndMapMany('auction.bids', BidEntity, 'bids', 'bids.auction_id = auction.id')
+      .where(`auction.contract_ask_id = :auctionId`, { auctionId });
+
+    return auction.getMany();
   }
 }
