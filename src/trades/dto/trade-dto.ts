@@ -45,6 +45,16 @@ export class MarketTradeDto {
   @Expose()
   tradeDate: Date;
 
+  @ApiProperty({ description: 'Status' })
+  @Expose()
+  @Type(() => String)
+  status: string;
+
+  @ApiProperty({ description: 'Offer Id' })
+  @Expose()
+  @Type(() => String)
+  offerId: string;
+
   @ApiProperty({ description: 'Token description' })
   @Expose()
   @Type(() => TokenDescriptionDto)
@@ -60,6 +70,8 @@ export class MarketTradeDto {
       quoteId: +trade.currency,
       tokenId: +trade.token_id,
       tradeDate: trade.buy_created_at,
+      status: trade.status,
+      offerId: trade?.offers?.id || null,
     };
 
     if (Array.isArray(trade?.search_index)) {
