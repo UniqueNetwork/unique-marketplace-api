@@ -6,6 +6,7 @@ import {
   Delete,
   Get,
   Headers,
+  HttpCode,
   HttpStatus,
   Logger,
   Post,
@@ -67,6 +68,7 @@ export class AuctionController {
   }
 
   @Post('create_auction')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Create an auction',
     description: fs.readFileSync('docs/create_auction.md').toString(),
@@ -98,6 +100,7 @@ export class AuctionController {
   }
 
   @Post('place_bid')
+  @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: HttpStatus.CREATED, type: OfferContractAskDto })
   @ApiOperation({
     summary: 'Placing a bid in an auction',
@@ -115,6 +118,7 @@ export class AuctionController {
   }
 
   @Post('calculate')
+  @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: HttpStatus.CREATED, type: CalculationInfoResponseDto })
   @ApiOperation({
     summary: 'Calculation',
@@ -137,6 +141,7 @@ export class AuctionController {
   }
 
   @Delete('cancel_auction')
+  @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: HttpStatus.OK, type: OfferContractAskDto })
   @ApiOperation({
     summary: 'Canceled an auction',
@@ -170,6 +175,7 @@ export class AuctionController {
   }
 
   @Delete('withdraw_bid')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Withdraw bid',
     description: fs.readFileSync('docs/withdraw_bid.md').toString(),
@@ -199,6 +205,7 @@ export class AuctionController {
   }
 
   @Get('withdraw_bids')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Get bids',
     description: fs.readFileSync('docs/list_withdraw_bid.md').toString(),
@@ -210,6 +217,7 @@ export class AuctionController {
   }
 
   @Delete('withdraw_choose_bid')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Withdraw choose bid',
     description: fs.readFileSync('docs/withdraw_choose_bid.md').toString(),
