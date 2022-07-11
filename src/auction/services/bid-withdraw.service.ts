@@ -107,10 +107,10 @@ export class BidWithdrawService {
         );
         await this.moneyTransferRepository.save({
           id: uuid(),
-          amount: `-${amount}`,
+          amount: `${amount}`,
           block_number: `${blockNumber}`,
           network: 'kusama',
-          type: MONEY_TRANSFER_TYPES.BID_WITHDRAW,
+          type: MONEY_TRANSFER_TYPES.WITHDRAW,
           status: MONEY_TRANSFER_STATUS.COMPLETED,
           created_at: new Date(),
           updated_at: new Date(),
@@ -133,7 +133,7 @@ export class BidWithdrawService {
           amount: `-${amount}`,
           block_number: `${withdrawingBid.blockNumber}`,
           network: 'kusama',
-          type: MONEY_TRANSFER_TYPES.BID_WITHDRAW,
+          type: MONEY_TRANSFER_TYPES.DEPOSIT,
           status: MONEY_TRANSFER_STATUS.FAILED,
           created_at: new Date(),
           updated_at: new Date(),

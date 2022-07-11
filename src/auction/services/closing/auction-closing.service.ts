@@ -167,18 +167,6 @@ export class AuctionClosingService {
         })
         .catch(async (error) => {
           this.logger.warn(`transfer failed with ${error.toString()}`);
-          await this.moneyTransferRepository.save({
-            id: uuid(),
-            amount: `-${ownerPrice}`,
-            block_number: contractAsk.block_number_ask,
-            network: 'kusama',
-            type: MONEY_TRANSFER_TYPES.TRANSFER_TO_SELLER,
-            status: MONEY_TRANSFER_STATUS.FAILED,
-            created_at: new Date(),
-            updated_at: new Date(),
-            extra: { address: address_from },
-            currency: '2', // TODO: check this
-          });
         });
 
       if (extrinsic) {
@@ -229,18 +217,40 @@ export class AuctionClosingService {
           status: SellingMethod.Auction,
           commission: `${BigInt(contractAsk.price) - ownerPrice}`,
         });
-        await this.moneyTransferRepository.save({
-          id: uuid(),
-          amount: `-${ownerPrice}`,
-          block_number: contractAskDb.block_number_buy,
-          network: 'kusama',
-          type: MONEY_TRANSFER_TYPES.TRANSFER_TO_SELLER,
-          status: MONEY_TRANSFER_STATUS.COMPLETED,
-          created_at: new Date(),
-          updated_at: new Date(),
-          extra: { address: address_from },
-          currency: '2', // TODO: check this
-        });
+
+        await this.moneyTransferRepository
+          .createQueryBuilder()
+          .insert()
+          .into(MoneyTransfer)
+          .values(
+            this.moneyTransferRepository.create([
+              {
+                id: uuid(),
+                amount: `-${BigInt(contractAsk.price)}`,
+                block_number: contractAskDb.block_number_buy,
+                network: 'kusama',
+                type: MONEY_TRANSFER_TYPES.DEPOSIT,
+                status: MONEY_TRANSFER_STATUS.COMPLETED,
+                created_at: new Date(),
+                updated_at: new Date(),
+                extra: { address: contractAskDb.address_from },
+                currency: '2', // TODO: check this
+              },
+              {
+                id: uuid(),
+                amount: `${ownerPrice}`,
+                block_number: contractAskDb.block_number_buy,
+                network: 'kusama',
+                type: MONEY_TRANSFER_TYPES.WITHDRAW,
+                status: MONEY_TRANSFER_STATUS.COMPLETED,
+                created_at: new Date(),
+                updated_at: new Date(),
+                extra: { address: contractAskDb.address_from },
+                currency: '2', // TODO: check this
+              },
+            ]),
+          )
+          .execute();
       }
     } else {
       const contractAsk = await this.contractAskRepository.findOne(auction.contractAskId);

@@ -8,9 +8,6 @@ export const ASK_STATUS = {
 export const MONEY_TRANSFER_TYPES = {
   DEPOSIT: 'deposit',
   WITHDRAW: 'withdraw',
-  BID: 'bid',
-  BID_WITHDRAW: 'bid_withdraw',
-  TRANSFER_TO_SELLER: 'transfer_to_seller',
 };
 
 export const MONEY_TRANSFER_STATUS = {
