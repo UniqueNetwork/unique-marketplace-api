@@ -32,6 +32,14 @@ export class TradesController {
     return this.tradesService.get(tradesFilter, undefined, pagination, sort);
   }
 
+  @Get('/auction/:auctionId')
+  @ApiOperation({
+    summary: 'Get auction by id',
+  })
+  getByAuction(@Param('auctionId') auctionId: string): Promise<any> {
+    return this.tradesService.getByAuction(auctionId);
+  }
+
   @Get('/:accountId')
   @ApiQuery(queryArray('collectionId', 'integer'))
   @ApiOperation({
