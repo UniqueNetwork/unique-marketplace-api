@@ -66,11 +66,11 @@ export class BidPlacingService {
           .submit(this.kusamaApi, tx)
           .then(async ({ blockNumber }) => {
             this.broadcastService.sendBidPlaced(OfferContractAskDto.fromContractAsk(contractAsk));
-            this.handleBidTxSuccess(placeBidArgs, contractAsk, nextUserBid, blockNumber);
+            await this.handleBidTxSuccess(placeBidArgs, contractAsk, nextUserBid, blockNumber);
           })
-          .catch(() => {
+          .catch(async () => {
             this.broadcastService.sendAuctionError(OfferContractAskDto.fromContractAsk(contractAsk), 'Bid is not finished');
-            this.handleBidTxFail(placeBidArgs, contractAsk, nextUserBid);
+            await this.handleBidTxFail(placeBidArgs, contractAsk, nextUserBid);
           });
       }
     }
@@ -90,9 +90,9 @@ export class BidPlacingService {
       await this.moneyTransferRepository.save({
         id: uuid(),
         amount: placeBidArgs.amount,
-        block_number: oldContractAsk.block_number_ask,
+        block_number: blockNumber.toString(),
         network: 'kusama',
-        type: MONEY_TRANSFER_TYPES.BID,
+        type: MONEY_TRANSFER_TYPES.DEPOSIT,
         status: MONEY_TRANSFER_STATUS.COMPLETED,
         created_at: new Date(),
         updated_at: new Date(),
@@ -125,18 +125,6 @@ export class BidPlacingService {
         const newWinner = await databaseHelper.getAuctionPendingWinner({ auctionId });
         const newOfferPrice = newWinner ? newWinner.totalAmount.toString() : oldContractAsk.auction.startPrice;
         await transactionEntityManager.update(ContractAsk, oldContractAsk.id, { price: newOfferPrice });
-      });
-      await this.moneyTransferRepository.save({
-        id: uuid(),
-        amount: placeBidArgs.amount,
-        block_number: oldContractAsk.block_number_ask,
-        network: 'kusama',
-        type: MONEY_TRANSFER_TYPES.BID,
-        status: MONEY_TRANSFER_STATUS.FAILED,
-        created_at: new Date(),
-        updated_at: new Date(),
-        extra: { address: placeBidArgs.bidderAddress },
-        currency: '2', // TODO: check this
       });
     } catch (error) {
       const fullError = {
