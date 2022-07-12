@@ -4,7 +4,7 @@ import { ApiInterfaceEvents } from '@polkadot/api/types';
 import { MarketConfig } from '../config/market-config';
 import { RPC } from '../utils/blockchain';
 import { KUSAMA_API_PROVIDER, UNIQUE_API_PROVIDER } from './constants';
-import { ConfigModule } from '../config/module';
+import { ConfigServiceModule } from '../config/module';
 
 const waitConnectionReady = async (api: ApiPromise, logger: Logger, wsEndpoint: string): Promise<ApiPromise> => {
   const apiEvents: ApiInterfaceEvents[] = ['ready', 'connected', 'disconnected', 'error'];
@@ -60,7 +60,7 @@ const KusamaAPIProvider: Provider<Promise<ApiPromise>> = {
 };
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigServiceModule],
   providers: [UniqueAPIProvider, KusamaAPIProvider],
   exports: [UniqueAPIProvider, KusamaAPIProvider],
 })

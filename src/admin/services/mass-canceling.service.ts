@@ -42,6 +42,25 @@ export class MassCancelingService {
     };
   }
 
+  async massCancelSystem(): Promise<MassCancelResult> {
+    const fixPrice = await this.massFixPriceCancel();
+    const auction = await this.massAuctionCancel();
+
+    const count = fixPrice + auction;
+
+    if (count === 0) {
+      this.logger.error('No offers for cancel');
+      return;
+    }
+
+    const message = `${count} offers successfully canceled`;
+
+    return {
+      statusCode: HttpStatus.OK,
+      message,
+    };
+  }
+
   /**
    * Cancel ALL secondary market fix price offers
    * Dont cancel contract asks in smart contract, just set status to 'removed_by_admin'

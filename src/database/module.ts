@@ -1,5 +1,5 @@
 import { FactoryProvider, Global, Module } from '@nestjs/common';
-import { ConfigModule } from '../config/module';
+import { ConfigServiceModule } from '../config/module';
 import { getConnectionOptions } from './connection-options';
 import { Connection, createConnection } from 'typeorm';
 
@@ -14,7 +14,7 @@ const databaseProvider: FactoryProvider<Promise<Connection>> = {
 
 @Global()
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigServiceModule],
   providers: [databaseProvider],
   exports: [databaseProvider],
 })

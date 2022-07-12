@@ -5,7 +5,6 @@ import { HttpModule } from '@nestjs/axios';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { DatabaseModule } from './database/module';
-import { ConfigModule } from './config/module';
 import { PlaygroundCommand } from './utils/playground';
 import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
 import { PrometheusService } from './utils/prometheus/prometheus.service';
@@ -19,6 +18,8 @@ import { TradesModule } from './trades/trades.module';
 import { OffersModule } from './offers/offers.module';
 import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
+import { ConfigModule } from '@nestjs/config';
+import { ConfigServiceModule } from './config/module';
 
 @Module({
   imports: [
@@ -29,7 +30,10 @@ import { AdminModule } from './admin/admin.module';
     SentryLoggerService(),
     DatabaseModule,
     HttpModule,
-    ConfigModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    ConfigServiceModule,
     CommandModule,
     EscrowModule,
     TerminusModule,

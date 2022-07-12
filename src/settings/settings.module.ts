@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
 import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
-import { ConfigModule } from '../config/module';
+import { ConfigServiceModule } from '../config/module';
 import { BlockchainModule } from '../blockchain/blockchain.module';
 import { AllowedListService } from './allowedlist.service';
+import { MarketService } from './market.service';
+import { MassCancelingService } from '../admin/services';
 
 @Module({
-  imports: [ConfigModule, BlockchainModule],
+  imports: [ConfigServiceModule, BlockchainModule],
   controllers: [SettingsController],
-  providers: [SettingsService, AllowedListService],
+  providers: [SettingsService, AllowedListService, MarketService, MassCancelingService],
 })
 export class SettingsModule {}

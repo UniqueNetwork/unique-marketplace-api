@@ -57,6 +57,9 @@ async function bootstrap() {
     });
     app.use(helmet());
   }
+  console.log(process.env);
+  console.log(parseInt(process.env.API_PORT));
+
   app.use(
     prometheusMiddleware({
       additionalLabels: ['app'],
@@ -72,11 +75,11 @@ async function bootstrap() {
   initSwagger(app, config, pkg);
   ignoreQueryCase(app);
   useGlobalPipes(app);
+  console.log(config);
+  const port = parseInt(process.env.API_PORT) || config.listenPort;
 
-  console.log(pkg.version);
-
-  await app.listen(config.listenPort, () => {
-    logger.log(`Nest application listening on port: ${yellow(config.listenPort)} ${green('version:')} ${yellow(pkg.version)}`);
+  await app.listen(port, () => {
+    logger.log(`Nest application listening on port: ${yellow(port)} ${green('version:')} ${yellow(pkg.version)}`);
   });
 }
 

@@ -30,9 +30,14 @@ export class SettingsService {
     const administrators = adminList.split(',').map((value) => value.trim());
     // Main sale address
     if (this.config.mainSaleSeed && this.config.mainSaleSeed != '') {
-      mainSaleAddress = await seedToAddress(mainSaleSeed);
-      administrators.push(mainSaleAddress); // Add main sale address to admin list
+      try {
+        mainSaleAddress = await seedToAddress(mainSaleSeed);
+        administrators.push(mainSaleAddress);
+      } catch (e) {
+        this.logger.error('Main sale seed is invalid');
+      }
     }
+
     // Collections list
     const collectionIds = await this.getCollectionIds();
     // Allowed tokens
