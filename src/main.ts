@@ -13,7 +13,7 @@ import { PostgresIoAdapter } from './broadcast/services/postgres-io.adapter';
 import helmet from 'helmet';
 
 const APP_NAME_PREFIX = 'unique-marketplace-api';
-const logger = new Logger('NestApplication');
+const logger = new Logger('NestApplication', { timestamp: true });
 
 const initSwagger = (app: INestApplication, config, pkg) => {
   const swaggerConf = new DocumentBuilder()
@@ -37,7 +37,9 @@ const initSwagger = (app: INestApplication, config, pkg) => {
 let app: INestApplication;
 
 async function bootstrap() {
-  app = await NestFactory.create(AppModule, { logger: ['log', 'error', 'warn', 'debug'] });
+  process.env.NODE_ENV === 'production'
+    ? (app = await NestFactory.create(AppModule, { logger: ['log', 'error', 'warn'] }))
+    : (app = await NestFactory.create(AppModule, { logger: ['log', 'error', 'warn', 'debug'] }));
   const config = app.get('CONFIG');
   const pkg = JSON.parse(await promises.readFile(join('.', 'package.json'), 'utf8'));
   if (config.autoDBMigrations) await runMigrations(config, 'migrations');
@@ -76,7 +78,8 @@ async function bootstrap() {
 
   const port = parseInt(process.env.API_PORT) || config.listenPort;
   await app.listen(port, () => {
-    logger.log(`Nest application listening on port: ${yellow(port)} ${green('version:')} ${yellow(pkg.version)}`);
+    logger.log(`Nest application listening on port: ${yellow(port)}`);
+    logger.log(`Nest application ${green('version:')} ${yellow(pkg.version)} ${green('started!')}`);
   });
 }
 

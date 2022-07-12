@@ -2,21 +2,21 @@ import { Injectable, OnModuleInit, Logger, Inject } from '@nestjs/common';
 import { MassCancelingService } from '../admin/services/mass-canceling.service';
 import { MarketConfig, MarketType } from '../config/market-config';
 import { seedToAddress } from '../utils/blockchain/util';
-import { cyan, red, bgRed, black, green } from 'cli-color';
+import { cyan, red, bgRed, black, green, yellow } from 'cli-color';
 
 @Injectable()
 export class MarketService implements OnModuleInit {
   private readonly logger: Logger;
 
   constructor(@Inject('CONFIG') private readonly config: MarketConfig, private readonly massCancelingService: MassCancelingService) {
-    this.logger = new Logger(MarketService.name);
+    this.logger = new Logger(MarketService.name, { timestamp: true });
   }
 
   async onModuleInit(): Promise<void> {
     await this.checkoutSettings();
     const { marketType } = this.config;
 
-    this.logger.log(`Market initialized as ${marketType}`);
+    this.logger.log(`Market initialized as ${yellow(marketType)}`);
 
     if (marketType === MarketType.SECONDARY) return;
 
