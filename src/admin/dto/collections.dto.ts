@@ -118,7 +118,7 @@ export class MassAuctionSaleDTO {
   @Type(() => Number)
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(59)
   minutes: number;
 }

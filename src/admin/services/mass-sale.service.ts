@@ -50,7 +50,7 @@ export class MassSaleService {
    * @return ({Promise<MassFixPriceSaleResult>})
    */
   async massFixPriceSale(data: MassFixPriceSaleDTO): Promise<unknown | MassFixPriceSaleResultDto> {
-    this.checkData(data);
+    this.checkDataFixPrice(data);
     this.checkoutMarketPlace();
     const { collectionId, price } = data;
     const { signer, tokenIds } = await this.prepareMassSale(collectionId);
@@ -117,12 +117,18 @@ export class MassSaleService {
     };
   }
 
-  private checkData(data: MassFixPriceSaleDTO): void {
+  private checkDataFixPrice(data: MassFixPriceSaleDTO): void {
     const reg = /^[0-9]*$/;
     if (data.price.toString().match(reg) === null) throw new BadRequestException('Price must be a number');
     if (Number(data.price) <= 0) throw new BadRequestException('The price cannot be negative');
     if (!reg.test(String(data.collectionId))) throw new BadRequestException('Invalid collection id');
     if (!reg.test(String(data.price))) throw new BadRequestException('Invalid price number');
+  }
+
+  private checkDataAuction(data: MassAuctionSaleDTO): void {
+    const reg = /^[0-9]*$/;
+    if (!reg.test(String(data.collectionId))) throw new BadRequestException('Invalid collection id');
+    if (Number(data.days) === 0 && Number(data.minutes) === 0) throw new BadRequestException('Days and minutes cannot be zero');
   }
   /**
    * Mass auction sale
@@ -130,6 +136,7 @@ export class MassSaleService {
    * @return ({Promise<MassAuctionSaleResult>})
    */
   async massAuctionSale(data: MassAuctionSaleDTO): Promise<MassAuctionSaleResultDto> {
+    this.checkDataAuction(data);
     const { collectionId, startPrice, priceStep, days, minutes } = data;
     const { signer, tokenIds } = await this.prepareMassSale(collectionId);
 
