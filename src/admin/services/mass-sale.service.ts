@@ -117,6 +117,11 @@ export class MassSaleService {
     };
   }
 
+  /**
+   * Checkout data for fix price mass sale
+   * @param data
+   * @private
+   */
   private checkDataFixPrice(data: MassFixPriceSaleDTO): void {
     const reg = /^[0-9]*$/;
     if (data.price.toString().match(reg) === null) throw new BadRequestException('Price must be a number');
@@ -125,6 +130,11 @@ export class MassSaleService {
     if (!reg.test(String(data.price))) throw new BadRequestException('Invalid price number');
   }
 
+  /**
+   * Checkout data for mass auction sale
+   * @param data
+   * @private
+   */
   private checkDataAuction(data: MassAuctionSaleDTO): void {
     const reg = /^[0-9]*$/;
     if (!reg.test(String(data.collectionId))) throw new BadRequestException('Invalid collection id');
