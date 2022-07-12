@@ -1,7 +1,9 @@
 import * as path from 'path';
 import { MarketConfig } from './market-config';
+import 'dotenv/config';
 
 export default {
+  mode: process.env.NODE_ENV || 'production',
   marketType: process.env.MARKET_TYPE || 'secondary', // primary or secondary
   postgresUrl: process.env.POSTGRES_URL || 'postgres://marketplace:12345@marketplace-postgres:5432/marketplace_db',
   testingPostgresUrl: 'postgres://postgresman:test12345@127.0.0.1:6432/marketplace_db',

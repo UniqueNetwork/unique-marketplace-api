@@ -2,6 +2,7 @@ import '@polkadot/api-augment/polkadot';
 import { HttpStatus, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { MarketConfig } from '../../config/market-config';
 import { Connection, Repository } from 'typeorm';
+import { cyan, red, green, yellow } from 'cli-color';
 import { CollectionImportType, CollectionStatus, DecodedCollection, ImportByIdResult } from '../types';
 import { CollectionsFilter, DisableCollectionResult, EnableCollectionResult, ListCollectionResult } from '../dto';
 import { Collection } from '../../entity';
@@ -19,7 +20,7 @@ export class CollectionsService implements OnModuleInit {
     @Inject('CONFIG') private config: MarketConfig,
   ) {
     this.collectionsRepository = connection.getRepository(Collection);
-    this.logger = new Logger(CollectionsService.name);
+    this.logger = new Logger(CollectionsService.name, { timestamp: true });
   }
 
   /**
@@ -32,12 +33,12 @@ export class CollectionsService implements OnModuleInit {
 
     const collectionIds = [...new Set([...idsFromConfig, ...idsFromDatabase])];
 
-    this.logger.debug(`Import collection by ids ${collectionIds} ...`);
+    this.logger.log(`Import collection by ids ${yellow(collectionIds)} ...`);
 
     for (const collectionId of collectionIds) {
       const { message } = await this.importById(collectionId, CollectionImportType.Env);
 
-      this.logger.debug(message);
+      this.logger.log(message);
     }
   }
 
@@ -72,7 +73,7 @@ export class CollectionsService implements OnModuleInit {
 
       return {
         collection,
-        message: `Collection #${id} already exists`,
+        message: `Collection #${yellow(id)} ${green('already exists')} `,
       };
     } else {
       await this.collectionsRepository.save({ id, importType, ...entity });
@@ -81,7 +82,7 @@ export class CollectionsService implements OnModuleInit {
 
       return {
         collection,
-        message: `Collection #${id} successfully created`,
+        message: `Collection #${yellow(id)} ${green('successfully created')} `,
       };
     }
   }
