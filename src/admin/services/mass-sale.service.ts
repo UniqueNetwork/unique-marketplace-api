@@ -51,6 +51,7 @@ export class MassSaleService {
    */
   async massFixPriceSale(data: MassFixPriceSaleDTO): Promise<unknown | MassFixPriceSaleResultDto> {
     this.checkData(data);
+    this.checkoutMarketPlace();
     const { collectionId, price } = data;
     const { signer, tokenIds } = await this.prepareMassSale(collectionId);
 
@@ -254,5 +255,15 @@ export class MassSaleService {
     const gasPrice: BN = await this.unique.rpc.eth.gasPrice();
 
     return gasPrice.toNumber();
+  }
+
+  /**
+   * Проверяем есть ли main sale seed в конфигурации
+   * Проверяем тп марктеплейс в конфигурации
+   * @private
+   */
+  private checkoutMarketPlace() {
+    if (!this.config.mainSaleSeed) throw new BadRequestException('Main sale seed not set');
+    if (!this.config.marketType) throw new BadRequestException('Market place not set');
   }
 }

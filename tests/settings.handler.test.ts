@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { SettingsController, SettingsService } from '../src/settings';
 import { getConfig, mergeDeep } from '../src/config';
-import { ConfigModule } from '../src/config/module';
+import { ConfigServiceModule } from '../src/config/module';
 
 const EXPECTED = {
   escrowAddress: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
@@ -18,7 +18,7 @@ describe('Settings service', () => {
   const configData = getConfig();
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule],
+      imports: [ConfigServiceModule],
       controllers: [SettingsController],
       providers: [SettingsService],
     })

@@ -2,13 +2,13 @@ import * as path from 'path';
 import { MarketConfig } from './market-config';
 
 export default {
+  marketType: process.env.MARKET_TYPE || 'secondary', // primary or secondary
   postgresUrl: process.env.POSTGRES_URL || 'postgres://marketplace:12345@marketplace-postgres:5432/marketplace_db',
   testingPostgresUrl: 'postgres://postgresman:test12345@127.0.0.1:6432/marketplace_db',
-  listenPort: parseInt(process.env.API_PORT || '5000'),
+  listenPort: parseInt(process.env.API_PORT) || 5000,
   disableSecurity: process.env.DISABLE_SECURITY === 'true',
   rootDir: path.normalize(path.join(__dirname, '..')),
   autoDBMigrations: process.env.AUTO_DB_MIGRATIONS === 'true',
-  marketType: process.env.MARKET_TYPE || 'secondary', // primary or secondary
   mainSaleSeed: process.env.MAINSALE_SEED || null,
   adminList: process.env.ADMIN_LIST || '',
   dev: {
