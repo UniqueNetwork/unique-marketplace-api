@@ -4,7 +4,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
 import { DatabaseModule } from './database/module';
-import { ConfigModule } from './config/module';
+import { ConfigServiceModule } from './config/module';
 import { PlaygroundCommand } from './utils/playground';
 import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
 
@@ -22,7 +22,7 @@ import { DeployContractService } from './commands/services/deploy-contract.servi
     }),
     SentryLoggerService(),
     DatabaseModule,
-    ConfigModule,
+    ConfigServiceModule,
     CommandModule,
     EscrowModule,
   ],

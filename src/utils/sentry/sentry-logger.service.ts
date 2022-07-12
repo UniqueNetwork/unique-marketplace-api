@@ -1,5 +1,5 @@
 import { SentryModule } from './sentry.module';
-import { ConfigModule } from '../../config/module';
+import { ConfigServiceModule } from '../../config/module';
 import { getConfig } from '../../config';
 import { LogLevel } from '@sentry/types';
 
@@ -13,7 +13,7 @@ export const SentryLoggerService = () => {
   const config = getConfig();
   if (config.sentry.enabled) {
     return SentryModule.forRootAsync({
-      imports: [ConfigModule],
+      imports: [ConfigServiceModule],
       useFactory: async (config = getConfig()) => ({
         dsn: config.sentry.dsn,
         debug: config.sentry.debug,
@@ -31,7 +31,7 @@ export const SentryLoggerService = () => {
     });
   } else {
     return SentryModule.forRootAsync({
-      imports: [ConfigModule],
+      imports: [ConfigServiceModule],
       useFactory: async () => ({}),
     });
   }

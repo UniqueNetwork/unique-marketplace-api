@@ -58,7 +58,7 @@ export class PostgresIoAdapter extends IoAdapter {
     const server = super.createIOServer(port, options);
 
     const pool = new Pool(this.poolConfig);
-    PostgresIoAdapter.checkTable(pool).then(() => this.logger.debug('table existence checked'));
+    PostgresIoAdapter.checkTable(pool).then(() => this.logger.log('table existence checked'));
 
     const postgresAdapter = createAdapter(pool, { errorHandler: this.logger.error });
 
