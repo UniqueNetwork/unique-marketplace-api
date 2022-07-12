@@ -199,16 +199,12 @@ export class EscrowService {
     logging.log(
       `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
         data.addressFrom
-      }', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${
-        data.addressTo
-      }, block: #${blockNum}, log: 'registerTransfer'}`,
+      }', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
     );
     this.logger.log(
       `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
         data.addressFrom
-      }', addressFromNorm:  '${encodeAddress(data.addressFrom)}', addressTo: ${
-        data.addressTo
-      }, block: #${blockNum}, log: 'registerTransfer'}`,
+      }', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
     );
   }
 
