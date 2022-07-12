@@ -4,7 +4,7 @@ import { BN } from '@polkadot/util';
 import { BnList } from '@polkadot/util/types';
 import { Keyring } from '@polkadot/api';
 import { Observable, Subscriber } from 'rxjs';
-import { Connection, Repository } from 'typeorm';
+import { Connection, In, Repository } from 'typeorm';
 import { Interface } from 'ethers/lib/utils';
 
 import { MassFixPriceSaleDTO, MassFixPriceSaleResultDto, MassAuctionSaleDTO, MassAuctionSaleResultDto } from '../dto';
@@ -19,11 +19,13 @@ import { blockchainStaticFile } from '../../utils/blockchain/util';
 import { GAS_LIMIT } from '../constants';
 import { ProxyCollection } from '../../utils/blockchain';
 import { InjectUniqueAPI } from '../../blockchain';
+import { ContractAsk } from '../../entity';
 
 @Injectable()
 export class MassSaleService {
   private readonly logger: Logger;
   private readonly blockchainBlockRepository: Repository<BlockchainBlock>;
+  private readonly contractAskRepository: Repository<ContractAsk>;
   private readonly collectionContractInterface: Interface;
   private readonly marketContractInterface: Interface;
 
@@ -36,6 +38,7 @@ export class MassSaleService {
   ) {
     this.logger = new Logger(MassSaleService.name);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
+    this.contractAskRepository = connection.getRepository(ContractAsk);
 
     const CollectionABI = JSON.parse(blockchainStaticFile('nonFungibleAbi.json'));
     const MarketABI = JSON.parse(blockchainStaticFile('MarketPlace.json')).abi;
@@ -140,6 +143,7 @@ export class MassSaleService {
     if (!reg.test(String(data.collectionId))) throw new BadRequestException('Invalid collection id');
     if (Number(data.days) === 0 && Number(data.minutes) === 0) throw new BadRequestException('Days and minutes cannot be zero');
   }
+
   /**
    * Mass auction sale
    * @param {MassAuctionSaleDTO} data - mass auction sale params
