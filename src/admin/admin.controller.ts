@@ -37,7 +37,7 @@ import {
 import { CollectionsFilterPipe, ParseCollectionIdPipe } from './pipes';
 
 @ApiTags('Administration')
-@ApiBearerAuth()
+//@ApiBearerAuth()
 @ApiUnauthorizedResponse({
   description: 'Unauthorized address or bad signature',
   type: ResponseAdminUnauthorizedDto,
