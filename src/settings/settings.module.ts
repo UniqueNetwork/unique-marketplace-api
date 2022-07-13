@@ -11,5 +11,6 @@ import { MassCancelingService } from '../admin/services';
   imports: [ConfigServiceModule, BlockchainModule],
   controllers: [SettingsController],
   providers: [SettingsService, AllowedListService, MarketService, MassCancelingService],
+  exports: [SettingsService],
 })
 export class SettingsModule {}
