@@ -9,11 +9,13 @@ import { MarketConfig } from '../config/market-config';
 import { Collection } from '../entity';
 import { CollectionStatus } from '../admin/types/collection';
 import { UNIQUE_API_PROVIDER } from '../blockchain';
+import { SettingsEntity } from '../entity/settings';
 
 @Injectable()
 export class SettingsService {
   private readonly logger = new Logger(SettingsService.name);
   private readonly collectionsRepository: Repository<Collection>;
+  private readonly settingsRepository: Repository<SettingsEntity>;
 
   constructor(
     @Inject('CONFIG') private config: MarketConfig,
@@ -21,8 +23,13 @@ export class SettingsService {
     @Inject('DATABASE_CONNECTION') private connection: Connection,
   ) {
     this.collectionsRepository = connection.getRepository(Collection);
+    this.settingsRepository = connection.getRepository(SettingsEntity);
   }
 
+  /**
+   * Prepare settings for market
+   * @returns {Promise<SettingsDto>}
+   */
   async prepareSettings(): Promise<SettingsDto> {
     let mainSaleAddress;
     const { blockchain, auction, marketType, mainSaleSeed, adminList } = this.config;
@@ -79,16 +86,57 @@ export class SettingsService {
     return settings;
   }
 
+  /**
+   * Get settings
+   *  @returns {Promise<SettingsDto>}
+   */
   async getSettings(): Promise<SettingsDto> {
     return await this.prepareSettings();
   }
 
+  /**
+   * Get collections ids
+   * @returns {Promise<number[]>}
+   */
   async getCollectionIds(): Promise<number[]> {
     const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
 
     return collections.map((i) => Number(i.id));
   }
 
+  /**
+   * Set first launch market
+   * @returns {Promise<void>}
+   */
+  async markFirstLaunchMarket(): Promise<void> {
+    const settings = await this.settingsRepository.findOne({
+      where: { name: 'firstLaunchMarket' },
+    });
+
+    if (!settings) {
+      await this.settingsRepository.save({
+        name: 'firstLaunchMarket',
+        property: 'true',
+      });
+    }
+  }
+
+  /**
+   * Get first launch market
+   *  @returns {Promise<boolean>}
+   */
+  async isFirstLaunchMarket(): Promise<boolean> {
+    const settings = await this.settingsRepository.findOne({
+      where: { name: 'firstLaunchMarket' },
+    });
+    return settings ? true : false;
+  }
+
+  /**
+   * Get allowed tokens
+   * @returns {Promise<string[]>}
+   * @private
+   */
   private async getAllowedTokens(): Promise<any> {
     const collections = await this.collectionsRepository.find({
       status: CollectionStatus.Enabled,

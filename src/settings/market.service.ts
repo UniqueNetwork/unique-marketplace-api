@@ -3,12 +3,17 @@ import { MassCancelingService } from '../admin/services/mass-canceling.service';
 import { MarketConfig, MarketType } from '../config/market-config';
 import { seedToAddress } from '../utils/blockchain/util';
 import { cyan, red, bgRed, black, green, yellow } from 'cli-color';
+import { SettingsService } from './settings.service';
 
 @Injectable()
 export class MarketService implements OnModuleInit {
   private readonly logger: Logger;
 
-  constructor(@Inject('CONFIG') private readonly config: MarketConfig, private readonly massCancelingService: MassCancelingService) {
+  constructor(
+    @Inject('CONFIG') private readonly config: MarketConfig,
+    private readonly massCancelingService: MassCancelingService,
+    private readonly settingService: SettingsService,
+  ) {
     this.logger = new Logger(MarketService.name, { timestamp: true });
   }
 
@@ -20,11 +25,14 @@ export class MarketService implements OnModuleInit {
 
     if (marketType === MarketType.SECONDARY) return;
 
-    this.logger.warn(red('Closing all secondary market offers ...'));
-
-    const { message } = await this.massCancelingService.massCancelSystem();
-
-    this.logger.log(message);
+    if (await this.settingService.isFirstLaunchMarket()) {
+      this.logger.log(`The application is launched in the primary type`);
+    } else {
+      await this.settingService.markFirstLaunchMarket();
+      this.logger.warn(red('Closing all secondary market offers ...'));
+      const { message } = await this.massCancelingService.massCancelSystem();
+      this.logger.log(message);
+    }
   }
 
   private async checkoutSettings() {
@@ -49,11 +57,15 @@ export class MarketService implements OnModuleInit {
       }
     }
     if (!this.config.auction.seed) {
+      try {
+        await seedToAddress(this.config.auction.seed);
+      } catch (e) {
+        this.logger.error(errorStopMessage + red('Main sale seed is invalid'));
+      }
+
       this.logger.error('Auction seed is not defined');
     }
-    if (!this.config.auction.commission) {
-      this.logger.error('Auction commission is not defined');
-    }
+
     if (this.config.mainSaleSeed) {
       try {
         await seedToAddress(this.config.mainSaleSeed);
