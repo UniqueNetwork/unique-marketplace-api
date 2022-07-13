@@ -1,6 +1,6 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Connection, In, Repository } from 'typeorm';
-import { ContractAsk, Tokens } from '../../entity';
+import { Collection, ContractAsk, Tokens } from '../../entity';
 import { CollectionsService } from './collections.service';
 import { ResponseTokenDto } from '../dto';
 import { BnList } from '@polkadot/util/types';
@@ -25,6 +25,9 @@ export class TokenService {
 
   /**
    * Add allowed token for collection
+   * @param {string} collection - collection id
+   * @param {Object} data - tokens format
+   * @return {Promise<void>}#
    */
   async addTokens(collection: string, data: { tokens: string }): Promise<ResponseTokenDto> {
     const reg = /^[0-9-,]*$/;
@@ -55,8 +58,7 @@ export class TokenService {
   async createTokens(data: string, collection: string): Promise<void> {
     try {
       await this.removeTokenCollection(collection);
-      this.connection.transaction(async (entityManager) => {
-        //await entityManager.createQueryBuilder().insert().into(Tokens).values(data).execute();
+      await this.connection.transaction(async (entityManager) => {
         await entityManager.query(data);
       });
     } catch (e) {
@@ -75,13 +77,6 @@ export class TokenService {
       .from(Tokens)
       .where('collection_id = :collection_id', { collection_id: collection })
       .execute();
-  }
-
-  /**
-   * Truncate table tokens
-   */
-  async truncate(): Promise<void> {
-    return await this.tokensRepository.clear();
   }
 
   /**
@@ -128,13 +123,9 @@ export class TokenService {
     });
   }
 
-  async removeTokens(collection: any): Promise<void | BadRequestException> {
+  async getAllTokens(collection: any): Promise<number[]> {
     const arrayDiff = [];
-    if (!collection) throw new BadRequestException(`Collection #${collection.collection_id} not found`);
-    const tokens: BnList = await this.unique.rpc.unique.collectionTokens(collection.collection_id);
-    const tokenIdsList = tokens.map((t) => t.toNumber()).sort((a, b) => a - b);
     const allowedTokens = collection.allowedTokens !== '' ? collection.allowedTokens.split(',').map((t) => t) : [];
-
     if (allowedTokens.length > 0) {
       for (const token of allowedTokens) {
         const rangeNum = token.split('-');
@@ -149,12 +140,22 @@ export class TokenService {
         }
       }
     }
+    return arrayDiff;
+  }
+
+  async removeTokens(collection: Collection): Promise<void | BadRequestException> {
+    if (!collection) throw new BadRequestException(`Collection #${collection.id} not found`);
+    const tokens: BnList = await this.unique.rpc.unique.collectionTokens(collection.id);
+    const tokenIdsList = tokens.map((t) => t.toNumber()).sort((a, b) => a - b);
+
+    const arrayAllowedTokens = await this.getAllTokens(collection);
+
     ///'------------------------------------------------------';
     let carActive, carRemoved;
     for (const token of tokenIdsList) {
-      if (arrayDiff.indexOf(token) !== -1) {
+      if (arrayAllowedTokens.indexOf(token) !== -1) {
         carActive = await this.contractAskRepository.findOne({
-          collection_id: collection.collection_id,
+          collection_id: collection.id,
           token_id: String(token),
           status: In(['removed_by_admin']),
         });
@@ -164,12 +165,12 @@ export class TokenService {
         }
       } else {
         carRemoved = await this.contractAskRepository.findOne({
-          collection_id: collection.collection_id,
+          collection_id: collection.id,
           token_id: String(token),
           status: In(['active']),
         });
         if (carRemoved) {
-          arrayDiff.length > 0 ? (carRemoved.status = 'removed_by_admin') : (carRemoved.status = 'active');
+          arrayAllowedTokens.length > 0 ? (carRemoved.status = 'removed_by_admin') : (carRemoved.status = 'active');
           await this.contractAskRepository.update(carRemoved.id, carRemoved);
         }
       }
