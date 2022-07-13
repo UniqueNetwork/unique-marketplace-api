@@ -32,10 +32,11 @@ export class MarketTypeSettings_20220713000000 implements MigrationInterface {
           },
         ],
       }),
+      true,
     );
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable('settings');
+    await queryRunner.dropTable('settings', true);
   }
 }
