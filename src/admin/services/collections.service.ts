@@ -2,7 +2,7 @@ import '@polkadot/api-augment/polkadot';
 import { HttpStatus, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { MarketConfig } from '../../config/market-config';
 import { Connection, Repository } from 'typeorm';
-import { green, yellow } from 'cli-color';
+import { cyan, red, green, yellow } from 'cli-color';
 import { CollectionImportType, CollectionStatus, DecodedCollection, ImportByIdResult } from '../types';
 import { CollectionsFilter, DisableCollectionResult, EnableCollectionResult, ListCollectionResult } from '../dto';
 import { Collection } from '../../entity';
