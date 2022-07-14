@@ -3,9 +3,6 @@ import { ModuleRef } from '@nestjs/core';
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Connection, In, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
-import { evmToAddress } from '@polkadot/util-crypto';
-
-import { MarketConfig } from '../config/market-config';
 import * as logging from '../utils/logging';
 
 import {
@@ -29,11 +26,7 @@ export class EscrowService {
   private readonly collectionsRepository: Repository<Collection>;
   private logger = new Logger(EscrowService.name);
 
-  constructor(
-    @Inject('DATABASE_CONNECTION') private db: Connection,
-    @Inject('CONFIG') private config: MarketConfig,
-    private moduleRef: ModuleRef,
-  ) {
+  constructor(@Inject('DATABASE_CONNECTION') private db: Connection, @Inject('CONFIG') private config, private moduleRef: ModuleRef) {
     this.collectionsRepository = db.getRepository(Collection);
   }
 
@@ -188,51 +181,30 @@ export class EscrowService {
 
   async registerTransfer(
     blockNum: bigint | number,
-    data: {
-      collectionId: number;
-      tokenId: number;
-      addressFrom: { Ethereum?: string; Substrate?: string };
-      addressTo: { Ethereum?: string; Substrate?: string };
-    },
+    data: { collectionId: number; tokenId: number; addressFrom: string; addressTo: string },
     network?: string,
   ) {
-    const { contractAddress } = this.config.blockchain.unique;
-
-    const isContractTransferFrom = data.addressFrom.Ethereum?.toLowerCase() === contractAddress.toLowerCase();
-    const isContractTransferTo = data.addressTo.Ethereum?.toLowerCase() === contractAddress.toLowerCase();
-
-    const address_from = data.addressFrom.Ethereum
-      ? isContractTransferFrom
-        ? evmToAddress(data.addressFrom.Ethereum)
-        : await this.getSubstrateAddress(data.addressFrom.Ethereum)
-      : data.addressFrom.Substrate;
-
-    const address_to = data.addressTo.Ethereum
-      ? isContractTransferTo
-        ? evmToAddress(data.addressTo.Ethereum)
-        : await this.getSubstrateAddress(data.addressTo.Ethereum)
-      : data.addressTo.Substrate;
-
-    if (!address_from || !address_to) return;
-
     const repository = this.db.getRepository(NFTTransfer);
-
     await repository.insert({
       id: uuid(),
       block_number: `${blockNum}`,
       network: this.getNetwork(network),
       collection_id: data.collectionId.toString(),
       token_id: data.tokenId.toString(),
-      address_from,
-      address_to,
+      address_from: data.addressFrom,
+      address_to: data.addressTo,
       created_at: new Date(),
       updated_at: new Date(),
     });
     logging.log(
-      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${address_from}', addressTo: ${address_to}, block: #${blockNum}, log: 'registerTransfer'}`,
+      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
+        data.addressFrom
+      }', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
     );
     this.logger.log(
-      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${address_from}', addressTo: ${address_to}, block: #${blockNum}, log: 'registerTransfer'}`,
+      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
+        data.addressFrom
+      }', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
     );
   }
 
