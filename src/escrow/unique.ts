@@ -103,22 +103,38 @@ export class UniqueEscrow extends Escrow {
     this.admin = util.privateKey(this.config('escrowSeed'));
   }
 
-  async processEventsTransfer(events, blockNum) {
-    const eventTransfer = events.find((e) => e.event.method === 'Transfer' && e.event.section === 'common');
-    if (!eventTransfer) return;
+  async processTransfer(blockNum, rawExtrinsic, events) {
+    const extrinsic = rawExtrinsic.toHuman().method;
+
+    const isTransferCommon = events?.find((e) => e.event.method === 'Transfer' && e.event.section === 'common');
+
+    const addressFrom = util.normalizeAccountId(this.normalizeSubstrate(rawExtrinsic.signer.toString()));
+    let addressTo = util.normalizeAccountId(extrinsic.args.recipient);
+    addressTo = addressTo.Substrate ? this.normalizeSubstrate(addressTo.Substrate) : addressTo.Ethereum;
+    const collectionId = parseInt(extrinsic.args.collection_id);
+    const tokenId = parseInt(extrinsic.args.item_id);
+    if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     await this.service.registerTransfer(
       blockNum,
       {
-        collectionId: eventTransfer.event.data[0],
-        tokenId: eventTransfer.event.data[1],
-        addressFrom: eventTransfer.event.data[2],
-        addressTo: eventTransfer.event.data[3],
+        collectionId,
+        tokenId,
+        addressTo: this.address2string(addressTo),
+        addressFrom: this.address2string(
+          isTransferCommon?.event?.data[2]?.Ethereum ? isTransferCommon.event.data[2].Ethereum : addressFrom,
+        ),
       },
       this.getNetwork(),
     );
+    logging.log(`Got nft transfer (collectionId: ${collectionId}, tokenId: ${tokenId}) in block #${blockNum}`);
+    this.logger.log(
+      `{subject: 'Got nft transfer', thread: 'nft', collection: ${collectionId}, token: ${tokenId},block: ${blockNum}, addressTo: ${this.address2string(
+        addressTo,
+      )}, addressFrom: ${this.address2string(addressFrom)}, log:'unique.processTransfer' }`,
+    );
   }
 
-  async processAddAsk(blockNum, extrinsic, inputData, signer) {
+  async processAddAsk(blockNum, extrinsic, inputData, signer, events) {
     const addressTo = util.normalizeAccountId(extrinsic.args.target);
     const addressFrom = this.normalizeSubstrate(signer.toString()); // signer is substrate address of args.source
     const addressFromEth = util.normalizeAccountId(extrinsic.args.source);
@@ -160,9 +176,22 @@ export class UniqueEscrow extends Escrow {
       },
       this.getNetwork(),
     );
+    const eventTransfer = events?.find((e) => e.event.method === 'Transfer' && e.event.section === 'common');
+    if (eventTransfer) {
+      await this.service.registerTransfer(
+        blockNum,
+        {
+          collectionId: eventTransfer.event.data[0],
+          tokenId: eventTransfer.event.data[1],
+          addressTo: eventTransfer.event.data[3].Ethereum,
+          addressFrom: eventTransfer.event.data[2].Ethereum,
+        },
+        this.getNetwork(),
+      );
+    }
   }
 
-  async processBuyKSM(blockNum, extrinsic, inputData) {
+  async processBuyKSM(blockNum, extrinsic, inputData, events) {
     // const addressTo = util.normalizeAccountId(extrinsic.args.target);
     // const addressFrom = util.normalizeAccountId(extrinsic.args.source);
     const collectionEVMAddress = inputData.inputs[0];
@@ -193,9 +222,22 @@ export class UniqueEscrow extends Escrow {
     logging.log(
       `Got buyKSM (collectionId: ${collectionId}, tokenId: ${tokenId}, buyer: ${buyerAddress}, price: ${activeAsk.price}, price without commission: ${origPrice}) in block #${blockNum}`,
     );
+    const eventTransfer = events?.find((e) => e.event.method === 'Transfer' && e.event.section === 'common');
+    if (eventTransfer) {
+      await this.service.registerTransfer(
+        blockNum,
+        {
+          collectionId: eventTransfer.event.data[0],
+          tokenId: eventTransfer.event.data[1],
+          addressTo: eventTransfer.event.data[3].Ethereum,
+          addressFrom: eventTransfer.event.data[2].Ethereum,
+        },
+        this.getNetwork(),
+      );
+    }
   }
 
-  async processCancelAsk(blockNum, extrinsic, inputData) {
+  async processCancelAsk(blockNum, extrinsic, inputData, events) {
     const collectionEVMAddress = inputData.inputs[0];
     const collectionId = util.extractCollectionIdFromAddress(collectionEVMAddress);
     if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
@@ -206,6 +248,19 @@ export class UniqueEscrow extends Escrow {
       logging.log(`No active offer for token ${tokenId} from collection ${collectionId}, nothing to cancel`, logging.level.WARNING);
     } else {
       await this.service.cancelAsk(collectionId, tokenId, blockNum, this.getNetwork());
+    }
+    const eventTransfer = events?.find((e) => e.event.method === 'Transfer' && e.event.section === 'common');
+    if (eventTransfer) {
+      await this.service.registerTransfer(
+        blockNum,
+        {
+          collectionId: eventTransfer.event.data[0],
+          tokenId: eventTransfer.event.data[1],
+          addressTo: eventTransfer.event.data[3].Ethereum,
+          addressFrom: eventTransfer.event.data[2].Ethereum,
+        },
+        this.getNetwork(),
+      );
     }
   }
 
@@ -249,20 +304,16 @@ export class UniqueEscrow extends Escrow {
       return;
     }
     if (inputData.method === 'addAsk') {
-      await this.processAddAsk(blockNum, extrinsic, inputData, rawExtrinsic.signer);
-      return;
+      return await this.processAddAsk(blockNum, extrinsic, inputData, rawExtrinsic.signer, events);
     }
     if (inputData.method === 'buyKSM') {
-      await this.processBuyKSM(blockNum, extrinsic, inputData);
-      return;
+      return await this.processBuyKSM(blockNum, extrinsic, inputData, events);
     }
     if (inputData.method === 'cancelAsk') {
-      await this.processCancelAsk(blockNum, extrinsic, inputData);
-      return;
+      return await this.processCancelAsk(blockNum, extrinsic, inputData, events);
     }
     if (inputData.method === 'withdrawAllKSM') {
-      await this.processWithdrawAllKSM(blockNum, extrinsic, events, rawExtrinsic.signer);
-      return;
+      return await this.processWithdrawAllKSM(blockNum, extrinsic, events, rawExtrinsic.signer);
     }
   }
 
@@ -288,19 +339,18 @@ export class UniqueEscrow extends Escrow {
     if (this.configObj.dev.debugScanBlock && rawExtrinsic.method.section != 'timestamp')
       logging.log([blockNum, rawExtrinsic.method.section, rawExtrinsic.method.method]);
 
-    if (rawExtrinsic.method.section === this.SECTION_UNIQUE && rawExtrinsic.method.method === 'transfer') {
-      await this.processEventsTransfer(events, blockNum);
-      return;
-    }
-    if (rawExtrinsic.method.section === this.SECTION_CONTRACT && rawExtrinsic.method.method === 'call') {
-      await this.processCall(blockNum, rawExtrinsic, events);
-      await this.processEventsTransfer(events, blockNum);
-      return;
+    if (rawExtrinsic.method.section === this.SECTION_UNIQUE && rawExtrinsic.method.method === 'transferFrom') {
+      return await this.processTransfer(blockNum, rawExtrinsic, events);
     }
 
+    if (rawExtrinsic.method.section === this.SECTION_UNIQUE && rawExtrinsic.method.method === 'transfer') {
+      return await this.processTransfer(blockNum, rawExtrinsic, events);
+    }
+    if (rawExtrinsic.method.section === this.SECTION_CONTRACT && rawExtrinsic.method.method === 'call') {
+      return await this.processCall(blockNum, rawExtrinsic, events);
+    }
     if (rawExtrinsic.method.section === this.SECTION_ETHEREUM && rawExtrinsic.method.method === 'transact') {
-      await this.processEthereum(blockNum, rawExtrinsic);
-      return;
+      return await this.processEthereum(blockNum, rawExtrinsic);
     }
   }
 

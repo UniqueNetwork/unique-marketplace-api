@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, Logger, Inject } from '@nestjs/common';
 import { MassCancelingService } from '../admin/services/mass-canceling.service';
 import { MarketConfig, MarketType } from '../config/market-config';
 import { seedToAddress } from '../utils/blockchain/util';
-import { red, bgRed, black, yellow } from 'cli-color';
+import { cyan, red, bgRed, black, green, yellow } from 'cli-color';
 import { SettingsService } from './settings.service';
 
 @Injectable()
