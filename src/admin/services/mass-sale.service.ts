@@ -4,7 +4,7 @@ import { BN } from '@polkadot/util';
 import { BnList } from '@polkadot/util/types';
 import { Keyring } from '@polkadot/api';
 import { Observable, Subscriber } from 'rxjs';
-import { Connection, Repository } from 'typeorm';
+import { Connection, In, Repository } from 'typeorm';
 import { Interface } from 'ethers/lib/utils';
 
 import { MassFixPriceSaleDTO, MassFixPriceSaleResultDto, MassAuctionSaleDTO, MassAuctionSaleResultDto } from '../dto';
