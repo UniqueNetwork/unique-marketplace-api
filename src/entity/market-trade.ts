@@ -1,11 +1,7 @@
 import { ContractAsk } from './contract-ask';
 import { Column, Entity, OneToOne } from 'typeorm';
 import { SearchIndex } from './search-index';
-
-export enum SellingMethod {
-  FixedPrice = 'FixedPrice',
-  Auction = 'Auction',
-}
+import { SellingMethod } from '../types';
 
 @Entity('market_trade', { schema: 'public' })
 export class MarketTrade {

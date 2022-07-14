@@ -1,6 +1,6 @@
 import { encodeAddress } from '@polkadot/util-crypto';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
-import { AuctionStatus } from '../types';
+import { AuctionStatus } from '../../types';
 import { Connection, Repository } from 'typeorm';
 import { AuctionEntity } from '../entities';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
@@ -15,7 +15,7 @@ import { SearchIndexService } from './search-index.service';
 import { AuctionCredentials } from '../providers';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 import { subToEth } from '../../utils/blockchain/web3';
-import { CreateAskAndBroadcastArgs } from '../types/auction';
+import { CreateAskAndBroadcastArgs } from '../../types/auction';
 import { InjectUniqueAPI } from '../../blockchain';
 
 export type CreateAuctionArgs = {

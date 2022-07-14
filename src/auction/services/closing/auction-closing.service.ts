@@ -6,9 +6,9 @@ import { KeyringPair } from '@polkadot/keyring/types';
 
 import { BroadcastService } from '../../../broadcast/services/broadcast.service';
 import { AuctionEntity } from '../../entities';
-import { BlockchainBlock, ContractAsk, MarketTrade, SellingMethod, MoneyTransfer } from '../../../entity';
+import { BlockchainBlock, ContractAsk, MarketTrade, MoneyTransfer } from '../../../entity';
 import { DatabaseHelper } from '../helpers/database-helper';
-import { AuctionStatus, BidStatus } from '../../types';
+import { AuctionStatus, BidStatus, SellingMethod } from '../../../types';
 import { BidWithdrawService } from '../bid-withdraw.service';
 import { AuctionCancelingService } from '../auction-canceling.service';
 import { ASK_STATUS } from '../../../escrow/constants';

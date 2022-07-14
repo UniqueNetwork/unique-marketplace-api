@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CalculateArgs, CalculationInfo } from '../types';
+import { CalculateArgs, CalculationInfo } from '../../types';
 import { IsInt, IsString } from 'class-validator';
 
 export class CalculationRequestDto implements CalculateArgs {

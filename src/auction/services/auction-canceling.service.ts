@@ -9,7 +9,7 @@ import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { ASK_STATUS } from '../../escrow/constants';
 import { DatabaseHelper } from './helpers/database-helper';
-import { AuctionStatus, BidStatus } from '../types';
+import { AuctionStatus, BidStatus } from '../../types';
 import { AuctionCredentials } from '../providers';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { InjectSentry, SentryService } from '../../utils/sentry';

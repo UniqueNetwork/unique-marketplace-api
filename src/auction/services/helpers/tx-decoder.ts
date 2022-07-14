@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, Logger, ValidationPipe } from 
 
 import { ApiPromise } from '@polkadot/api';
 import { BalanceTransferTxInfo, BalanceTransferTxInfoDto, TokenTransferTxInfo, TokenTransferTxInfoDto } from '../../requests';
-import { TxArgs, TxInfo } from '../../types';
+import { TxArgs, TxInfo } from '../../../types';
 import { convertAddress, normalizeAccountId } from '../../../utils/blockchain/util';
 import { plainToInstance, ClassConstructor } from 'class-transformer';
 import { validate } from 'class-validator';

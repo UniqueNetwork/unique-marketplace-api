@@ -1,5 +1,5 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
-import { Auction, AuctionStatus } from '../types';
+import { Auction, AuctionStatus } from '../../types';
 import { BidEntity } from './bid-entity';
 import { ContractAsk } from '../../entity';
 

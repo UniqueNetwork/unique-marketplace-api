@@ -10,7 +10,7 @@ import { OfferContractAskDto } from '../../offers/dto/offer-dto';
 import { BlockchainBlock, ContractAsk, MoneyTransfer } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, AuctionStatus } from '../types';
+import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, AuctionStatus } from '../../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { InjectKusamaAPI } from '../../blockchain';

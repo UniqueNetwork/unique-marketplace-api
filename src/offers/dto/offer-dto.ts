@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ContractAsk } from '../../entity';
-import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription } from '../../auction/types';
+import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription } from '../../types';
 import { Exclude, Expose, plainToInstance, Type } from 'class-transformer';
 
 class AuctionDto implements Auction {

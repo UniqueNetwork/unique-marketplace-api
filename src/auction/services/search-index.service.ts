@@ -5,7 +5,7 @@ import { MarketConfig } from '../../config/market-config';
 import { SearchIndex } from '../../entity';
 
 import { v4 as uuid } from 'uuid';
-import { CollectionToken, TokenInfo, TypeAttributToken } from '../types';
+import { CollectionToken, TokenInfo, TypeAttributToken } from '../../types';
 
 import { ProxyCollection, ProxyToken } from '../../utils/blockchain';
 import { CollectionType } from '../../utils/blockchain/collection';

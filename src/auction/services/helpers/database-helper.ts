@@ -2,7 +2,7 @@ import { Any, EntityManager, LessThanOrEqual, MoreThan, SelectQueryBuilder } fro
 import { Logger } from '@nestjs/common';
 import { AuctionEntity, BidEntity, ContractAsk } from '../../../entity';
 import { ASK_STATUS } from '../../../escrow/constants';
-import { AuctionStatus, BidStatus } from '../../types';
+import { AuctionStatus, BidStatus } from '../../../types';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
 import { encodeAddress } from '@polkadot/util-crypto';
 

@@ -7,7 +7,7 @@ import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { BidStatus } from '../types';
+import { BidStatus } from '../../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { v4 as uuid } from 'uuid';
 import { AuctionCredentials } from '../providers';

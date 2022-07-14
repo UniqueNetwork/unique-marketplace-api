@@ -1,4 +1,4 @@
-import { TypeAttributToken } from './../auction/types';
+import { TypeAttributToken } from '../types';
 import { Column, Entity, Index } from 'typeorm';
 
 @Index('IX_search_index_collection_id_token_id_locale', ['collection_id', 'token_id', 'locale'])

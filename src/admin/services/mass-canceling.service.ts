@@ -4,7 +4,7 @@ import { Keyring } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { AuctionEntity, ContractAsk } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
-import { AuctionStatus } from '../../auction/types';
+import { AuctionStatus } from '../../types';
 import { ASK_STATUS } from '../../escrow/constants';
 import { MassCancelResult } from '../dto';
 

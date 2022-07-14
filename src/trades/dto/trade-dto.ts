@@ -1,4 +1,4 @@
-import { TypeAttributToken } from './../../auction/types/search';
+import { TypeAttributToken } from '../../types/search';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type, plainToInstance } from 'class-transformer';
 import { MarketTrade } from '../../entity';

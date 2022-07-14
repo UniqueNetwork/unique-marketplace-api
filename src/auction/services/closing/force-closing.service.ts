@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Connection } from 'typeorm';
 import { DatabaseHelper } from '../helpers/database-helper';
-import { AuctionStatus } from '../../types';
+import { AuctionStatus } from '../../../types';
 import { AuctionEntity } from '../../entities';
 
 @Injectable()

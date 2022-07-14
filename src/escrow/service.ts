@@ -5,20 +5,10 @@ import { Connection, In, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import * as logging from '../utils/logging';
 
-import {
-  BlockchainBlock,
-  NFTTransfer,
-  ContractAsk,
-  AccountPairs,
-  MoneyTransfer,
-  MarketTrade,
-  SearchIndex,
-  Collection,
-  SellingMethod,
-} from '../entity';
+import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex, Collection } from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { CollectionToken } from '../auction/types';
+import { CollectionToken, SellingMethod } from '../types';
 import { CollectionStatus } from '../admin/types/collection';
 
 @Injectable()

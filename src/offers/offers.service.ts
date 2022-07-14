@@ -1,7 +1,7 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection } from 'typeorm';
 
-import { TypeAttributToken, Bid } from '../auction/types';
+import { TypeAttributToken, Bid } from '../types';
 
 import { OfferTraits, OfferContractAskDto, OffersFilter, OfferAttributesDto, OfferAttributes, TraitDto } from './dto';
 import { ContractAsk, SearchIndex, BidEntity } from '../entity';
@@ -12,7 +12,7 @@ import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersFilterService } from './offers-filter.service';
 import { OffersFilterType, OffersItemType } from './types';
-import { BidStatus } from '../auction/types';
+import { BidStatus } from '../types';
 
 @Injectable()
 export class OffersService {
