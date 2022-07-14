@@ -81,10 +81,11 @@ export class CreateCollectionsTable_20220530000000 implements MigrationInterface
           },
         ],
       }),
+      true,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable('collections');
+    await queryRunner.dropTable('collections', true);
   }
 }

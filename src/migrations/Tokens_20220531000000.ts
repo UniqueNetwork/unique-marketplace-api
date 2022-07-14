@@ -40,10 +40,11 @@ export class Tokens_20220531000000 implements MigrationInterface {
           },
         ],
       }),
+      true,
     );
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable('tokens');
+    await queryRunner.dropTable('tokens', true);
   }
 }
