@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner, Table, Raw } from 'typeorm';
 
-import { AuctionStatus, BidStatus } from '../types';
+import { AuctionStatus, BidStatus } from '../auction/types';
 
 const toEnum = (input: Record<string, string>): string => {
   return Object.values(input)
@@ -75,6 +75,7 @@ export class Auction_20220210000000 implements MigrationInterface {
           },
         ],
       }),
+      true,
     );
 
     await queryRunner.createTable(
@@ -141,12 +142,13 @@ export class Auction_20220210000000 implements MigrationInterface {
           },
         ],
       }),
+      true,
     );
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable('bids');
-    await queryRunner.dropTable('auctions');
+    await queryRunner.dropTable('bids', true);
+    await queryRunner.dropTable('auctions', true);
 
     await queryRunner.query(`DROP TYPE "public"."auction_status_enum"`);
     await queryRunner.query(`DROP TYPE "public"."bid_status_enum"`);

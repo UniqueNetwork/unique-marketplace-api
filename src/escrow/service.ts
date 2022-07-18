@@ -5,10 +5,20 @@ import { Connection, In, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import * as logging from '../utils/logging';
 
-import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex, Collection } from '../entity';
+import {
+  BlockchainBlock,
+  NFTTransfer,
+  ContractAsk,
+  AccountPairs,
+  MoneyTransfer,
+  MarketTrade,
+  SearchIndex,
+  Collection,
+  SellingMethod,
+} from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { CollectionToken, SellingMethod } from '../types';
+import { CollectionToken } from '../auction/types';
 import { CollectionStatus } from '../admin/types/collection';
 
 @Injectable()
@@ -171,9 +181,33 @@ export class EscrowService {
 
   async registerTransfer(
     blockNum: bigint | number,
-    data: { collectionId: number; tokenId: number; addressFrom: string; addressTo: string },
+    data: {
+      collectionId: number;
+      tokenId: number;
+      addressFrom: { Ethereum?: string; Substrate?: string };
+      addressTo: { Ethereum?: string; Substrate?: string };
+    },
     network?: string,
   ) {
+    const { contractAddress } = this.config.blockchain.unique;
+
+    const isContractTransferFrom = data.addressFrom.Ethereum?.toLowerCase() === contractAddress.toLowerCase();
+    const isContractTransferTo = data.addressTo.Ethereum?.toLowerCase() === contractAddress.toLowerCase();
+
+    const address_from = data.addressFrom.Ethereum
+      ? isContractTransferFrom
+        ? evmToAddress(data.addressFrom.Ethereum)
+        : await this.getSubstrateAddress(data.addressFrom.Ethereum)
+      : data.addressFrom.Substrate;
+
+    const address_to = data.addressTo.Ethereum
+      ? isContractTransferTo
+        ? evmToAddress(data.addressTo.Ethereum)
+        : await this.getSubstrateAddress(data.addressTo.Ethereum)
+      : data.addressTo.Substrate;
+
+    if (!address_from || !address_to) return;
+
     const repository = this.db.getRepository(NFTTransfer);
     await repository.insert({
       id: uuid(),
