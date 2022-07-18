@@ -49,10 +49,11 @@ export class AdminSession_20220526000000 implements MigrationInterface {
           },
         ],
       }),
+      true,
     );
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable('sessions');
+    await queryRunner.dropTable('sessions', true);
   }
 }
