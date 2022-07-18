@@ -3,8 +3,9 @@ import { ModuleRef } from '@nestjs/core';
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Connection, In, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
-import * as logging from '../utils/logging';
+import { evmToAddress } from '@polkadot/util-crypto';
 
+import * as logging from '../utils/logging';
 import {
   BlockchainBlock,
   NFTTransfer,
@@ -20,13 +21,18 @@ import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './const
 import { encodeAddress } from '@polkadot/util-crypto';
 import { CollectionToken } from '../auction/types';
 import { CollectionStatus } from '../admin/types/collection';
+import { MarketConfig } from '../config/market-config';
 
 @Injectable()
 export class EscrowService {
   private readonly collectionsRepository: Repository<Collection>;
   private logger = new Logger(EscrowService.name);
 
-  constructor(@Inject('DATABASE_CONNECTION') private db: Connection, @Inject('CONFIG') private config, private moduleRef: ModuleRef) {
+  constructor(
+    @Inject('DATABASE_CONNECTION') private db: Connection,
+    @Inject('CONFIG') private config: MarketConfig,
+    private moduleRef: ModuleRef,
+  ) {
     this.collectionsRepository = db.getRepository(Collection);
   }
 
@@ -181,10 +187,35 @@ export class EscrowService {
 
   async registerTransfer(
     blockNum: bigint | number,
-    data: { collectionId: number; tokenId: number; addressFrom: string; addressTo: string },
+    data: {
+      collectionId: number;
+      tokenId: number;
+      addressFrom: { Ethereum?: string; Substrate?: string };
+      addressTo: { Ethereum?: string; Substrate?: string };
+    },
     network?: string,
   ) {
+    const { contractAddress } = this.config.blockchain.unique;
+
+    const isContractTransferFrom = data.addressFrom.Ethereum?.toLowerCase() === contractAddress.toLowerCase();
+    const isContractTransferTo = data.addressTo.Ethereum?.toLowerCase() === contractAddress.toLowerCase();
+
+    const address_from = data.addressFrom.Ethereum
+      ? isContractTransferFrom
+        ? evmToAddress(data.addressFrom.Ethereum)
+        : await this.getSubstrateAddress(data.addressFrom.Ethereum)
+      : data.addressFrom.Substrate;
+
+    const address_to = data.addressTo.Ethereum
+      ? isContractTransferTo
+        ? evmToAddress(data.addressTo.Ethereum)
+        : await this.getSubstrateAddress(data.addressTo.Ethereum)
+      : data.addressTo.Substrate;
+
+    if (!address_from || !address_to) return;
+
     const repository = this.db.getRepository(NFTTransfer);
+
     // TODO: find out why such parameters are from the chain
     const collection_id = data.collectionId.toString().replace(/,/g, '');
     const token_id = data.tokenId.toString().replace(/,/g, '');
@@ -195,8 +226,8 @@ export class EscrowService {
       network: this.getNetwork(network),
       collection_id,
       token_id,
-      address_from: data.addressFrom,
-      address_to: data.addressTo,
+      address_from,
+      address_to,
       created_at: new Date(),
       updated_at: new Date(),
     });
