@@ -58,7 +58,6 @@ export class TradesService {
       tradesQuery = this.applySort(tradesQuery, sort);
 
       paginationResult = await paginate(tradesQuery, paginationRequest);
-      console.dir(paginationResult, { depth: 3 });
     } catch (e) {
       this.logger.error(e);
       this.sentryService.instance().captureException(new BadRequestException(e), {
