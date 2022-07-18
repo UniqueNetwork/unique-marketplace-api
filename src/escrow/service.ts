@@ -3,30 +3,26 @@ import { ModuleRef } from '@nestjs/core';
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Connection, In, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
-import * as logging from '../utils/logging';
+import { evmToAddress } from '@polkadot/util-crypto';
 
-import {
-  BlockchainBlock,
-  NFTTransfer,
-  ContractAsk,
-  AccountPairs,
-  MoneyTransfer,
-  MarketTrade,
-  SearchIndex,
-  Collection,
-  SellingMethod,
-} from '../entity';
+import * as logging from '../utils/logging';
+import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex, Collection } from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 import { encodeAddress } from '@polkadot/util-crypto';
-import { CollectionToken } from '../auction/types';
 import { CollectionStatus } from '../admin/types/collection';
+import { MarketConfig } from '../config/market-config';
+import { CollectionToken, SellingMethod } from '../types';
 
 @Injectable()
 export class EscrowService {
   private readonly collectionsRepository: Repository<Collection>;
   private logger = new Logger(EscrowService.name);
 
-  constructor(@Inject('DATABASE_CONNECTION') private db: Connection, @Inject('CONFIG') private config, private moduleRef: ModuleRef) {
+  constructor(
+    @Inject('DATABASE_CONNECTION') private db: Connection,
+    @Inject('CONFIG') private config: MarketConfig,
+    private moduleRef: ModuleRef,
+  ) {
     this.collectionsRepository = db.getRepository(Collection);
   }
 
@@ -209,26 +205,27 @@ export class EscrowService {
     if (!address_from || !address_to) return;
 
     const repository = this.db.getRepository(NFTTransfer);
+
+    // TODO: find out why such parameters are from the chain
+    const collection_id = data.collectionId.toString().replace(/,/g, '');
+    const token_id = data.tokenId.toString().replace(/,/g, '');
+
     await repository.insert({
       id: uuid(),
       block_number: `${blockNum}`,
       network: this.getNetwork(network),
-      collection_id: data.collectionId.toString(),
-      token_id: data.tokenId.toString(),
-      address_from: data.addressFrom,
-      address_to: data.addressTo,
+      collection_id,
+      token_id,
+      address_from,
+      address_to,
       created_at: new Date(),
       updated_at: new Date(),
     });
     logging.log(
-      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
-        data.addressFrom
-      }', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
+      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${token_id}, collection: ${collection_id}, addressFrom: '${data.addressFrom}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
     );
     this.logger.log(
-      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
-        data.addressFrom
-      }', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
+      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${token_id}, collection: ${collection_id}, addressFrom: '${data.addressFrom}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
     );
   }
 

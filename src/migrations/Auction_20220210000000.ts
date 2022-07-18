@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner, Table, Raw } from 'typeorm';
 
-import { AuctionStatus, BidStatus } from '../auction/types';
+import { AuctionStatus, BidStatus } from '../types';
 
 const toEnum = (input: Record<string, string>): string => {
   return Object.values(input)
@@ -15,8 +15,8 @@ export class Auction_20220210000000 implements MigrationInterface {
     const auctionStatuses = toEnum(AuctionStatus);
     const bidStatuses = toEnum(BidStatus);
 
-    await queryRunner.query(`CREATE TYPE "public"."auction_status_enum" AS ENUM(${auctionStatuses})`);
-    await queryRunner.query(`CREATE TYPE "public"."bid_status_enum" AS ENUM(${bidStatuses})`);
+    await queryRunner.query(`CREATE TYPE  "auction_status_enum" AS ENUM(${auctionStatuses}) `);
+    await queryRunner.query(`CREATE TYPE  "bid_status_enum" AS ENUM(${bidStatuses})`);
 
     await queryRunner.createTable(
       new Table({
@@ -150,7 +150,7 @@ export class Auction_20220210000000 implements MigrationInterface {
     await queryRunner.dropTable('bids', true);
     await queryRunner.dropTable('auctions', true);
 
-    await queryRunner.query(`DROP TYPE "public"."auction_status_enum"`);
-    await queryRunner.query(`DROP TYPE "public"."bid_status_enum"`);
+    await queryRunner.query(`DROP TYPE if exists "public"."auction_status_enum" `);
+    await queryRunner.query(`DROP TYPE if exists "public"."bid_status_enum" `);
   }
 }
