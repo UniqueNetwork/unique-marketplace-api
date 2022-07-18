@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
+
 import { ClassToDto } from '../../utils/type-generators/class-to-dto';
 import { Dto } from '../../utils/dto';
+import { SellingMethod } from '../../entity';
 
 export class TradesFilter {
   @ApiProperty({
@@ -32,6 +34,14 @@ export class TradesFilter {
     isArray: true,
   })
   public traits?: string[];
+
+  @ApiProperty({
+    type: 'enum',
+    enum: SellingMethod,
+    name: 'status',
+    required: false,
+  })
+  public status?: SellingMethod;
 
   constructor(value: ClassToDto<TradesFilter>) {
     Dto.init(this, value);
