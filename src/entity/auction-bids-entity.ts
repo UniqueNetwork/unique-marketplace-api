@@ -1,6 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Bid, BidStatus } from '../types';
-import { AuctionEntity } from '../auction/entities/auction-entity';
 import { OffersEntity } from './offers';
 
 @Entity('auction_bids', { schema: 'public' })
