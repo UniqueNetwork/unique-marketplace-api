@@ -185,26 +185,26 @@ export class EscrowService {
     network?: string,
   ) {
     const repository = this.db.getRepository(NFTTransfer);
+    // TODO: find out why such parameters are from the chain
+    const collection_id = data.collectionId.toString().replace(/,/g, '');
+    const token_id = data.tokenId.toString().replace(/,/g, '');
+
     await repository.insert({
       id: uuid(),
       block_number: `${blockNum}`,
       network: this.getNetwork(network),
-      collection_id: data.collectionId.toString(),
-      token_id: data.tokenId.toString(),
+      collection_id,
+      token_id,
       address_from: data.addressFrom,
       address_to: data.addressTo,
       created_at: new Date(),
       updated_at: new Date(),
     });
     logging.log(
-      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
-        data.addressFrom
-      }', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
+      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${token_id}, collection: ${collection_id}, addressFrom: '${data.addressFrom}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
     );
     this.logger.log(
-      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressFrom: '${
-        data.addressFrom
-      }', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
+      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${token_id}, collection: ${collection_id}, addressFrom: '${data.addressFrom}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
     );
   }
 
