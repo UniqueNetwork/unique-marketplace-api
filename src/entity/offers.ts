@@ -2,8 +2,8 @@ import { Column, Entity, Index, OneToMany, OneToOne } from 'typeorm';
 import { BlockchainBlock } from './blockchain-block';
 import { AuctionEntity, BidEntity } from '../auction/entities';
 import { SearchIndex } from './search-index';
-import { SellingMethod } from './market-trade';
-import { AuctionStatus } from '../auction/types';
+import { AuctionStatus, SellingMethod } from '../types';
+import { AuctionBidEntity } from './auction-bids-entity';
 
 @Index('IX_offers_id', ['collection_id', 'token_id'])
 @Index('IX_offer_status', ['status'])
@@ -51,8 +51,8 @@ export class OffersEntity {
   @Column({ type: 'timestamp', nullable: false, name: 'stop_at' })
   stopAt: Date;
 
-  @OneToMany(() => BidEntity, (bid) => bid.auction, { cascade: ['insert'] })
-  bids: BidEntity[];
+  @OneToMany(() => AuctionBidEntity, (bid) => bid.auction, { cascade: ['insert'] })
+  bids: AuctionBidEntity[];
 
   @Column('bigint', { name: 'block_number_ask' })
   block_number_ask: string;
