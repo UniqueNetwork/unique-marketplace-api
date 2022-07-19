@@ -1,7 +1,7 @@
 import { Column, Entity, Index, OneToMany, OneToOne } from 'typeorm';
 import { BlockchainBlock } from './blockchain-block';
 import { SearchIndex } from './search-index';
-import { AuctionStatus, SellingMethod } from '../types';
+import { AuctionStatus } from '../types';
 import { AuctionBidEntity } from './auction-bids-entity';
 
 @Index('IX_offers_id', ['collection_id', 'token_id'])
@@ -12,7 +12,7 @@ export class OffersEntity {
   id: string;
 
   @Column({ type: 'varchar', length: 16, name: 'type' })
-  type: SellingMethod;
+  type: string;
 
   @Column('varchar', { name: 'status', length: 16 })
   status: string;

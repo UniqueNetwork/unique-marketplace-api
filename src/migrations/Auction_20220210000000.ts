@@ -135,12 +135,6 @@ export class Auction_20220210000000 implements MigrationInterface {
             referencedTableName: 'auctions',
           },
         ],
-        uniques: [
-          {
-            name: 'UNIQUE_bidder_auction',
-            columnNames: ['auction_id', 'bidder_address'],
-          },
-        ],
       }),
       true,
     );
