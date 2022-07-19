@@ -80,19 +80,25 @@ export class OffersFilterService {
    * @param collectionIds
    * @returns
    */
-  public async attributesCount(collectionIds: number[]): Promise<Array<OfferAttributes>> {
+  public async attributesCount(collectionIds: number[], seller?: string): Promise<Array<OfferAttributes>> {
     try {
       const counts = (await this.connection.manager
         .createQueryBuilder()
         .select(['total_items as "numberOfAttributes"', 'count(offer_id) over (partition by total_items) as amount'])
         .distinct()
         .from((qb) => {
-          return qb
-            .select(['total_items', 'offer_id'])
+          qb.select(['total_items', 'offer_id'])
             .distinct()
             .from(OfferFilters, 'v_offers_search')
             .where('collection_id in (:...collectionIds)', { collectionIds })
             .andWhere('total_items is not null');
+
+          if (seller) {
+            qb.andWhere('offer_status = :status', { status: 'active' });
+          } else {
+            qb.andWhere('v_offers_search.offer_status in (:...offer_status)', { offer_status: ['active', 'removed_by_admin'] });
+          }
+          return qb;
         }, '_offers')
         .getRawMany()) as Array<OfferAttributes>;
 
@@ -316,27 +322,22 @@ export class OffersFilterService {
     return attributes;
   }
 
-  private async byAttributesCount(query: SelectQueryBuilder<OfferFilters>): Promise<Array<OfferAttributes>> {
-    const attributesCount = (await this.connection.manager
+  private async byAttributesCount(query: SelectQueryBuilder<OfferFilters>, seller?: string): Promise<Array<OfferAttributes>> {
+    const collectionList = await this.connection.manager
       .createQueryBuilder()
-      .select(['total_items as "numberOfAttributes"', 'count(offer_id) over (partition by total_items) as amount'])
+      .select(['collection_id'])
       .distinct()
       .from((qb) => {
         return qb
-          .select(['v_offers_search_total_items as total_items', 'v_offers_search_offer_id as offer_id'])
+          .select(['v_offers_search_collection_id as collection_id'])
           .from(`(${query.getQuery()})`, '_filter')
-          .distinct()
           .setParameters(query.getParameters())
           .where('v_offers_search_total_items is not null');
       }, '_filter')
-      .getRawMany()) as Array<OfferAttributes>;
+      .getRawMany();
 
-    return attributesCount.map((item) => {
-      return {
-        numberOfAttributes: +item.numberOfAttributes,
-        amount: +item.amount,
-      };
-    });
+    const collectionIds = collectionList.map((item) => item.collection_id);
+    return this.attributesCount(collectionIds, seller);
   }
 
   private byCollectionTokenId(query: SelectQueryBuilder<OfferFilters>, collectionId: number, tokenId: number): SelectQueryBuilder<any> {
@@ -373,7 +374,7 @@ export class OffersFilterService {
     queryFilter = this.byFindAttributes(queryFilter, offersFilter.collectionId, offersFilter.attributes);
 
     const attributes = await this.byAttributes(queryFilter).getRawMany();
-    const attributesCount = await this.byAttributesCount(queryFilter);
+    const attributesCount = await this.byAttributesCount(queryFilter, offersFilter.seller);
 
     queryFilter = this.prepareQuery(queryFilter);
 
