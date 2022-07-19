@@ -50,6 +50,12 @@ export class BidPlacingService {
 
     const bidsBalance = await this.getBidsBalance(placeBidArgs.collectionId, placeBidArgs.tokenId, placeBidArgs.bidderAddress);
 
+    const info = await this.getCalculationInfo(placeBidArgs);
+
+    if (BigInt(placeBidArgs.amount) < info[0].minBidderAmount) {
+      throw new BadRequestException(`Minimum bet ${info[0].minBidderAmount}`);
+    }
+
     if (BigInt(placeBidArgs.amount) > balance + bidsBalance) {
       throw new BadRequestException('Insufficient funds to bet');
     }
