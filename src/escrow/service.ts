@@ -202,11 +202,11 @@ export class EscrowService {
         : await this.getSubstrateAddress(data.addressTo.Ethereum)
       : data.addressTo.Substrate;
 
-    if (!address_from || !address_to) return;
+    if (!address_from || !address_to || address_from === address_to) return;
 
     const repository = this.db.getRepository(NFTTransfer);
 
-    // TODO: find out why such parameters are from the chain
+    // TODO: change scanBlock -> e.toHuman() -> e.JSON() and refactoring escrow service
     const collection_id = data.collectionId.toString().replace(/,/g, '');
     const token_id = data.tokenId.toString().replace(/,/g, '');
 

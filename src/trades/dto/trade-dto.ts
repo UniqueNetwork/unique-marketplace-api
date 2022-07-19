@@ -66,7 +66,7 @@ export class MarketTradeDto {
       seller: trade.address_seller,
       collectionId: +trade.collection_id,
       creationDate: trade.ask_created_at,
-      price: trade.price,
+      price: trade.originPrice,
       quoteId: +trade.currency,
       tokenId: +trade.token_id,
       tradeDate: trade.buy_created_at,

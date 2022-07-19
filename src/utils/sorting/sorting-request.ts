@@ -21,7 +21,7 @@ export class TradeSortingRequest {
   @ApiProperty({
     items: { type: 'string', default: 'desc(TradeDate)' },
     description:
-      'Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CollectionId), desc(CollectionId), asc(TradeDate), desc(TradeDate).',
+      'Possible values: asc(Price), desc(Price), asc(TokenId), desc(TokenId), asc(CollectionId), desc(CollectionId), asc(TradeDate), desc(CreationDate), asc(CreationDate), .',
     required: false,
   })
   public sort?: SortingParameter[];

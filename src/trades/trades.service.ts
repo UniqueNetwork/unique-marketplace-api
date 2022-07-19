@@ -11,13 +11,13 @@ import { SortingOrder } from '../utils/sorting/sorting-order';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
 import { paginate } from '../utils/pagination/paginate';
 import { MarketTradeDto, TradesFilter } from './dto';
-import { MarketTrade, SearchIndex } from '../entity';
+import { MarketTrade, SearchIndex, SellingMethod } from '../entity';
 import { IMarketTrade } from './interfaces';
 import { InjectSentry, SentryService } from '../utils/sentry';
 
 @Injectable()
 export class TradesService {
-  private offerSortingColumns = ['Price', 'TokenId', 'CollectionId'];
+  private offerSortingColumns = ['Price', 'TokenId', 'CollectionId', 'CreationDate'];
   private sortingColumns = [...this.offerSortingColumns, 'TradeDate'];
   private logger: Logger;
 
@@ -55,10 +55,10 @@ export class TradesService {
       tradesQuery = this.filterByAccountId(tradesQuery, accountId);
       tradesQuery = this.filterBySearchText(tradesQuery, tradesFilter.searchText);
       tradesQuery = this.filterByTraits(tradesQuery, tradesFilter.traits, tradesFilter.collectionId);
+      tradesQuery = this.filterByStatus(tradesQuery, tradesFilter.status);
       tradesQuery = this.applySort(tradesQuery, sort);
 
       paginationResult = await paginate(tradesQuery, paginationRequest);
-      console.dir(paginationResult, { depth: 3 });
     } catch (e) {
       this.logger.error(e);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -107,6 +107,9 @@ export class TradesService {
       if (column === 'tokenid' || column === 'TokenId') {
         column = 'token_id';
       }
+      if (column === 'creationdate' || column === 'CreationDate') {
+        column = 'ask_created_at';
+      }
       if (column === 'tradedate' || column === 'TradeDate') {
         column = 'buy_created_at';
       }
@@ -127,8 +130,7 @@ export class TradesService {
 
     let first = true;
     for (const param of params) {
-      const table = this.offerSortingColumns.indexOf(param.column) > -1 ? 'trade' : 'trade';
-      query = query[first ? 'orderBy' : 'addOrderBy'](`${table}.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
+      query = query[first ? 'orderBy' : 'addOrderBy'](`trade.${param.column}`, param.order === SortingOrder.Asc ? 'ASC' : 'DESC');
       first = false;
     }
 
@@ -259,5 +261,14 @@ export class TradesService {
       .where(`auction.contract_ask_id = :auctionId`, { auctionId });
 
     return auction.getMany();
+  }
+
+  private filterByStatus(query: SelectQueryBuilder<IMarketTrade>, method: SellingMethod | undefined): SelectQueryBuilder<IMarketTrade> {
+    if (nullOrWhitespace(method)) {
+      return query;
+    }
+    return query.andWhere('trade."method" = :method', {
+      method,
+    });
   }
 }
