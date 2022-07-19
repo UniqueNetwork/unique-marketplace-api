@@ -46,7 +46,7 @@ export interface Auction {
   contractAskId?: string;
 }
 
-export type CreateAskAndBroadcastArgs = {
+export type CreateAuctionAndBroadcastArgs = {
   blockNumber: string;
   collectionId: string;
   tokenId: string;

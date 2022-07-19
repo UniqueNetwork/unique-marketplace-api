@@ -40,7 +40,7 @@ export class TokenDescriptionDto {
   @Expose() attributes: Array<TokenDescription>;
 }
 
-export class OfferOffersEntityDto {
+export class OfferEntityDto {
   @ApiProperty({ description: 'Collection ID', example: 16 })
   @Expose()
   collectionId: number;
@@ -60,29 +60,29 @@ export class OfferOffersEntityDto {
   @Expose()
   creationDate: Date;
 
-  @ApiProperty({ required: false })
-  @Expose()
-  @Type(() => AuctionDto)
-  auction?: AuctionDto;
+  // @ApiProperty({ required: false })
+  // @Expose()
+  // @Type(() => AuctionDto)
+  // auction?: AuctionDto;
 
   @ApiProperty({ description: 'Token description' })
   @Expose()
   @Type(() => TokenDescriptionDto)
   tokenDescription: TokenDescriptionDto;
 
-  static fromOffersEntity(OffersEntity: OffersEntity): OfferOffersEntityDto {
+  static fromOffersEntity(offersData: OffersEntity): OfferEntityDto {
     const plain: Record<string, any> = {
-      ...OffersEntity,
-      collectionId: +OffersEntity.collection_id,
-      tokenId: +OffersEntity.token_id,
-      price: OffersEntity.price.toString(),
-      quoteId: +OffersEntity.currency,
-      seller: OffersEntity.address_from,
-      creationDate: OffersEntity.created_at,
+      ...offersData,
+      collectionId: +offersData.collection_id,
+      tokenId: +offersData.token_id,
+      price: offersData.price.toString(),
+      quoteId: +offersData.currency,
+      seller: offersData.address_from,
+      creationDate: offersData.created_at,
     };
 
-    if (OffersEntity?.auction?.bids?.length) {
-      OffersEntity.auction.bids = OffersEntity.auction.bids.sort((a, b) => {
+    if (offersData?.bids?.length) {
+      offersData.bids = offersData.bids.sort((a, b) => {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
     }
@@ -134,8 +134,10 @@ export class OfferOffersEntityDto {
       })
     } */
 
-    return plainToInstance<OfferOffersEntityDto, Record<string, any>>(OfferOffersEntityDto, plain, {
+    return plainToInstance<OfferEntityDto, Record<string, any>>(OfferEntityDto, plain, {
       excludeExtraneousValues: true,
     });
   }
+
+  static fromContractAsk(newAuction: any) {}
 }

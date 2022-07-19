@@ -6,7 +6,7 @@ import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { OfferOffersEntityDto } from '../../offers/dto/offer-dto';
+import { OfferEntityDto } from '../../offers/dto/offer-dto';
 import { ASK_STATUS } from '../../escrow/constants';
 import { DatabaseHelper } from './helpers/database-helper';
 import { AuctionStatus, BidStatus } from '../../types';
@@ -44,13 +44,13 @@ export class AuctionCancelingService {
    * Try Cancel Auction
    * @param args
    */
-  async tryCancelAuction(args: AuctionCancelArgs): Promise<OfferOffersEntityDto> {
+  async tryCancelAuction(args: AuctionCancelArgs): Promise<OfferEntityDto> {
     let cancelledOffers: OffersEntity;
 
     try {
       cancelledOffers = await this.cancelInDatabase(args);
 
-      return OfferOffersEntityDto.fromOffersEntity(cancelledOffers);
+      return OfferEntityDto.fromOffersEntity(cancelledOffers);
     } catch (error) {
       throw new BadRequestException(error.message);
     } finally {
@@ -68,15 +68,15 @@ export class AuctionCancelingService {
 
     return this.connection.transaction<OffersEntity>('REPEATABLE READ', async (transactionEntityManager) => {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
-      const OffersEntity = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
+      const auctionData = await databaseHelper.getActiveAuction({ collectionId, tokenId });
 
-      if (OffersEntity.address_from !== encodeAddress(ownerAddress)) {
-        this.logger.error(`You are not an owner. Owner is ${OffersEntity.address_from}, your address is ${ownerAddress}`);
-        throw new Error(`You are not an owner. Owner is ${OffersEntity.address_from}, your address is ${ownerAddress}`);
+      if (auctionData.address_from !== encodeAddress(ownerAddress)) {
+        this.logger.error(`You are not an owner. Owner is ${auctionData.address_from}, your address is ${ownerAddress}`);
+        throw new Error(`You are not an owner. Owner is ${auctionData.address_from}, your address is ${ownerAddress}`);
       }
 
       const bidsCount = await transactionEntityManager.count(AuctionBidEntity, {
-        where: { auctionId: OffersEntity.id, status: Not(BidStatus.error) },
+        where: { auctionId: auctionData.id, status: Not(BidStatus.error) },
       });
 
       if (bidsCount !== 0) {
@@ -84,32 +84,28 @@ export class AuctionCancelingService {
         throw new Error(`Unable to cancel auction, ${bidsCount} bids is placed already`);
       }
 
-      OffersEntity.status = ASK_STATUS.CANCELLED;
-      await transactionEntityManager.update(OffersEntity, OffersEntity.id, { status: ASK_STATUS.CANCELLED });
-      this.logger.debug(`Update offer id:${OffersEntity.id}  status: 'CANCELLED' `);
-      await transactionEntityManager.update(AuctionEntity, OffersEntity.auction.id, {
+      auctionData.status = ASK_STATUS.CANCELLED;
+      await transactionEntityManager.update(OffersEntity, auctionData.id, {
+        status: ASK_STATUS.CANCELLED,
         stopAt: new Date(),
-        status: AuctionStatus.ended,
+        status_auction: AuctionStatus.ended,
       });
+      this.logger.debug(`Update offer id:${auctionData.id}  status: 'CANCELLED' `);
 
       const canceledAuctionLog = {
         subject: 'Canceled auction',
+        message: `Auction ${auctionData.id} was canceled`,
         collection: collectionId,
         token: tokenId,
-        status: AuctionStatus.ended,
+        status_auction: AuctionStatus.ended,
         stopAt: new Date(),
         bidsCount: bidsCount,
-        address_from: OffersEntity.address_from,
+        address_from: auctionData.address_from,
         ownerAddress: ownerAddress,
-        n42: {
-          address_from: encodeAddress(OffersEntity.address_from),
-          ownerAddress: encodeAddress(ownerAddress),
-        },
-        contract_ask_auction: OffersEntity.auction.id,
       };
 
       this.logger.debug(JSON.stringify(canceledAuctionLog));
-      return OffersEntity;
+      return auctionData;
     });
   }
 

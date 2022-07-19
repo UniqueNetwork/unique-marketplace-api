@@ -213,7 +213,7 @@ export class MassSaleService {
     for (const transfer of transfers) {
       const { blockNumber, tokenId } = transfer;
 
-      await this.auctionCreationService.createAskAndBroadcast({
+      await this.auctionCreationService.createAuctionBroadcast({
         blockNumber: blockNumber.toString(),
         collectionId: collectionId.toString(),
         tokenId: tokenId.toString(),

@@ -2,7 +2,7 @@ import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@ne
 import { Connection, Repository } from 'typeorm';
 
 import { AuctionEntity, BidEntity } from '../entities';
-import { ContractAsk, MoneyTransfer } from '../../entity';
+import { AuctionBidEntity, ContractAsk, MoneyTransfer, OffersEntity } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
@@ -53,7 +53,7 @@ export class BidWithdrawService {
   }
 
   async withdrawBidByBidder(args: BidWithdrawArgs): Promise<void> {
-    let withdrawingBid: BidEntity;
+    let withdrawingBid: AuctionBidEntity;
 
     try {
       withdrawingBid = await this.tryCreateWithdrawingBid(args);
@@ -68,8 +68,8 @@ export class BidWithdrawService {
     }
   }
 
-  async withdrawByMarket(auction: AuctionEntity, bidderAddress: string, amount: bigint): Promise<void> {
-    const withdrawingBid = this.connection.manager.create(BidEntity, {
+  async withdrawByMarket(auction: OffersEntity, bidderAddress: string, amount: bigint): Promise<void> {
+    const withdrawingBid = this.connection.manager.create(AuctionBidEntity, {
       id: uuid(),
       status: BidStatus.minting,
       bidderAddress: encodeAddress(bidderAddress),
@@ -85,7 +85,7 @@ export class BidWithdrawService {
     await this.makeWithdrawalTransfer(withdrawingBid);
   }
 
-  async makeWithdrawalTransfer(withdrawingBid: BidEntity): Promise<void> {
+  async makeWithdrawalTransfer(withdrawingBid: AuctionBidEntity): Promise<void> {
     const auctionKeyring = this.auctionCredentials.keyring;
     const amount = BigInt(withdrawingBid.amount) * -1n;
 
@@ -144,14 +144,14 @@ export class BidWithdrawService {
   }
 
   // todo - unite into single method with withdrawByMarket?
-  private async tryCreateWithdrawingBid(args: BidWithdrawArgs): Promise<BidEntity> {
+  private async tryCreateWithdrawingBid(args: BidWithdrawArgs): Promise<AuctionBidEntity> {
     const { collectionId, tokenId, bidderAddress } = args;
 
-    return this.connection.transaction<BidEntity>('REPEATABLE READ', async (transactionEntityManager) => {
+    return this.connection.transaction<AuctionBidEntity>('REPEATABLE READ', async (transactionEntityManager) => {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
 
-      const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
-      const auctionId = contractAsk.auction.id;
+      const auction = await databaseHelper.getActiveAuction({ collectionId, tokenId });
+      const auctionId = auction.id;
 
       const bidderActualSum = await databaseHelper.getUserActualSum({ auctionId, bidderAddress });
       const bidderPendingSum = await databaseHelper.getUserPendingSum({ auctionId, bidderAddress });
@@ -175,13 +175,13 @@ export class BidWithdrawService {
         throw new Error(`You are winner at this moment, please wait your bid to be overbidden`);
       }
 
-      const withdrawingBid = transactionEntityManager.create(BidEntity, {
+      const withdrawingBid = transactionEntityManager.create(AuctionBidEntity, {
         id: uuid(),
         status: BidStatus.minting,
         bidderAddress: encodeAddress(bidderAddress),
         amount: (-1n * bidderActualSum).toString(),
         balance: (bidderPendingSum - bidderActualSum).toString(),
-        auctionId: contractAsk.auction.id,
+        auctionId: auction.id,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -195,7 +195,7 @@ export class BidWithdrawService {
         bidderAddress_n42: encodeAddress(bidderAddress),
         amount: (-1n * bidderActualSum).toString(),
         balance: (bidderPendingSum - bidderActualSum).toString(),
-        auctionId: contractAsk.auction.id,
+        auctionId: auction.id,
         log: 'tryCreateWithdrawingBid',
       };
       this.logger.debug(JSON.stringify(bidTransaction));
