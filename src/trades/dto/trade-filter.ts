@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { ClassToDto } from '../../utils/type-generators/class-to-dto';
 import { Dto } from '../../utils/dto';
-import { SellingMethod } from '../../entity';
+import { SellingMethod } from '../../types';
 
 export class TradesFilter {
   @ApiProperty({
