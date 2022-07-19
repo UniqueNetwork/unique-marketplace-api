@@ -1,6 +1,6 @@
 import { Any, EntityManager, LessThanOrEqual, MoreThan, SelectQueryBuilder } from 'typeorm';
 import { Logger } from '@nestjs/common';
-import { AuctionEntity, BidEntity, ContractAsk } from '../../../entity';
+import { AuctionEntity, BidEntity, OffersEntity } from '../../../entity';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { AuctionStatus, BidStatus } from '../../../types';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
@@ -20,7 +20,7 @@ type BidsFilter = {
   bidderAddress?: string;
 };
 
-type ContractFilter = {
+type ContractOfferFilter = {
   collectionId: number;
   tokenId: number;
 };
@@ -30,39 +30,37 @@ export class DatabaseHelper {
 
   constructor(private readonly entityManager: EntityManager) {}
 
-  async getActiveAuctionContract(filter: ContractFilter): Promise<ContractAsk> {
-    return this.getAuctionContract(filter, [AuctionStatus.active]);
+  async getActiveAuctionContract(filter: ContractOfferFilter): Promise<OffersEntity> {
+    return this.getAuction(filter, [AuctionStatus.active]);
   }
 
-  async getAuctionContract(filter: ContractFilter, auctionStatuses: AuctionStatus[]): Promise<ContractAsk> {
+  async getAuction(filter: ContractOfferFilter, auctionStatuses: AuctionStatus[]): Promise<OffersEntity> {
     const { collectionId, tokenId } = filter;
 
-    const contractAsk = await this.entityManager.findOne(ContractAsk, {
-      where: { collection_id: collectionId, token_id: tokenId, status: ASK_STATUS.ACTIVE },
-      relations: ['auction'],
+    const offersEntityData = await this.entityManager.findOne(OffersEntity, {
+      where: { type: 'Auction', collection_id: collectionId, token_id: tokenId, action: ASK_STATUS.ACTIVE },
     });
 
-    if (!contractAsk) throw new Error('no offer');
-    if (!contractAsk.auction) throw new Error('no auction');
-
-    if (!auctionStatuses.includes(contractAsk.auction.status)) {
-      throw new Error(`Current auction status is ${contractAsk.auction.status}`);
-    }
-
-    return contractAsk;
+    // // if (!offersEntity) throw new Error('no offer');
+    // // if (!offersEntity.auction) throw new Error('no auction');
+    //
+    // if (!auctionStatuses.includes(OffersEntity.action)) {
+    //   throw new Error(`Current auction status is ${OffersEntity.action}`);
+    // }
+    return offersEntityData;
   }
 
   async updateAuctionsAsStopped(): Promise<{ contractIds: string[] }> {
     const contractIds: string[] = [];
     const auctionIds: string[] = [];
 
-    const auctionsToStop = await this.entityManager.find(AuctionEntity, {
-      status: AuctionStatus.active,
+    const auctionsToStop = await this.entityManager.find(OffersEntity, {
+      action: AuctionStatus.active,
       stopAt: LessThanOrEqual(new Date()),
     });
 
     auctionsToStop.forEach((a) => {
-      contractIds.push(a.contractAskId);
+      contractIds.push(a.OffersEntityId);
       auctionIds.push(a.id);
     });
 

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ContractAsk } from '../../entity';
+import { OffersEntity } from '../../entity';
 import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription } from '../../types';
 import { Exclude, Expose, plainToInstance, Type } from 'class-transformer';
 
@@ -40,7 +40,7 @@ export class TokenDescriptionDto {
   @Expose() attributes: Array<TokenDescription>;
 }
 
-export class OfferContractAskDto {
+export class OfferOffersEntityDto {
   @ApiProperty({ description: 'Collection ID', example: 16 })
   @Expose()
   collectionId: number;
@@ -70,19 +70,19 @@ export class OfferContractAskDto {
   @Type(() => TokenDescriptionDto)
   tokenDescription: TokenDescriptionDto;
 
-  static fromContractAsk(contractAsk: ContractAsk): OfferContractAskDto {
+  static fromOffersEntity(OffersEntity: OffersEntity): OfferOffersEntityDto {
     const plain: Record<string, any> = {
-      ...contractAsk,
-      collectionId: +contractAsk.collection_id,
-      tokenId: +contractAsk.token_id,
-      price: contractAsk.price.toString(),
-      quoteId: +contractAsk.currency,
-      seller: contractAsk.address_from,
-      creationDate: contractAsk.created_at,
+      ...OffersEntity,
+      collectionId: +OffersEntity.collection_id,
+      tokenId: +OffersEntity.token_id,
+      price: OffersEntity.price.toString(),
+      quoteId: +OffersEntity.currency,
+      seller: OffersEntity.address_from,
+      creationDate: OffersEntity.created_at,
     };
 
-    if (contractAsk?.auction?.bids?.length) {
-      contractAsk.auction.bids = contractAsk.auction.bids.sort((a, b) => {
+    if (OffersEntity?.auction?.bids?.length) {
+      OffersEntity.auction.bids = OffersEntity.auction.bids.sort((a, b) => {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
     }
@@ -94,8 +94,8 @@ export class OfferContractAskDto {
   prefix: string
 }
      */
-    /*     if (Array.isArray(contractAsk?.search_index)) {
-      plain.tokenDescription = contractAsk?.search_index.reduce((acc, item) => {
+    /*     if (Array.isArray(OffersEntity?.search_index)) {
+      plain.tokenDescription = OffersEntity?.search_index.reduce((acc, item) => {
         if (item.type === TypeAttributToken.Prefix) {
           acc.prefix = item.items.pop();
         }
@@ -134,7 +134,7 @@ export class OfferContractAskDto {
       })
     } */
 
-    return plainToInstance<OfferContractAskDto, Record<string, any>>(OfferContractAskDto, plain, {
+    return plainToInstance<OfferOffersEntityDto, Record<string, any>>(OfferOffersEntityDto, plain, {
       excludeExtraneousValues: true,
     });
   }

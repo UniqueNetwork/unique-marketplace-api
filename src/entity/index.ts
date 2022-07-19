@@ -10,3 +10,5 @@ export * from './collection';
 export * from './tokens';
 export * from './offer-filters';
 export * from './auction-bids';
+export * from './offers';
+export * from './auction-bids-entity';

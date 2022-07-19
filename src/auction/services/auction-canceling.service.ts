@@ -1,12 +1,12 @@
 import { BadRequestException, Inject, Logger } from '@nestjs/common';
 import { Connection, Not, Repository } from 'typeorm';
 import { AuctionEntity, BidEntity } from '../entities';
-import { BlockchainBlock, ContractAsk } from '../../entity';
+import { AuctionBidEntity, BlockchainBlock, OffersEntity } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { OfferContractAskDto } from '../../offers/dto/offer-dto';
+import { OfferOffersEntityDto } from '../../offers/dto/offer-dto';
 import { ASK_STATUS } from '../../escrow/constants';
 import { DatabaseHelper } from './helpers/database-helper';
 import { AuctionStatus, BidStatus } from '../../types';
@@ -25,7 +25,7 @@ export class AuctionCancelingService {
   private readonly logger = new Logger(AuctionCancelingService.name);
 
   private readonly blockchainBlockRepository: Repository<BlockchainBlock>;
-  private readonly contractAskRepository: Repository<ContractAsk>;
+  private readonly offersRepository: Repository<OffersEntity>;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
@@ -36,7 +36,7 @@ export class AuctionCancelingService {
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @InjectSentry() private readonly sentryService: SentryService,
   ) {
-    this.contractAskRepository = connection.getRepository(ContractAsk);
+    this.offersRepository = connection.getRepository(OffersEntity);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
   }
 
@@ -44,17 +44,17 @@ export class AuctionCancelingService {
    * Try Cancel Auction
    * @param args
    */
-  async tryCancelAuction(args: AuctionCancelArgs): Promise<OfferContractAskDto> {
-    let cancelledContractAsk: ContractAsk;
+  async tryCancelAuction(args: AuctionCancelArgs): Promise<OfferOffersEntityDto> {
+    let cancelledOffers: OffersEntity;
 
     try {
-      cancelledContractAsk = await this.cancelInDatabase(args);
+      cancelledOffers = await this.cancelInDatabase(args);
 
-      return OfferContractAskDto.fromContractAsk(cancelledContractAsk);
+      return OfferOffersEntityDto.fromOffersEntity(cancelledOffers);
     } catch (error) {
       throw new BadRequestException(error.message);
     } finally {
-      if (cancelledContractAsk) await this.sendTokenBackToOwner(cancelledContractAsk);
+      if (cancelledOffers) await this.sendTokenBackToOwner(cancelledOffers);
     }
   }
 
@@ -63,20 +63,20 @@ export class AuctionCancelingService {
    * @param args
    * @private
    */
-  private cancelInDatabase(args: AuctionCancelArgs): Promise<ContractAsk> {
+  private cancelInDatabase(args: AuctionCancelArgs): Promise<OffersEntity> {
     const { collectionId, tokenId, ownerAddress } = args;
 
-    return this.connection.transaction<ContractAsk>('REPEATABLE READ', async (transactionEntityManager) => {
+    return this.connection.transaction<OffersEntity>('REPEATABLE READ', async (transactionEntityManager) => {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
-      const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
+      const OffersEntity = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
 
-      if (contractAsk.address_from !== encodeAddress(ownerAddress)) {
-        this.logger.error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`);
-        throw new Error(`You are not an owner. Owner is ${contractAsk.address_from}, your address is ${ownerAddress}`);
+      if (OffersEntity.address_from !== encodeAddress(ownerAddress)) {
+        this.logger.error(`You are not an owner. Owner is ${OffersEntity.address_from}, your address is ${ownerAddress}`);
+        throw new Error(`You are not an owner. Owner is ${OffersEntity.address_from}, your address is ${ownerAddress}`);
       }
 
-      const bidsCount = await transactionEntityManager.count(BidEntity, {
-        where: { auctionId: contractAsk.auction.id, status: Not(BidStatus.error) },
+      const bidsCount = await transactionEntityManager.count(AuctionBidEntity, {
+        where: { auctionId: OffersEntity.id, status: Not(BidStatus.error) },
       });
 
       if (bidsCount !== 0) {
@@ -84,10 +84,10 @@ export class AuctionCancelingService {
         throw new Error(`Unable to cancel auction, ${bidsCount} bids is placed already`);
       }
 
-      contractAsk.status = ASK_STATUS.CANCELLED;
-      await transactionEntityManager.update(ContractAsk, contractAsk.id, { status: ASK_STATUS.CANCELLED });
-      this.logger.debug(`Update offer id:${contractAsk.id}  status: 'CANCELLED' `);
-      await transactionEntityManager.update(AuctionEntity, contractAsk.auction.id, {
+      OffersEntity.status = ASK_STATUS.CANCELLED;
+      await transactionEntityManager.update(OffersEntity, OffersEntity.id, { status: ASK_STATUS.CANCELLED });
+      this.logger.debug(`Update offer id:${OffersEntity.id}  status: 'CANCELLED' `);
+      await transactionEntityManager.update(AuctionEntity, OffersEntity.auction.id, {
         stopAt: new Date(),
         status: AuctionStatus.ended,
       });
@@ -99,27 +99,27 @@ export class AuctionCancelingService {
         status: AuctionStatus.ended,
         stopAt: new Date(),
         bidsCount: bidsCount,
-        address_from: contractAsk.address_from,
+        address_from: OffersEntity.address_from,
         ownerAddress: ownerAddress,
         n42: {
-          address_from: encodeAddress(contractAsk.address_from),
+          address_from: encodeAddress(OffersEntity.address_from),
           ownerAddress: encodeAddress(ownerAddress),
         },
-        contract_ask_auction: contractAsk.auction.id,
+        contract_ask_auction: OffersEntity.auction.id,
       };
 
       this.logger.debug(JSON.stringify(canceledAuctionLog));
-      return contractAsk;
+      return OffersEntity;
     });
   }
 
   /**
    * Send Token to Owner
-   * @param {ContractAsk} contractAsk
+   * @param {OffersEntity} OffersEntity
    */
-  async sendTokenBackToOwner(contractAsk: ContractAsk): Promise<void> {
+  async sendTokenBackToOwner(OffersEntity: OffersEntity): Promise<void> {
     try {
-      const { address_from, collection_id, token_id } = contractAsk;
+      const { address_from, collection_id, token_id } = OffersEntity;
       const auctionKeyring = this.auctionCredentials.keyring;
 
       const nonce = await this.uniqueApi.rpc.system.accountNextIndex(auctionKeyring.address);
@@ -141,10 +141,10 @@ export class AuctionCancelingService {
         created_at: new Date(),
       });
 
-      contractAsk.block_number_cancel = block.block_number;
+      OffersEntity.block_number_cancel = block.block_number;
 
       await this.connection.createQueryBuilder().insert().into(BlockchainBlock).values(block).orIgnore().execute();
-      await this.contractAskRepository.save(contractAsk);
+      await this.offersRepository.save(OffersEntity);
 
       const sendTokenDataLog = {
         subject: 'Send token back to owner',
