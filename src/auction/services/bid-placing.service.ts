@@ -217,18 +217,18 @@ export class BidPlacingService {
       });
 
       contractAsk.price = userNextPendingAmount.toString();
-      await transactionEntityManager.update(ContractAsk, contractAsk.id, {
+      await transactionEntityManager.update(OffersEntity, contractAsk.id, {
         price: userNextPendingAmount.toString(),
       });
 
-      await transactionEntityManager.save(BidEntity, nextUserBid);
+      await transactionEntityManager.save(AuctionBidEntity, nextUserBid);
 
-      contractAsk.auction.bids = await databaseHelper.getBids({ auctionId: contractAsk.auction.id });
+      contractAsk.bids = await databaseHelper.getBids({ auctionId: contractAsk.id });
 
       return [contractAsk, nextUserBid];
     };
 
-    return this.connection.transaction<[ContractAsk, BidEntity]>('REPEATABLE READ', placeWithTransaction);
+    return this.connection.transaction<[OffersEntity, AuctionBidEntity]>('REPEATABLE READ', placeWithTransaction);
   }
 
   private async getBidsBalance(collectionId: number, tokenId: number, bidderAddress: string) {
