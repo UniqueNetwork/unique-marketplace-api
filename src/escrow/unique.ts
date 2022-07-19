@@ -195,7 +195,7 @@ export class UniqueEscrow extends Escrow {
     );
   }
 
-  async processCancelAsk(blockNum, extrinsic, inputData, events) {
+  async processCancelAsk(blockNum, inputData) {
     const collectionEVMAddress = inputData.inputs[0];
     const collectionId = util.extractCollectionIdFromAddress(collectionEVMAddress);
     if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
@@ -206,19 +206,6 @@ export class UniqueEscrow extends Escrow {
       logging.log(`No active offer for token ${tokenId} from collection ${collectionId}, nothing to cancel`, logging.level.WARNING);
     } else {
       await this.service.cancelAsk(collectionId, tokenId, blockNum, this.getNetwork());
-    }
-    const eventTransfer = events?.find((e) => e.event.method === 'Transfer' && e.event.section === 'common');
-    if (eventTransfer) {
-      await this.service.registerTransfer(
-        blockNum,
-        {
-          collectionId: eventTransfer.event.data[0],
-          tokenId: eventTransfer.event.data[1],
-          addressTo: eventTransfer.event.data[3].Ethereum,
-          addressFrom: eventTransfer.event.data[2].Ethereum,
-        },
-        this.getNetwork(),
-      );
     }
   }
 
@@ -268,7 +255,7 @@ export class UniqueEscrow extends Escrow {
       return await this.processBuyKSM(blockNum, extrinsic, inputData, events);
     }
     if (inputData.method === 'cancelAsk') {
-      return await this.processCancelAsk(blockNum, extrinsic, inputData, events);
+      return await this.processCancelAsk(blockNum, inputData);
     }
     if (inputData.method === 'withdrawAllKSM') {
       return await this.processWithdrawAllKSM(blockNum, extrinsic, events, rawExtrinsic.signer);
