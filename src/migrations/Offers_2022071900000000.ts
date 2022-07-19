@@ -62,7 +62,7 @@ export class Offers_2022071900000000 implements MigrationInterface {
             isNullable: true,
           },
           {
-            name: 'action',
+            name: 'status_auction',
             type: 'varchar',
             length: '16',
             isNullable: true,
