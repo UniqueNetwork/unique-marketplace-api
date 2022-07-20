@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid';
 import { evmToAddress } from '@polkadot/util-crypto';
 
 import * as logging from '../utils/logging';
-import { BlockchainBlock, NFTTransfer, ContractAsk, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex, Collection } from '../entity';
+import { BlockchainBlock, NFTTransfer, AccountPairs, MoneyTransfer, MarketTrade, SearchIndex, Collection, OffersEntity } from '../entity';
 import { ASK_STATUS, MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from './constants';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { CollectionStatus } from '../admin/types/collection';
@@ -76,13 +76,14 @@ export class EscrowService {
     return (await repository.findOne({ ethereum: ethereum.toLocaleLowerCase() }))?.substrate;
   }
 
-  async getActiveAsk(collectionId: number, tokenId: number, network?: string): Promise<ContractAsk> {
-    const repository = this.db.getRepository(ContractAsk);
+  async getActiveAsk(collectionId: number, tokenId: number, network?: string): Promise<OffersEntity> {
+    const repository = this.db.getRepository(OffersEntity);
     return await repository.findOne({
       collection_id: collectionId.toString(),
       token_id: tokenId.toString(),
       network: this.getNetwork(network),
       status: In([ASK_STATUS.ACTIVE, ASK_STATUS.REMOVED_BY_ADMIN]),
+      type: SellingMethod.FixedPrice,
     });
   }
 
@@ -98,9 +99,10 @@ export class EscrowService {
     },
     network?: string,
   ) {
-    const repository = this.db.getRepository(ContractAsk);
+    const repository = this.db.getRepository(OffersEntity);
     await repository.insert({
       id: uuid(),
+      type: SellingMethod.FixedPrice,
       block_number_ask: `${blockNum}`,
       network: this.getNetwork(network),
       collection_id: data.collectionId.toString(),
@@ -113,26 +115,16 @@ export class EscrowService {
       created_at_ask: new Date(),
       updated_at: new Date(),
     });
-    logging.log(
-      `{subject:'Created active offer', thread: 'registerAsk', address: '${
-        data.addressFrom
-      }', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${
-        data.addressTo
-      }, block: ${blockNum}, normalAddress: { address: '${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`,
-    );
-    this.logger.log(
-      `{subject:'Created active offer', thread: 'registerAsk', address: '${
-        data.addressFrom
-      }', price: ${data.price.toString()}, tokenId: ${data.tokenId.toString()}, collection: ${data.collectionId.toString()}, addressTo: ${
-        data.addressTo
-      }, block: ${blockNum}, normalAddress: { address: ${encodeAddress(data.addressFrom)}'},  log: 'registerAsk' }`,
-    );
+
+    this.logger.log(`Registered ask for token ${data.tokenId} in collection ${data.collectionId}`);
+    this.logger.log(JSON.stringify(repository));
   }
 
   async cancelAsk(collectionId: number, tokenId: number, blockNumber: bigint, network?: string) {
-    const repository = this.db.getRepository(ContractAsk);
+    const repository = this.db.getRepository(OffersEntity);
     await repository.update(
       {
+        type: SellingMethod.FixedPrice,
         collection_id: collectionId.toString(),
         token_id: tokenId.toString(),
         status: In([ASK_STATUS.ACTIVE, ASK_STATUS.REMOVED_BY_ADMIN]),
@@ -140,39 +132,24 @@ export class EscrowService {
       },
       { status: ASK_STATUS.CANCELLED, block_number_cancel: `${blockNumber}` },
     );
-    logging.log(
-      `{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(
-        network,
-      )}', log: 'cancelAsk' }`,
-    );
-    this.logger.log(
-      `{subject: 'Canceled offer', status: 'CANCELLED', block:${blockNumber}, collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(
-        network,
-      )}', log: 'cancelAsk' }`,
-    );
+    this.logger.log(`Cancelled ask for token ${tokenId} in collection ${collectionId}`);
+    this.logger.log(JSON.stringify(repository));
   }
 
   async buyKSM(collectionId: number, tokenId: number, blockNumber: bigint, network?: string) {
-    const repository = this.db.getRepository(ContractAsk);
+    const repository = this.db.getRepository(OffersEntity);
     await repository.update(
       {
         collection_id: collectionId.toString(),
         token_id: tokenId.toString(),
         status: ASK_STATUS.ACTIVE,
+        type: SellingMethod.FixedPrice,
         network: this.getNetwork(network),
       },
       { status: ASK_STATUS.BOUGHT, block_number_buy: `${blockNumber}` },
     );
-    logging.log(
-      `{subject:'Got buyKSM', thread:'offer update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network:'${this.getNetwork(
-        network,
-      )}', status: 'ACTIVE', log:'buyKSM' }`,
-    );
-    this.logger.log(
-      `{subject:'Got buyKSM', thread:'offer update', collection: ${collectionId.toString()}, token: ${tokenId.toString()}, network: '${this.getNetwork(
-        network,
-      )}', status: 'ACTIVE', log:'buyKSM' }`,
-    );
+    this.logger.log(`Bought KSM for token ${tokenId} in collection ${collectionId}`);
+    this.logger.log(JSON.stringify(repository));
   }
 
   async registerTransfer(
@@ -259,16 +236,7 @@ export class EscrowService {
       currency: '2', // TODO: check this
     });
     await repository.save(transfer);
-    logging.log(
-      `{subject:'Unique deposit for money transfer', amount: ${amount}, address: '${address}', address_normal: '${encodeAddress(
-        address,
-      )}', status: 'PENDING',  block: ${blockNumber}, log: 'modifyContractBalance' }`,
-    );
-    this.logger.log(
-      `{subject:'Unique deposit for money transfer', amount: ${amount}, address: '${address}', address_normal: '${encodeAddress(
-        address,
-      )}', status: 'PENDING',  block: ${blockNumber}, log: 'modifyContractBalance' }`,
-    );
+    this.logger.log(`Added contract balance ${amount} to ${address}`);
     return transfer;
   }
 
@@ -340,7 +308,7 @@ export class EscrowService {
     });
   }
 
-  async registerTrade(buyer: string, price: bigint, ask: ContractAsk, blockNum: bigint, originPrice: bigint, network?: string) {
+  async registerTrade(buyer: string, price: bigint, ask: OffersEntity, blockNum: bigint, originPrice: bigint, network?: string) {
     const repository = this.db.getRepository(MarketTrade);
     await repository.insert({
       id: uuid(),
@@ -359,24 +327,10 @@ export class EscrowService {
       originPrice: `${originPrice}`,
       commission: `${originPrice - price}`,
     });
-    logging.log(
-      `{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${
-        ask.token_id
-      }, price: ${price}, block: ${blockNum}, address_seller: '${
-        ask.address_from
-      }', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(
-        buyer,
-      )}' },  log: 'registerTrade' }`,
-    );
     this.logger.log(
-      `{ subject: 'Register market trade', thread:'trades', collection: ${ask.collection_id}, token:${
-        ask.token_id
-      }, price: ${price}, block: ${blockNum}, address_seller: '${
-        ask.address_from
-      }', address_buyer: ${buyer}, normal:{address_seller: '${encodeAddress(ask.address_from)}', address_buyer: '${encodeAddress(
-        buyer,
-      )}' },  log: 'registerTrade' }`,
+      `{ subject:'Register trade', buyer: '${buyer}', seller: '${ask.address_from}', price: ${price}, block: ${blockNum}, log: 'registerTrade' }`,
     );
+
     await this.buyKSM(parseInt(ask.collection_id), parseInt(ask.token_id), blockNum, network);
   }
 

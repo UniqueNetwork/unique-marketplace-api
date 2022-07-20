@@ -4,7 +4,7 @@ import { Connection } from 'typeorm';
 import { TypeAttributToken, Bid } from '../types';
 
 import { OfferTraits, OfferEntityDto, OffersFilter, OfferAttributesDto, OfferAttributes, TraitDto } from './dto';
-import { ContractAsk, SearchIndex, BidEntity, OffersEntity } from '../entity';
+import { SearchIndex, OffersEntity, AuctionBidEntity } from '../entity';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResultDto } from '../utils/pagination/pagination-result';
@@ -48,7 +48,7 @@ export class OffersService {
       auctionIds = this.auctionIds(offers.items);
       bids = await this.bids(auctionIds);
       searchIndex = await this.searchIndex(this.parserCollectionIdTokenId(offers.items));
-      items = this.parseItems(offers.items, bids, searchIndex) as any as Array<ContractAsk>;
+      items = this.parseItems(offers.items, bids, searchIndex) as any as Array<OffersEntity>;
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -77,7 +77,7 @@ export class OffersService {
 
   private async bids(auctionIds: Array<number>): Promise<Array<Partial<Bid>>> {
     const queryBuilder = this.connection.manager
-      .createQueryBuilder(BidEntity, 'bid')
+      .createQueryBuilder(AuctionBidEntity, 'bid')
       .select(['created_at', 'updated_at', 'amount', 'auction_id', 'bidder_address', 'balance', 'status'])
       .where('bid.amount > 0')
       .andWhere('bid.status != :status', { status: BidStatus.error });
@@ -212,7 +212,7 @@ export class OffersService {
               startPrice: item.auction_start_price,
               status: item.auction_status,
               stopAt: new Date(item.auction_stop_at),
-              bids: bids.filter((bid) => bid.auctionId === item.auction_id) as any as BidEntity[],
+              bids: bids.filter((bid) => bid.auctionId === item.auction_id) as any as AuctionBidEntity[],
             },
           );
         }
