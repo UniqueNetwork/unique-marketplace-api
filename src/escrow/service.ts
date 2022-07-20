@@ -115,7 +115,21 @@ export class EscrowService {
       created_at_ask: new Date(),
       updated_at: new Date(),
     });
-
+    const logMessage = {
+      type: SellingMethod.FixedPrice,
+      block_number_ask: `${blockNum}`,
+      network: this.getNetwork(network),
+      collection_id: data.collectionId.toString(),
+      token_id: data.tokenId.toString(),
+      address_from: encodeAddress(data.addressFrom),
+      address_to: data.addressTo,
+      status: ASK_STATUS.ACTIVE,
+      price: data.price.toString(),
+      currency: data.currency,
+      created_at_ask: new Date(),
+      updated_at: new Date(),
+    };
+    this.logger.log(JSON.stringify(logMessage));
     this.logger.log(`Registered FixedPrice for token ${data.tokenId} in collection ${data.collectionId} in block ${blockNum}`);
   }
 

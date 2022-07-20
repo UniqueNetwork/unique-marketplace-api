@@ -119,7 +119,7 @@ export class UniqueEscrow extends Escrow {
   }
 
   async processAddAsk(blockNum, extrinsic, inputData, signer, events) {
-    const addressTo = util.normalizeAccountId(extrinsic.args.target);
+    const addressTo = util.normalizeAccountId(extrinsic.args.target.toString());
     const addressFrom = this.normalizeSubstrate(signer.toString()); // signer is substrate address of args.source
     const addressFromEth = util.normalizeAccountId(extrinsic.args.source);
     const price = inputData.inputs[0].toString();
@@ -153,7 +153,7 @@ export class UniqueEscrow extends Escrow {
       {
         collectionId,
         tokenId,
-        addressTo: this.address2string(addressTo),
+        addressTo,
         addressFrom,
         price,
         currency,
