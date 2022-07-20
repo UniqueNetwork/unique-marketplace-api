@@ -49,7 +49,7 @@ export interface Auction {
 export interface AuctionOffer {
   id: string;
 
-  status_auction: AuctionStatus;
+  status: AuctionStatus;
 
   startPrice: string;
 
@@ -59,7 +59,7 @@ export interface AuctionOffer {
 
   createdAt: Date;
 
-  updated_auction: Date;
+  updatedAt: Date;
 }
 
 export type CreateAuctionAndBroadcastArgs = {

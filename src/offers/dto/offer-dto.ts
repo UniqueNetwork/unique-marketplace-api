@@ -7,11 +7,11 @@ import { AuctionOffer } from '../../types/auction';
 class AuctionDto implements AuctionOffer {
   @Exclude() id: string;
   @Exclude() createdAt: Date;
-  @Exclude() updated_auction: Date;
+  @Exclude() updatedAt: Date;
 
   @Expose() @ApiProperty({ example: '10' }) priceStep: string;
   @Expose() @ApiProperty({ example: '100' }) startPrice: string;
-  @Expose() @ApiProperty({ example: 'active' }) status_auction: AuctionStatus;
+  @Expose() @ApiProperty({ example: 'active' }) status: AuctionStatus;
   @Expose() @ApiProperty({ example: '2022-06-24T14:32:00.833Z' }) stopAt: Date;
 
   @Expose()
