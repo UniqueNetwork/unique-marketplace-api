@@ -2,15 +2,16 @@ import { ApiProperty } from '@nestjs/swagger';
 import { OffersEntity } from '../../entity';
 import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription } from '../../types';
 import { Exclude, Expose, plainToInstance, Type } from 'class-transformer';
+import { AuctionOffer } from '../../types/auction';
 
-class AuctionDto implements Auction {
+class AuctionDto implements AuctionOffer {
   @Exclude() id: string;
   @Exclude() createdAt: Date;
-  @Exclude() updatedAt: Date;
+  @Exclude() updated_auction: Date;
 
   @Expose() @ApiProperty({ example: '10' }) priceStep: string;
   @Expose() @ApiProperty({ example: '100' }) startPrice: string;
-  @Expose() @ApiProperty({ example: 'active' }) status: AuctionStatus;
+  @Expose() @ApiProperty({ example: 'active' }) status_auction: AuctionStatus;
   @Expose() @ApiProperty({ example: '2022-06-24T14:32:00.833Z' }) stopAt: Date;
 
   @Expose()
@@ -60,10 +61,10 @@ export class OfferEntityDto {
   @Expose()
   creationDate: Date;
 
-  // @ApiProperty({ required: false })
-  // @Expose()
-  // @Type(() => AuctionDto)
-  // auction?: AuctionDto;
+  @ApiProperty({ required: false })
+  @Expose()
+  @Type(() => AuctionDto)
+  auction?: AuctionDto;
 
   @ApiProperty({ description: 'Token description' })
   @Expose()
