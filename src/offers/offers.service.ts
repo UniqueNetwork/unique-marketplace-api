@@ -151,14 +151,14 @@ export class OffersService {
 
       if (item.type === TypeAttributToken.ImageURL) {
         const image = String(item.items.pop());
-        if (image.search('ipfs.unique.network') !== -1) {
+        if (image.search('ipfs.uniquenetwork.dev') !== -1) {
           acc[`${item.key}`] = image;
         } else {
           if (image.search('https://') !== -1 && image.search('http://') !== 0) {
             acc[`${item.key}`] = image;
           } else {
             if (image) {
-              acc[`${item.key}`] = `https://ipfs.unique.network/ipfs/${image}`;
+              acc[`${item.key}`] = `https://ipfs.uniquenetwork.dev/ipfs/${image}`;
             } else {
               acc[`${item.key}`] = null;
             }
