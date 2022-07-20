@@ -72,7 +72,7 @@ export class OffersService {
   }
 
   private auctionIds(items: Array<any>): Array<number> {
-    return items.filter((item) => item?.offer_type == 'Auction').map((item) => item?.offer_id);
+    return items.filter((item) => item?.auction_id !== null).map((item) => item?.offer_id);
   }
 
   private async bids(auctionIds: Array<number>): Promise<Array<Partial<Bid>>> {
@@ -201,7 +201,7 @@ export class OffersService {
             }),
         };
 
-        if (item.offer_type === 'Auction') {
+        if (item.auction_id !== null) {
           obj.auction = Object.assign(
             {},
             {
