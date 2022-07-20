@@ -80,6 +80,7 @@ export class OfferEntityDto {
       quoteId: +offersData.currency,
       seller: offersData.address_from,
       creationDate: offersData.created_at,
+      types: offersData.type,
     };
 
     if (offersData?.bids?.length) {

@@ -52,7 +52,7 @@ export class OffersService {
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
-        tags: { section: 'contract_ask' },
+        tags: { section: 'offers' },
       });
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
@@ -72,7 +72,7 @@ export class OffersService {
   }
 
   private auctionIds(items: Array<any>): Array<number> {
-    return items.filter((item) => item?.auction_id !== null).map((item) => item?.auction_id);
+    return items.filter((item) => item?.offer_type == 'Auction').map((item) => item?.offer_id);
   }
 
   private async bids(auctionIds: Array<number>): Promise<Array<Partial<Bid>>> {
@@ -201,7 +201,7 @@ export class OffersService {
             }),
         };
 
-        if (item.auction_id) {
+        if (item.offer_type === 'Auction') {
           obj.auction = Object.assign(
             {},
             {
