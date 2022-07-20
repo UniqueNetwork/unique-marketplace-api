@@ -216,7 +216,7 @@ export class BidWithdrawService {
         select auction_id, bidder_address, sum_amount amount, rank() over (partition by auction_id order by sum_amount desc ) rank
         from sum_amount_auctions
     )
-    select distinct  auction_id "auctionId", amount, contract_ask_id "contractAskId", collection_id "collectionId", token_id "tokenId" from my_withdraws
+    select distinct  auction_id "auctionId", amount, collection_id "collectionId", token_id "tokenId" from my_withdraws
     inner join offers ca on ca.id = auction_id
     where rank <> 1 and amount > 0 and bidder_address = $1
       `,
@@ -228,29 +228,18 @@ export class BidWithdrawService {
   private async _getLeaderBids(owner: string): Promise<Array<BidsWitdrawByOwner>> {
     const results = await this.connection.manager.query(
       `
-    with auctions as (
+     with auctions_data as (
       select *, rank() over (partition by auction_id order by sum_amount desc) rank
       from (
-               select distinct auction_id,
-                               bidder_address,
-                               contract_ask_id,
-                               collection_id,
-                               token_id,
-                               sum(amount) over (partition by bidder_address, auction_id) sum_amount
-               from bids
-                        left join auctions a on bids.auction_id = a.id
-                        left join contract_ask ca on a.contract_ask_id = ca.id
-               where a.status in ('active', 'created')
+               select distinct auction_id,bidder_address,collection_id, token_id, sum(amount) over (partition by bidder_address, auction_id) sum_amount
+                from auction_bids bids
+                left join offers a on bids.auction_id = a.id
+               where a.status_auction in ('active', 'created')
            ) temp
-  )
-  select auction_id      "auctionId",
-         sum_amount      amount,
-         contract_ask_id "contractAskId",
-         collection_id   "collectionId",
-         token_id        "tokenId"
-  from auctions
-  where rank = 1
-    and bidder_address = $1
+      ),
+    select auction_id "auctionId", sum_amount amount, collection_id "collectionId", token_id "tokenId"
+    from auctions_data
+    where rank = 1 and bidder_address = $1
     `,
       [owner],
     );
