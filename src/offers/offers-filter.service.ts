@@ -80,19 +80,25 @@ export class OffersFilterService {
    * @param collectionIds
    * @returns
    */
-  public async attributesCount(collectionIds: number[]): Promise<Array<OfferAttributes>> {
+  public async attributesCount(collectionIds: number[], seller?: string): Promise<Array<OfferAttributes>> {
     try {
       const counts = (await this.connection.manager
         .createQueryBuilder()
         .select(['total_items as "numberOfAttributes"', 'count(offer_id) over (partition by total_items) as amount'])
         .distinct()
         .from((qb) => {
-          return qb
-            .select(['total_items', 'offer_id'])
+          qb.select(['total_items', 'offer_id'])
             .distinct()
             .from(OfferFilters, 'v_offers_search')
             .where('collection_id in (:...collectionIds)', { collectionIds })
             .andWhere('total_items is not null');
+
+          if (seller) {
+            qb.andWhere('offer_status = :status', { status: 'active' });
+          } else {
+            qb.andWhere('v_offers_search.offer_status in (:...offer_status)', { offer_status: ['active', 'removed_by_admin'] });
+          }
+          return qb;
         }, '_offers')
         .getRawMany()) as Array<OfferAttributes>;
 
@@ -300,43 +306,55 @@ export class OffersFilterService {
     return query;
   }
 
-  private byAttributes(query: SelectQueryBuilder<OfferFilters>): SelectQueryBuilder<any> {
-    const attributes = this.connection.manager
+  private async byAttributes(query: SelectQueryBuilder<OfferFilters>, seller?: string): Promise<TraitDto[]> {
+    const collectionIds = await this.getCollectionIds(query);
+
+    if (collectionIds.length === 0) {
+      return [];
+    }
+    const queryAttribute = this.connection.manager
       .createQueryBuilder()
       .select(['key', 'traits as trait ', 'count(traits) over (partition by traits, key) as count'])
       .distinct()
-      .from((qb) => {
-        return qb
-          .select(['v_offers_search_key as key', 'v_offers_search_traits as traits'])
-          .from(`(${query.getQuery()})`, '_filter')
-          .setParameters(query.getParameters())
-          .where('v_offers_search_traits is not null')
-          .andWhere('v_offers_search_locale is not null');
-      }, '_filter');
-    return attributes;
+      .from(OfferFilters, 'v_offers_search')
+      .where('collection_id in (:...collectionIds)', { collectionIds })
+      .andWhere('traits is not null')
+      .andWhere('locale is not null');
+
+    if (nullOrWhitespace(seller)) {
+      queryAttribute.andWhere('v_offers_search.offer_status = :status', { status: 'active' });
+    } else {
+      queryAttribute.andWhere('v_offers_search.offer_status in (:...offer_status)', { offer_status: ['active', 'removed_by_admin'] });
+    }
+
+    const attributes = (await queryAttribute.getRawMany()) as Array<TraitDto>;
+
+    return this.parseAttributes(attributes);
   }
 
-  private async byAttributesCount(query: SelectQueryBuilder<OfferFilters>): Promise<Array<OfferAttributes>> {
-    const attributesCount = (await this.connection.manager
+  private async getCollectionIds(query: SelectQueryBuilder<OfferFilters>): Promise<number[]> {
+    const collectionList = await this.connection.manager
       .createQueryBuilder()
-      .select(['total_items as "numberOfAttributes"', 'count(offer_id) over (partition by total_items) as amount'])
+      .select(['collection_id'])
       .distinct()
       .from((qb) => {
         return qb
-          .select(['v_offers_search_total_items as total_items', 'v_offers_search_offer_id as offer_id'])
+          .select(['v_offers_search_collection_id as collection_id'])
           .from(`(${query.getQuery()})`, '_filter')
-          .distinct()
           .setParameters(query.getParameters())
           .where('v_offers_search_total_items is not null');
       }, '_filter')
-      .getRawMany()) as Array<OfferAttributes>;
+      .getRawMany();
 
-    return attributesCount.map((item) => {
-      return {
-        numberOfAttributes: +item.numberOfAttributes,
-        amount: +item.amount,
-      };
-    });
+    return collectionList.map((item) => item.collection_id);
+  }
+
+  private async byAttributesCount(query: SelectQueryBuilder<OfferFilters>, seller?: string): Promise<Array<OfferAttributes>> {
+    const collectionIds = await this.getCollectionIds(query);
+    if (collectionIds.length === 0) {
+      return [];
+    }
+    return this.attributesCount(collectionIds, seller);
   }
 
   private byCollectionTokenId(query: SelectQueryBuilder<OfferFilters>, collectionId: number, tokenId: number): SelectQueryBuilder<any> {
@@ -372,8 +390,8 @@ export class OffersFilterService {
     // Filter by traits
     queryFilter = this.byFindAttributes(queryFilter, offersFilter.collectionId, offersFilter.attributes);
 
-    const attributes = await this.byAttributes(queryFilter).getRawMany();
-    const attributesCount = await this.byAttributesCount(queryFilter);
+    const attributes = await this.byAttributes(queryFilter, offersFilter.seller);
+    const attributesCount = await this.byAttributesCount(queryFilter, offersFilter.seller);
 
     queryFilter = this.prepareQuery(queryFilter);
 
@@ -390,7 +408,7 @@ export class OffersFilterService {
       itemsCount,
       page: itemQuery.page,
       pageSize: itemQuery.pageSize,
-      attributes: this.parseAttributes(attributes),
+      attributes,
       attributesCount,
     };
   }
