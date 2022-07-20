@@ -1,6 +1,6 @@
 import { Connection, SelectQueryBuilder } from 'typeorm';
 import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
-import { BlockchainBlock, ContractAsk } from '../entity';
+import { BlockchainBlock, OffersEntity } from '../entity';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { OfferEntityDto } from './dto/offer-dto';
 import { SortingOrder } from '../utils/sorting/sorting-order';
@@ -21,7 +21,7 @@ const prepareMapping = (input: Record<string, string>, columnMetadata: ColumnMet
   }, {});
 };
 
-const contractAskMapping: SortMapping<ContractAsk> = {
+const offersMapping: SortMapping<OffersEntity> = {
   price: 'price',
   tokenId: 'token_id',
   collectionId: 'collection_id',
@@ -34,16 +34,16 @@ const blockMapping: SortMapping<BlockchainBlock> = {
 const blockAlias = 'block';
 
 export class OffersQuerySortHelper {
-  readonly contractAskSorts: Record<string, string>;
+  readonly offersSorts: Record<string, string>;
   readonly blockSorts: Record<string, string>;
 
   constructor(connection: Connection) {
-    this.contractAskSorts = prepareMapping(contractAskMapping, connection.getMetadata(ContractAsk).columns);
+    this.offersSorts = prepareMapping(offersMapping, connection.getMetadata(OffersEntity).columns);
     this.blockSorts = prepareMapping(blockMapping, connection.getMetadata(BlockchainBlock).columns);
   }
 
-  private getSort(query: SelectQueryBuilder<ContractAsk>, sortingParameter: SortingParameter): string | undefined {
-    const contractColumn = this.contractAskSorts[sortingParameter.column.toLowerCase()];
+  private getSort(query: SelectQueryBuilder<OffersEntity>, sortingParameter: SortingParameter): string | undefined {
+    const contractColumn = this.offersSorts[sortingParameter.column.toLowerCase()];
 
     if (contractColumn) return `${query.alias}.${contractColumn}`;
 
@@ -68,7 +68,7 @@ export class OffersQuerySortHelper {
     return sortingParameter.order === SortingOrder.Desc ? 'DESC' : 'ASC';
   }
 
-  applySort(query: SelectQueryBuilder<ContractAsk>, { sort = [] }: OfferSortingRequest) {
+  applySort(query: SelectQueryBuilder<OffersEntity>, { sort = [] }: OfferSortingRequest) {
     for (const sortingParameter of sort) {
       const sort = this.getSort(query, sortingParameter);
       if (sort) {

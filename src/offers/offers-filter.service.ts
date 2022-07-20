@@ -2,7 +2,7 @@ import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@ne
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { Connection, SelectQueryBuilder } from 'typeorm';
 import { OffersService } from './offers.service';
-import { ContractAsk, OfferFilters } from '../entity';
+import { OfferFilters, OffersEntity } from '../entity';
 import { OfferAttributes } from './dto/offer-attributes';
 import { OffersFilter, OfferTraits, TraitDto } from './dto';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
@@ -24,7 +24,7 @@ export class OffersFilterService {
     this.offersQuerySortHelper = new OffersQuerySortHelper(connection);
   }
 
-  public addSearchIndex(queryBuilder: SelectQueryBuilder<ContractAsk>): SelectQueryBuilder<ContractAsk> {
+  public addSearchIndex(queryBuilder: SelectQueryBuilder<OffersEntity>): SelectQueryBuilder<OffersEntity> {
     return queryBuilder;
   }
 

@@ -1,7 +1,7 @@
-import { ContractAsk } from './contract-ask';
 import { Column, Entity, OneToOne } from 'typeorm';
 import { SearchIndex } from './search-index';
 import { SellingMethod } from '../types';
+import { OffersEntity } from './offers';
 
 @Entity('market_trade', { schema: 'public' })
 export class MarketTrade {
@@ -57,6 +57,6 @@ export class MarketTrade {
   @OneToOne(() => SearchIndex)
   search_index: SearchIndex;
 
-  @OneToOne(() => ContractAsk)
-  offers: ContractAsk;
+  @OneToOne(() => OffersEntity)
+  offers: OffersEntity;
 }

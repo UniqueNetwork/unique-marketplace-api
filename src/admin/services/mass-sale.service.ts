@@ -19,13 +19,13 @@ import { blockchainStaticFile } from '../../utils/blockchain/util';
 import { GAS_LIMIT } from '../constants';
 import { ProxyCollection } from '../../utils/blockchain';
 import { InjectUniqueAPI } from '../../blockchain';
-import { ContractAsk } from '../../entity';
+import { OffersEntity } from '../../entity';
 
 @Injectable()
 export class MassSaleService {
   private readonly logger: Logger;
   private readonly blockchainBlockRepository: Repository<BlockchainBlock>;
-  private readonly contractAskRepository: Repository<ContractAsk>;
+
   private readonly collectionContractInterface: Interface;
   private readonly marketContractInterface: Interface;
 
@@ -38,7 +38,6 @@ export class MassSaleService {
   ) {
     this.logger = new Logger(MassSaleService.name);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
-    this.contractAskRepository = connection.getRepository(ContractAsk);
 
     const CollectionABI = JSON.parse(blockchainStaticFile('nonFungibleAbi.json'));
     const MarketABI = JSON.parse(blockchainStaticFile('MarketPlace.json')).abi;

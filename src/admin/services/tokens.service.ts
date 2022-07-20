@@ -1,6 +1,6 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Connection, In, Repository } from 'typeorm';
-import { Collection, ContractAsk, Tokens } from '../../entity';
+import { Collection, OffersEntity, Tokens } from '../../entity';
 import { CollectionsService } from './collections.service';
 import { ResponseTokenDto } from '../dto';
 import { BnList } from '@polkadot/util/types';
@@ -11,7 +11,7 @@ export class TokenService {
   private readonly tokensRepository: Repository<Tokens>;
   private readonly logger: Logger;
   private readonly MAX_TOKEN_NUMBER = 2147483647;
-  private readonly contractAskRepository: Repository<ContractAsk>;
+  private readonly offersRepository: Repository<OffersEntity>;
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
@@ -20,7 +20,7 @@ export class TokenService {
   ) {
     this.tokensRepository = connection.getRepository(Tokens);
     this.logger = new Logger(TokenService.name);
-    this.contractAskRepository = connection.getRepository(ContractAsk);
+    this.offersRepository = connection.getRepository(OffersEntity);
   }
 
   /**
@@ -154,24 +154,24 @@ export class TokenService {
     let carActive, carRemoved;
     for (const token of tokenIdsList) {
       if (arrayAllowedTokens.indexOf(token) !== -1) {
-        carActive = await this.contractAskRepository.findOne({
+        carActive = await this.offersRepository.findOne({
           collection_id: collection.id,
           token_id: String(token),
           status: In(['removed_by_admin']),
         });
         if (carActive) {
           carActive.status = 'active';
-          await this.contractAskRepository.update(carActive.id, carActive);
+          await this.offersRepository.update(carActive.id, carActive);
         }
       } else {
-        carRemoved = await this.contractAskRepository.findOne({
+        carRemoved = await this.offersRepository.findOne({
           collection_id: collection.id,
           token_id: String(token),
           status: In(['active']),
         });
         if (carRemoved) {
           arrayAllowedTokens.length > 0 ? (carRemoved.status = 'removed_by_admin') : (carRemoved.status = 'active');
-          await this.contractAskRepository.update(carRemoved.id, carRemoved);
+          await this.offersRepository.update(carRemoved.id, carRemoved);
         }
       }
     }

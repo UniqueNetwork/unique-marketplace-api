@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Connection } from 'typeorm';
 import { DatabaseHelper } from '../helpers/database-helper';
 import { AuctionStatus } from '../../../types';
-import { AuctionEntity } from '../../entities';
+import { OffersEntity } from '../../../entity';
 
 @Injectable()
 export class ForceClosingService {
@@ -19,9 +19,9 @@ export class ForceClosingService {
       [AuctionStatus.created, AuctionStatus.active],
     );
 
-    await this.connection.manager.update(AuctionEntity, contract.id, {
+    await this.connection.manager.update(OffersEntity, contract.id, {
       stopAt: new Date(),
-      status: AuctionStatus.stopped,
+      status_auction: AuctionStatus.stopped,
     });
   }
 }

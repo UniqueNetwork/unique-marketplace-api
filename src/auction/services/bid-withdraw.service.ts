@@ -1,13 +1,11 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, Repository } from 'typeorm';
-
-import { AuctionEntity, BidEntity } from '../entities';
-import { AuctionBidEntity, ContractAsk, MoneyTransfer, OffersEntity } from '../../entity';
+import { AuctionBidEntity, MoneyTransfer, OffersEntity } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { BidStatus } from '../../types';
+import { BidStatus, SellingMethod } from '../../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { v4 as uuid } from 'uuid';
 import { AuctionCredentials } from '../providers';
@@ -15,7 +13,7 @@ import { encodeAddress } from '@polkadot/util-crypto';
 import { BidsWitdrawByOwner, BidsWithdraw } from '../responses';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 import { InjectKusamaAPI } from '../../blockchain';
-import { MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from '../../escrow/constants';
+import { MONEY_TRANSFER_STATUS, MONEY_TRANSFER_TYPES } from '../../escrow/constants';
 
 type BidWithdrawArgs = {
   collectionId: number;
@@ -219,8 +217,6 @@ export class BidWithdrawService {
         from sum_amount_auctions
     )
     select distinct  auction_id "auctionId", amount, contract_ask_id "contractAskId", collection_id "collectionId", token_id "tokenId" from my_withdraws
-  //  inner join auctions auc on auc.id = auction_id
-    //inner join contract_ask ca on ca.id = auc.contract_ask_id
     inner join offers ca on ca.id = auction_id
     where rank <> 1 and amount > 0 and bidder_address = $1
       `,
@@ -287,16 +283,10 @@ export class BidWithdrawService {
 
   async withdrawBidsByBidder(args: BidsWirthdrawArgs): Promise<void> {
     const query = this.connection
-      .createQueryBuilder(ContractAsk, 'contract_ask')
+      .createQueryBuilder(OffersEntity, 'offerAuction')
       .select(['collection_id', 'token_id'])
-      .distinct()
-      .innerJoin(
-        (subQuery) => {
-          return subQuery.from(AuctionEntity, 'auc').where('auc.id in (:...auctionIds)', { auctionIds: args.auctionIds });
-        },
-        'auc',
-        'auc.contract_ask_id = contract_ask.id',
-      );
+      .andWhere('offerAuction.type = :type', { type: SellingMethod.Auction })
+      .distinct();
 
     for (const item of await query.execute()) {
       await this.withdrawBidByBidder({

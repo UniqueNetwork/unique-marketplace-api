@@ -3,18 +3,16 @@ import { Connection, EntityManager, Repository } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
 import { stringify } from '@polkadot/util';
 import { v4 as uuid } from 'uuid';
-
-import { AuctionEntity, BidEntity } from '../entities';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { OfferEntityDto } from '../../offers/dto/offer-dto';
-import { AuctionBidEntity, BlockchainBlock, ContractAsk, MoneyTransfer, OffersEntity } from '../../entity';
+import { AuctionBidEntity, BlockchainBlock, MoneyTransfer, OffersEntity } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, AuctionStatus } from '../../types';
+import { AuctionStatus, BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, SellingMethod } from '../../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { InjectKusamaAPI } from '../../blockchain';
-import { MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from '../../escrow/constants';
+import { MONEY_TRANSFER_STATUS, MONEY_TRANSFER_TYPES } from '../../escrow/constants';
 
 @Injectable()
 export class BidPlacingService {
@@ -77,7 +75,7 @@ export class BidPlacingService {
 
   private async handleBidTxSuccess(
     placeBidArgs: PlaceBidArgs,
-    oldContractAsk: OffersEntity,
+    oldOffer: OffersEntity,
     userBid: AuctionBidEntity,
     blockNumber: bigint,
   ): Promise<void> {
@@ -103,7 +101,7 @@ export class BidPlacingService {
         method: 'handleBidTxSuccess',
         message: error.message,
         placeBidArgs,
-        oldContractAsk,
+        oldOffer,
         userBid,
       };
 
@@ -231,13 +229,13 @@ export class BidPlacingService {
   private async getBidsBalance(collectionId: number, tokenId: number, bidderAddress: string) {
     const bids = await this.bidRepository
       .createQueryBuilder('bids')
-      .leftJoinAndSelect('bids.auction', 'auctions')
-      .leftJoinAndSelect('auctions.contractAsk', 'contract_ask')
+      .leftJoinAndSelect('offers.id', 'offers')
       .where('bids.bidderAddress = :bidderAddress', { bidderAddress: encodeAddress(bidderAddress) })
       .andWhere('bids.status = :status', { status: BidStatus.finished })
-      .andWhere('auctions.status = :auctionsStatus', { auctionsStatus: AuctionStatus.active })
-      .andWhere('contract_ask.collection_id = :collectionId', { collectionId })
-      .andWhere('contract_ask.token_id = :tokenId', { tokenId })
+      .andWhere('offer.status_auction = :auctionsStatus', { auctionsStatus: AuctionStatus.active })
+      .andWhere('offers.collection_id = :collectionId', { collectionId })
+      .andWhere('offers.token_id = :tokenId', { tokenId })
+      .andWhere('offers.type = :type', { type: SellingMethod.Auction })
       .getMany();
 
     return bids.reduce((acc, bid) => acc + BigInt(bid.balance), BigInt(0));

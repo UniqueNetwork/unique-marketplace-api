@@ -1,23 +1,21 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Connection, Repository, In } from 'typeorm';
+import { Connection, In, Repository } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
 import { v4 as uuid } from 'uuid';
 import { KeyringPair } from '@polkadot/keyring/types';
 
 import { BroadcastService } from '../../../broadcast/services/broadcast.service';
-import { AuctionEntity } from '../../entities';
-import { BlockchainBlock, ContractAsk, MarketTrade, MoneyTransfer, OffersEntity } from '../../../entity';
+import { BlockchainBlock, MarketTrade, MoneyTransfer, OffersEntity } from '../../../entity';
 import { DatabaseHelper } from '../helpers/database-helper';
 import { AuctionStatus, BidStatus, SellingMethod } from '../../../types';
 import { BidWithdrawService } from '../bid-withdraw.service';
 import { AuctionCancelingService } from '../auction-canceling.service';
-import { ASK_STATUS } from '../../../escrow/constants';
+import { ASK_STATUS, MONEY_TRANSFER_STATUS, MONEY_TRANSFER_TYPES } from '../../../escrow/constants';
 import { ExtrinsicSubmitter } from '../helpers/extrinsic-submitter';
 import { MarketConfig } from '../../../config/market-config';
 import { OfferEntityDto } from '../../../offers/dto/offer-dto';
 import { AuctionCredentials } from '../../providers';
 import { InjectSentry, SentryService } from '../../../utils/sentry';
-import { MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from '../../../escrow/constants';
 
 @Injectable()
 export class AuctionClosingService {
@@ -178,7 +176,7 @@ export class AuctionClosingService {
           status_auction: AuctionStatus.ended,
         });
 
-        const contractAskDb = await this.offersRepository.findOne(offer.id);
+        const offersDb = await this.offersRepository.findOne(offer.id);
 
         const getBlockCreatedAt = async (blockNum: bigint | number, blockTimeSec = 6n) => {
           let block = await this.blockchainBlockRepository.findOne({
@@ -202,23 +200,23 @@ export class AuctionClosingService {
           return new Date();
         };
 
-        const ask_created_at = await getBlockCreatedAt(BigInt(contractAskDb.block_number_ask));
-        const buy_created_at = await getBlockCreatedAt(BigInt(contractAskDb.block_number_buy));
+        const ask_created_at = await getBlockCreatedAt(BigInt(offersDb.block_number_ask));
+        const buy_created_at = await getBlockCreatedAt(BigInt(offersDb.block_number_buy));
 
         await this.tradeRepository.insert({
           id: uuid(),
-          collection_id: contractAskDb.collection_id,
-          token_id: contractAskDb.token_id,
+          collection_id: offersDb.collection_id,
+          token_id: offersDb.token_id,
           network: this.config.blockchain.unique.network,
           price: `${ownerPrice}`,
-          currency: contractAskDb.currency,
-          address_seller: contractAskDb.address_from,
+          currency: offersDb.currency,
+          address_seller: offersDb.address_from,
           address_buyer: winnerAddress,
-          block_number_ask: contractAskDb.block_number_ask,
-          block_number_buy: contractAskDb.block_number_buy,
+          block_number_ask: offersDb.block_number_ask,
+          block_number_buy: offersDb.block_number_buy,
           ask_created_at,
           buy_created_at,
-          originPrice: `${contractAskDb.price}`,
+          originPrice: `${offersDb.price}`,
           status: SellingMethod.Auction,
           commission: `${BigInt(offer.price) - ownerPrice}`,
         });
@@ -232,25 +230,25 @@ export class AuctionClosingService {
               {
                 id: uuid(),
                 amount: `-${BigInt(offer.price)}`,
-                block_number: contractAskDb.block_number_buy,
+                block_number: offersDb.block_number_buy,
                 network: 'kusama',
                 type: MONEY_TRANSFER_TYPES.DEPOSIT,
                 status: MONEY_TRANSFER_STATUS.COMPLETED,
                 created_at: new Date(),
                 updated_at: new Date(),
-                extra: { address: contractAskDb.address_from },
+                extra: { address: offersDb.address_from },
                 currency: '2', // TODO: check this
               },
               {
                 id: uuid(),
                 amount: `${ownerPrice}`,
-                block_number: contractAskDb.block_number_buy,
+                block_number: offersDb.block_number_buy,
                 network: 'kusama',
                 type: MONEY_TRANSFER_TYPES.WITHDRAW,
                 status: MONEY_TRANSFER_STATUS.COMPLETED,
                 created_at: new Date(),
                 updated_at: new Date(),
-                extra: { address: contractAskDb.address_from },
+                extra: { address: offersDb.address_from },
                 currency: '2', // TODO: check this
               },
             ]),
@@ -258,9 +256,9 @@ export class AuctionClosingService {
           .execute();
       }
     } else {
-      const contractAsk = await this.offersRepository.findOne(auction.id);
-      await this.auctionCancellingService.sendTokenBackToOwner(contractAsk);
-      await this.offersRepository.update(contractAsk.id, { status: ASK_STATUS.CANCELLED });
+      const offers = await this.offersRepository.findOne(auction.id);
+      await this.auctionCancellingService.sendTokenBackToOwner(offers);
+      await this.offersRepository.update(offers.id, { status: ASK_STATUS.CANCELLED });
     }
 
     // offer.auction = auction;

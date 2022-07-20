@@ -2,9 +2,8 @@ import { encodeAddress } from '@polkadot/util-crypto';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { AuctionStatus } from '../../types';
 import { Connection, Repository } from 'typeorm';
-import { AuctionEntity } from '../entities';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
-import { BlockchainBlock, ContractAsk, OffersEntity } from '../../entity';
+import { BlockchainBlock, OffersEntity } from '../../entity';
 import { v4 as uuid } from 'uuid';
 import { ASK_STATUS } from '../../escrow/constants';
 import { OfferEntityDto } from '../../offers/dto/offer-dto';
@@ -180,7 +179,7 @@ export class AuctionCreationService {
       updated_at: new Date(),
       priceStep: args.priceStep.toString(),
       startPrice: args.startPrice.toString(),
-      status: AuctionStatus.failed,
+      status_auction: AuctionStatus.failed,
       stopAt: new Date(),
       bids: [],
     });

@@ -1,6 +1,6 @@
 import { Any, EntityManager, LessThanOrEqual, MoreThan, SelectQueryBuilder } from 'typeorm';
 import { Logger } from '@nestjs/common';
-import { AuctionBidEntity, AuctionEntity, BidEntity, OffersEntity } from '../../../entity';
+import { AuctionBidEntity, OffersEntity } from '../../../entity';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { AuctionStatus, BidStatus } from '../../../types';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
@@ -57,7 +57,7 @@ export class DatabaseHelper {
 
     if (auctionIds.length) {
       await this.entityManager.update(OffersEntity, auctionIds, {
-        status: AuctionStatus.stopped,
+        status_auction: AuctionStatus.stopped,
         stopAt: new Date(),
       });
     }
