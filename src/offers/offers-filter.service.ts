@@ -306,23 +306,33 @@ export class OffersFilterService {
     return query;
   }
 
-  private byAttributes(query: SelectQueryBuilder<OfferFilters>): SelectQueryBuilder<any> {
-    const attributes = this.connection.manager
+  private async byAttributes(query: SelectQueryBuilder<OfferFilters>, seller?: string): Promise<TraitDto[]> {
+    const collectionIds = await this.getCollectionIds(query);
+
+    if (collectionIds.length === 0) {
+      return [];
+    }
+    const queryAttribute = this.connection.manager
       .createQueryBuilder()
       .select(['key', 'traits as trait ', 'count(traits) over (partition by traits, key) as count'])
       .distinct()
-      .from((qb) => {
-        return qb
-          .select(['v_offers_search_key as key', 'v_offers_search_traits as traits'])
-          .from(`(${query.getQuery()})`, '_filter')
-          .setParameters(query.getParameters())
-          .where('v_offers_search_traits is not null')
-          .andWhere('v_offers_search_locale is not null');
-      }, '_filter');
-    return attributes;
+      .from(OfferFilters, 'v_offers_search')
+      .where('collection_id in (:...collectionIds)', { collectionIds })
+      .andWhere('traits is not null')
+      .andWhere('locale is not null');
+
+    if (nullOrWhitespace(seller)) {
+      queryAttribute.andWhere('v_offers_search.offer_status = :status', { status: 'active' });
+    } else {
+      queryAttribute.andWhere('v_offers_search.offer_status in (:...offer_status)', { offer_status: ['active', 'removed_by_admin'] });
+    }
+
+    const attributes = (await queryAttribute.getRawMany()) as Array<TraitDto>;
+
+    return this.parseAttributes(attributes);
   }
 
-  private async byAttributesCount(query: SelectQueryBuilder<OfferFilters>, seller?: string): Promise<Array<OfferAttributes>> {
+  private async getCollectionIds(query: SelectQueryBuilder<OfferFilters>): Promise<number[]> {
     const collectionList = await this.connection.manager
       .createQueryBuilder()
       .select(['collection_id'])
@@ -336,7 +346,14 @@ export class OffersFilterService {
       }, '_filter')
       .getRawMany();
 
-    const collectionIds = collectionList.map((item) => item.collection_id);
+    return collectionList.map((item) => item.collection_id);
+  }
+
+  private async byAttributesCount(query: SelectQueryBuilder<OfferFilters>, seller?: string): Promise<Array<OfferAttributes>> {
+    const collectionIds = await this.getCollectionIds(query);
+    if (collectionIds.length === 0) {
+      return [];
+    }
     return this.attributesCount(collectionIds, seller);
   }
 
@@ -373,7 +390,7 @@ export class OffersFilterService {
     // Filter by traits
     queryFilter = this.byFindAttributes(queryFilter, offersFilter.collectionId, offersFilter.attributes);
 
-    const attributes = await this.byAttributes(queryFilter).getRawMany();
+    const attributes = await this.byAttributes(queryFilter, offersFilter.seller);
     const attributesCount = await this.byAttributesCount(queryFilter, offersFilter.seller);
 
     queryFilter = this.prepareQuery(queryFilter);
@@ -391,7 +408,7 @@ export class OffersFilterService {
       itemsCount,
       page: itemQuery.page,
       pageSize: itemQuery.pageSize,
-      attributes: this.parseAttributes(attributes),
+      attributes,
       attributesCount,
     };
   }
