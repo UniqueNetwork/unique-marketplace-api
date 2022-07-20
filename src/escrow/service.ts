@@ -115,9 +115,22 @@ export class EscrowService {
       created_at_ask: new Date(),
       updated_at: new Date(),
     });
-
-    this.logger.log(`Registered ask for token ${data.tokenId} in collection ${data.collectionId}`);
-    this.logger.log(JSON.stringify(repository));
+    const logMessage = {
+      type: SellingMethod.FixedPrice,
+      block_number_ask: `${blockNum}`,
+      network: this.getNetwork(network),
+      collection_id: data.collectionId.toString(),
+      token_id: data.tokenId.toString(),
+      address_from: encodeAddress(data.addressFrom),
+      address_to: data.addressTo,
+      status: ASK_STATUS.ACTIVE,
+      price: data.price.toString(),
+      currency: data.currency,
+      created_at_ask: new Date(),
+      updated_at: new Date(),
+    };
+    this.logger.log(JSON.stringify(logMessage));
+    this.logger.log(`Registered FixedPrice for token ${data.tokenId} in collection ${data.collectionId} in block ${blockNum}`);
   }
 
   async cancelAsk(collectionId: number, tokenId: number, blockNumber: bigint, network?: string) {
@@ -132,8 +145,7 @@ export class EscrowService {
       },
       { status: ASK_STATUS.CANCELLED, block_number_cancel: `${blockNumber}` },
     );
-    this.logger.log(`Cancelled ask for token ${tokenId} in collection ${collectionId}`);
-    this.logger.log(JSON.stringify(repository));
+    this.logger.log(`Cancelled FixedPrice for token ${tokenId} in collection ${collectionId}`);
   }
 
   async buyKSM(collectionId: number, tokenId: number, blockNumber: bigint, network?: string) {
@@ -149,7 +161,6 @@ export class EscrowService {
       { status: ASK_STATUS.BOUGHT, block_number_buy: `${blockNumber}` },
     );
     this.logger.log(`Bought KSM for token ${tokenId} in collection ${collectionId}`);
-    this.logger.log(JSON.stringify(repository));
   }
 
   async registerTransfer(

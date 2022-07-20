@@ -53,7 +53,7 @@ export class OffersEntity {
   @Column('varchar', { name: 'address_to', length: 128 })
   address_to: string;
 
-  @Column('varchar', { name: 'address_to', length: 128 })
+  @Column('varchar', { name: 'address_contract', length: 128 })
   address_contract: string;
 
   @OneToMany(() => AuctionBidEntity, (bid) => bid.auction, { cascade: ['insert'] })
