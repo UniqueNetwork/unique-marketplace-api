@@ -41,7 +41,7 @@ import { ViewColumn, ViewEntity } from 'typeorm';
     `"offer"."collection_id" = search_filter.collection_id and ` +
     `"offer"."token_id" = search_filter.token_id ` +
     `left join "public".v_auction_bids auction ON auction.contract_ask_id = "offer"."id" ` +
-    `where "offer"."status" = 'active'`,
+    `where "offer"."status" = ANY (ARRAY['active'::character varying, 'removed_by_admin'::character varying]::text[])`,
   name: 'v_offers_search',
 })
 export class OfferFilters {

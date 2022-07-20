@@ -1,9 +1,9 @@
 import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { OfferContractAskDto } from '../../offers/dto/offer-dto';
+import { OfferEntityDto } from '../../offers/dto/offer-dto';
 import { Type } from 'class-transformer';
 
-export type WithdrawBidQuery = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & { timestamp: number };
+export type WithdrawBidQuery = Pick<OfferEntityDto, 'collectionId' | 'tokenId'> & { timestamp: number };
 
 export type ItemAuctionId = {
   auctionId: string;

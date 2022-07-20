@@ -1,12 +1,12 @@
 import { Server, Socket } from 'socket.io';
 import { Emitter } from '@socket.io/postgres-emitter';
-import { OfferContractAskDto } from '../../offers/dto/offer-dto';
+import { OfferEntityDto } from '../../offers/dto/offer-dto';
 
 export type ServerToClientEvents = {
-  auctionStarted: (offer: OfferContractAskDto) => void;
-  bidPlaced: (offer: OfferContractAskDto) => void;
-  auctionStopped: (offer: OfferContractAskDto) => void;
-  auctionClosed: (offer: OfferContractAskDto) => void;
+  auctionStarted: (offer: OfferEntityDto) => void;
+  bidPlaced: (offer: OfferEntityDto) => void;
+  auctionStopped: (offer: OfferEntityDto) => void;
+  auctionClosed: (offer: OfferEntityDto) => void;
   errorMessage: (message: string) => void;
 };
 

@@ -1,10 +1,10 @@
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection } from 'typeorm';
 
-import { TypeAttributToken, Bid } from '../auction/types';
+import { TypeAttributToken, Bid } from '../types';
 
-import { OfferTraits, OfferContractAskDto, OffersFilter, OfferAttributesDto, OfferAttributes, TraitDto } from './dto';
-import { ContractAsk, SearchIndex, BidEntity } from '../entity';
+import { OfferTraits, OfferEntityDto, OffersFilter, OfferAttributesDto, OfferAttributes, TraitDto } from './dto';
+import { SearchIndex, OffersEntity, AuctionBidEntity } from '../entity';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResultDto } from '../utils/pagination/pagination-result';
@@ -12,7 +12,7 @@ import { OfferSortingRequest } from '../utils/sorting/sorting-request';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { OffersFilterService } from './offers-filter.service';
 import { OffersFilterType, OffersItemType } from './types';
-import { BidStatus } from '../auction/types';
+import { BidStatus } from '../types';
 
 @Injectable()
 export class OffersService {
@@ -36,7 +36,7 @@ export class OffersService {
     pagination: PaginationRequest,
     offersFilter: OffersFilter,
     sort: OfferSortingRequest,
-  ): Promise<PaginationResultDto<OfferContractAskDto>> {
+  ): Promise<PaginationResultDto<OfferEntityDto>> {
     let offers;
     let items = [];
     let auctionIds: Array<number> = [];
@@ -48,7 +48,7 @@ export class OffersService {
       auctionIds = this.auctionIds(offers.items);
       bids = await this.bids(auctionIds);
       searchIndex = await this.searchIndex(this.parserCollectionIdTokenId(offers.items));
-      items = this.parseItems(offers.items, bids, searchIndex) as any as Array<ContractAsk>;
+      items = this.parseItems(offers.items, bids, searchIndex) as any as Array<OffersEntity>;
     } catch (e) {
       this.logger.error(e.message);
       this.sentryService.instance().captureException(new BadRequestException(e), {
@@ -61,11 +61,11 @@ export class OffersService {
       });
     }
 
-    return new PaginationResultDto(OfferContractAskDto, {
+    return new PaginationResultDto(OfferEntityDto, {
       page: offers.page,
       pageSize: offers.pageSize,
       itemsCount: offers.itemsCount,
-      items: items.map(OfferContractAskDto.fromContractAsk),
+      items: items.map(OfferEntityDto.fromOffersEntity),
       attributes: offers.attributes as Array<TraitDto>,
       attributesCount: offers.attributesCount,
     });
@@ -77,7 +77,7 @@ export class OffersService {
 
   private async bids(auctionIds: Array<number>): Promise<Array<Partial<Bid>>> {
     const queryBuilder = this.connection.manager
-      .createQueryBuilder(BidEntity, 'bid')
+      .createQueryBuilder(AuctionBidEntity, 'bid')
       .select(['created_at', 'updated_at', 'amount', 'auction_id', 'bidder_address', 'balance', 'status'])
       .where('bid.amount > 0')
       .andWhere('bid.status != :status', { status: BidStatus.error });
@@ -212,7 +212,7 @@ export class OffersService {
               startPrice: item.auction_start_price,
               status: item.auction_status,
               stopAt: new Date(item.auction_stop_at),
-              bids: bids.filter((bid) => bid.auctionId === item.auction_id) as any as BidEntity[],
+              bids: bids.filter((bid) => bid.auctionId === item.auction_id) as any as AuctionBidEntity[],
             },
           );
         }
@@ -225,7 +225,7 @@ export class OffersService {
     return items.reduce(convertorFlatToObject(), []);
   }
 
-  async getOne(filter: { collectionId: number; tokenId: number }): Promise<OfferContractAskDto | null> {
+  async getOne(filter: { collectionId: number; tokenId: number }): Promise<OfferEntityDto | null> {
     const { collectionId, tokenId } = filter;
 
     const source = await this.offersFilterService.filterByOne(collectionId, tokenId);
@@ -233,9 +233,9 @@ export class OffersService {
 
     const searchIndex = await this.searchIndex(this.parserCollectionIdTokenId(source));
 
-    const contractAsk = this.parseItems(source, bids, searchIndex).pop() as any as ContractAsk;
+    const offers = this.parseItems(source, bids, searchIndex).pop() as any as OffersEntity;
 
-    return contractAsk && OfferContractAskDto.fromContractAsk(contractAsk);
+    return offers && OfferEntityDto.fromOffersEntity(offers);
   }
 
   public get isConnected(): boolean {

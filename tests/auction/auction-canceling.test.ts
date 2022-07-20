@@ -5,7 +5,7 @@ import { AuctionEntity, BlockchainBlock, ContractAsk } from '../../src/entity';
 import { ASK_STATUS } from '../../src/escrow/constants';
 import '@polkadot/api-augment/polkadot';
 import { v4 as uuid } from 'uuid';
-import { AuctionStatus } from '../../src/auction/types';
+import { AuctionStatus } from '../../src/types';
 import { AuctionClosingService } from '../../src/auction/services/closing/auction-closing.service';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { TxDecoder } from '../../src/auction/services/helpers/tx-decoder';

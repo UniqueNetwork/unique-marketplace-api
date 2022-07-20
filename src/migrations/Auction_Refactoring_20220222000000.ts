@@ -1,5 +1,5 @@
 import { MigrationInterface, QueryRunner, TableUnique, TableIndex } from 'typeorm';
-import {AuctionStatus, BidStatus} from "../auction/types";
+import { AuctionStatus, BidStatus } from '../types';
 
 export class Auction_Refactoring_20220222000000 implements MigrationInterface {
   name = 'Auction_Refactoring_20220222000000';

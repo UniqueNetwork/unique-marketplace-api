@@ -5,7 +5,7 @@ import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk } from '../../sr
 import { ASK_STATUS } from '../../src/escrow/constants';
 
 import { v4 as uuid } from 'uuid';
-import { AuctionStatus, Bid, BidStatus } from '../../src/auction/types';
+import { AuctionStatus, Bid, BidStatus } from '../../src/types';
 import { AuctionClosingService } from '../../src/auction/services/closing/auction-closing.service';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { TxDecoder } from '../../src/auction/services/helpers/tx-decoder';

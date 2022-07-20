@@ -3,7 +3,7 @@ import request from 'supertest';
 import * as util from '../../src/utils/blockchain/util';
 import { OfferContractAskDto } from '../../src/offers/dto/offer-dto';
 import { AuctionTestEntities, createAuction, getAuctionTestEntities, placeBid, getEventHook } from './base';
-import { Bid } from '../../src/auction/types';
+import { Bid } from '../../src/types';
 import { encodeAddress } from '@polkadot/util-crypto';
 
 describe('Auction creation method', () => {

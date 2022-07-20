@@ -1,9 +1,9 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { Bid, BidStatus } from '../../types';
-import { AuctionEntity } from './auction-entity';
+import { Bid, BidStatus } from '../types';
+import { OffersEntity } from './offers';
 
-@Entity('bids', { schema: 'public' })
-export class BidEntity implements Bid {
+@Entity('auction_bids', { schema: 'public' })
+export class AuctionBidEntity implements Bid {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -50,9 +50,9 @@ export class BidEntity implements Bid {
   })
   status: BidStatus;
 
-  @ManyToOne(() => AuctionEntity, (auction) => auction.bids)
+  @ManyToOne(() => OffersEntity, (auction) => auction.bids)
   @JoinColumn([{ name: 'auction_id', referencedColumnName: 'id' }])
-  auction: AuctionEntity;
+  auction: OffersEntity;
 
   @Column({
     type: 'timestamp without time zone',

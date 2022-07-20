@@ -5,7 +5,7 @@ import { AuctionEntity, BidEntity, BlockchainBlock, ContractAsk } from '../../sr
 import { ASK_STATUS } from '../../src/escrow/constants';
 
 import { v4 as uuid } from 'uuid';
-import { AuctionStatus, Bid, BidStatus } from '../../src/auction/types';
+import { AuctionStatus, Bid, BidStatus } from '../../src/types';
 import { DateHelper } from '../../src/utils/date-helper';
 
 describe('Bid placing method', () => {

@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { OfferContractAskDto } from '../../offers/dto/offer-dto';
+import { OfferEntityDto } from '../../offers/dto/offer-dto';
 import { IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export type CancelAuctionQuery = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'>;
+export type CancelAuctionQuery = Pick<OfferEntityDto, 'collectionId' | 'tokenId'>;
 
 export class CancelAuctionQueryDto implements CancelAuctionQuery {
   @ApiProperty({ example: 1 })

@@ -1,8 +1,5 @@
-import { AuctionEntity, BidEntity } from './../auction/entities';
-import { ContractAsk } from './../entity';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, SelectQueryBuilder } from 'typeorm';
-
 import { nullOrWhitespace } from '../utils/string/null-or-white-space';
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResult, PaginationResultDto } from '../utils/pagination/pagination-result';
@@ -11,9 +8,10 @@ import { SortingOrder } from '../utils/sorting/sorting-order';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
 import { paginate } from '../utils/pagination/paginate';
 import { MarketTradeDto, TradesFilter } from './dto';
-import { MarketTrade, SearchIndex, SellingMethod } from '../entity';
+import { AuctionBidEntity, MarketTrade, OffersEntity, SearchIndex } from '../entity';
 import { IMarketTrade } from './interfaces';
 import { InjectSentry, SentryService } from '../utils/sentry';
+import { SellingMethod } from '../types';
 
 @Injectable()
 export class TradesService {
@@ -193,7 +191,7 @@ export class TradesService {
       )
       .leftJoinAndMapOne(
         'trade.offers',
-        ContractAsk,
+        OffersEntity,
         'offers',
         'trade.block_number_ask = offers.block_number_ask and trade.block_number_buy = offers.block_number_buy and trade.token_id = offers.token_id and  trade.collection_id = offers.collection_id',
       )
@@ -256,9 +254,9 @@ export class TradesService {
 
   public async getByAuction(auctionId: string): Promise<any> {
     const auction = await this.connection.manager
-      .createQueryBuilder(AuctionEntity, 'auction')
-      .leftJoinAndMapMany('auction.bids', BidEntity, 'bids', 'bids.auction_id = auction.id')
-      .where(`auction.contract_ask_id = :auctionId`, { auctionId });
+      .createQueryBuilder(OffersEntity, 'auction')
+      .leftJoinAndMapMany('auction.bids', AuctionBidEntity, 'bids', 'bids.auction_id = auction.id')
+      .where(`auction.id = :auctionId`, { auctionId });
 
     return auction.getMany();
   }

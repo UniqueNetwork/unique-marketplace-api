@@ -38,7 +38,7 @@ import {
   WithdrawBidChosenQueryDto,
   WithdrawBidQueryDto,
 } from './requests';
-import { OfferContractAskDto } from '../offers/dto/offer-dto';
+
 import { TxDecoder } from './services/helpers/tx-decoder';
 import { SignatureVerifier } from './services/helpers/signature-verifier';
 import { AuctionCancelingService } from './services/auction-canceling.service';
@@ -48,6 +48,7 @@ import { BadRequestResponse, BidsWitdrawByOwnerDto, ConflictResponse, Unauthoriz
 import * as fs from 'fs';
 import { InjectUniqueAPI, InjectKusamaAPI } from '../blockchain';
 import { DateHelper } from '../utils/date-helper';
+import { OfferEntityDto } from '../offers/dto';
 
 @ApiTags('Auction')
 @Controller('auction')
@@ -73,12 +74,12 @@ export class AuctionController {
     summary: 'Create an auction',
     description: fs.readFileSync('docs/create_auction.md').toString(),
   })
-  @ApiResponse({ status: HttpStatus.CREATED, type: OfferContractAskDto })
+  @ApiResponse({ status: HttpStatus.CREATED, type: OfferEntityDto })
   @ApiBadRequestResponse({ type: BadRequestResponse })
   @ApiConflictResponse({ type: ConflictResponse })
   async createAuction(
     @Body(new ValidationPipe({ transform: true })) createAuctionRequest: CreateAuctionRequestDto,
-  ): Promise<OfferContractAskDto> {
+  ): Promise<OfferEntityDto> {
     DateHelper.checkDateAndMinutes(createAuctionRequest.days, createAuctionRequest.minutes);
     try {
       const txInfo = await this.txDecoder.decodeUniqueTransfer(createAuctionRequest.tx);
@@ -101,13 +102,13 @@ export class AuctionController {
 
   @Post('place_bid')
   @HttpCode(HttpStatus.OK)
-  @ApiResponse({ status: HttpStatus.CREATED, type: OfferContractAskDto })
+  @ApiResponse({ status: HttpStatus.CREATED, type: OfferEntityDto })
   @ApiOperation({
     summary: 'Placing a bid in an auction',
     description: fs.readFileSync('docs/place_bid_auction.md').toString(),
   })
   @ApiBadRequestResponse({ type: BadRequestResponse })
-  async placeBid(@Body() placeBidRequest: PlaceBidRequestDto): Promise<OfferContractAskDto> {
+  async placeBid(@Body() placeBidRequest: PlaceBidRequestDto): Promise<OfferEntityDto> {
     const txInfo = await this.txDecoder.decodeBalanceTransfer(placeBidRequest.tx);
 
     return await this.bidPlacingService.placeBid({
@@ -142,7 +143,7 @@ export class AuctionController {
 
   @Delete('cancel_auction')
   @HttpCode(HttpStatus.OK)
-  @ApiResponse({ status: HttpStatus.OK, type: OfferContractAskDto })
+  @ApiResponse({ status: HttpStatus.OK, type: OfferEntityDto })
   @ApiOperation({
     summary: 'Canceled an auction',
     description: fs.readFileSync('docs/cancel_auction.md').toString(),
@@ -154,7 +155,7 @@ export class AuctionController {
     @Query() query: CancelAuctionQueryDto,
     @Headers('Authorization') authorization = '',
     @Req() req: Request,
-  ): Promise<OfferContractAskDto> {
+  ): Promise<OfferEntityDto> {
     AuctionController.checkRequestTimestamp(query.timestamp);
     const [signerAddress = '', signature = ''] = authorization.split(':');
     const queryString = req.originalUrl.split('?')[1];

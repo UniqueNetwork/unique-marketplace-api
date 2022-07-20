@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ContractAsk } from '../../entity';
-import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription } from '../../auction/types';
+import { OffersEntity } from '../../entity';
+import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription } from '../../types';
 import { Exclude, Expose, plainToInstance, Type } from 'class-transformer';
 
 class AuctionDto implements Auction {
@@ -40,7 +40,7 @@ export class TokenDescriptionDto {
   @Expose() attributes: Array<TokenDescription>;
 }
 
-export class OfferContractAskDto {
+export class OfferEntityDto {
   @ApiProperty({ description: 'Collection ID', example: 16 })
   @Expose()
   collectionId: number;
@@ -60,29 +60,29 @@ export class OfferContractAskDto {
   @Expose()
   creationDate: Date;
 
-  @ApiProperty({ required: false })
-  @Expose()
-  @Type(() => AuctionDto)
-  auction?: AuctionDto;
+  // @ApiProperty({ required: false })
+  // @Expose()
+  // @Type(() => AuctionDto)
+  // auction?: AuctionDto;
 
   @ApiProperty({ description: 'Token description' })
   @Expose()
   @Type(() => TokenDescriptionDto)
   tokenDescription: TokenDescriptionDto;
 
-  static fromContractAsk(contractAsk: ContractAsk): OfferContractAskDto {
+  static fromOffersEntity(offersData: OffersEntity): OfferEntityDto {
     const plain: Record<string, any> = {
-      ...contractAsk,
-      collectionId: +contractAsk.collection_id,
-      tokenId: +contractAsk.token_id,
-      price: contractAsk.price.toString(),
-      quoteId: +contractAsk.currency,
-      seller: contractAsk.address_from,
-      creationDate: contractAsk.created_at,
+      ...offersData,
+      collectionId: +offersData.collection_id,
+      tokenId: +offersData.token_id,
+      price: offersData.price.toString(),
+      quoteId: +offersData.currency,
+      seller: offersData.address_from,
+      creationDate: offersData.created_at,
     };
 
-    if (contractAsk?.auction?.bids?.length) {
-      contractAsk.auction.bids = contractAsk.auction.bids.sort((a, b) => {
+    if (offersData?.bids?.length) {
+      offersData.bids = offersData.bids.sort((a, b) => {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
     }
@@ -94,8 +94,8 @@ export class OfferContractAskDto {
   prefix: string
 }
      */
-    /*     if (Array.isArray(contractAsk?.search_index)) {
-      plain.tokenDescription = contractAsk?.search_index.reduce((acc, item) => {
+    /*     if (Array.isArray(OffersEntity?.search_index)) {
+      plain.tokenDescription = OffersEntity?.search_index.reduce((acc, item) => {
         if (item.type === TypeAttributToken.Prefix) {
           acc.prefix = item.items.pop();
         }
@@ -134,7 +134,7 @@ export class OfferContractAskDto {
       })
     } */
 
-    return plainToInstance<OfferContractAskDto, Record<string, any>>(OfferContractAskDto, plain, {
+    return plainToInstance<OfferEntityDto, Record<string, any>>(OfferEntityDto, plain, {
       excludeExtraneousValues: true,
     });
   }

@@ -1,8 +1,8 @@
 import { Any, EntityManager, LessThanOrEqual, MoreThan, SelectQueryBuilder } from 'typeorm';
 import { Logger } from '@nestjs/common';
-import { AuctionEntity, BidEntity, ContractAsk } from '../../../entity';
+import { AuctionBidEntity, OffersEntity } from '../../../entity';
 import { ASK_STATUS } from '../../../escrow/constants';
-import { AuctionStatus, BidStatus } from '../../types';
+import { AuctionStatus, BidStatus } from '../../../types';
 import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
 import { encodeAddress } from '@polkadot/util-crypto';
 
@@ -20,7 +20,7 @@ type BidsFilter = {
   bidderAddress?: string;
 };
 
-type ContractFilter = {
+type AuctionTokenFilter = {
   collectionId: number;
   tokenId: number;
 };
@@ -30,66 +30,55 @@ export class DatabaseHelper {
 
   constructor(private readonly entityManager: EntityManager) {}
 
-  async getActiveAuctionContract(filter: ContractFilter): Promise<ContractAsk> {
-    return this.getAuctionContract(filter, [AuctionStatus.active]);
+  async getActiveAuction(filter: AuctionTokenFilter): Promise<OffersEntity> {
+    return this.getAuction(filter, [AuctionStatus.active]);
   }
 
-  async getAuctionContract(filter: ContractFilter, auctionStatuses: AuctionStatus[]): Promise<ContractAsk> {
+  async getAuction(filter: AuctionTokenFilter, auctionStatuses: AuctionStatus[]): Promise<OffersEntity> {
     const { collectionId, tokenId } = filter;
 
-    const contractAsk = await this.entityManager.findOne(ContractAsk, {
-      where: { collection_id: collectionId, token_id: tokenId, status: ASK_STATUS.ACTIVE },
-      relations: ['auction'],
+    const offersEntityData = await this.entityManager.findOne(OffersEntity, {
+      where: { type: 'Auction', collection_id: collectionId, token_id: tokenId, status_auction: ASK_STATUS.ACTIVE },
     });
-
-    if (!contractAsk) throw new Error('no offer');
-    if (!contractAsk.auction) throw new Error('no auction');
-
-    if (!auctionStatuses.includes(contractAsk.auction.status)) {
-      throw new Error(`Current auction status is ${contractAsk.auction.status}`);
-    }
-
-    return contractAsk;
+    return offersEntityData;
   }
 
-  async updateAuctionsAsStopped(): Promise<{ contractIds: string[] }> {
-    const contractIds: string[] = [];
+  async updateAuctionsAsStopped(): Promise<{ auctionIds: string[] }> {
     const auctionIds: string[] = [];
 
-    const auctionsToStop = await this.entityManager.find(AuctionEntity, {
-      status: AuctionStatus.active,
+    const auctionsToStop = await this.entityManager.find(OffersEntity, {
+      status_auction: AuctionStatus.active,
       stopAt: LessThanOrEqual(new Date()),
     });
 
     auctionsToStop.forEach((a) => {
-      contractIds.push(a.contractAskId);
       auctionIds.push(a.id);
     });
 
-    if (auctionsToStop.length === 0) return { contractIds };
-
     if (auctionIds.length) {
-      await this.entityManager.update(AuctionEntity, auctionIds, {
-        status: AuctionStatus.stopped,
+      await this.entityManager.update(OffersEntity, auctionIds, {
+        status_auction: AuctionStatus.stopped,
         stopAt: new Date(),
       });
     }
 
-    return { contractIds };
+    return { auctionIds };
   }
 
-  async findAuctionsReadyForWithdraw(): Promise<AuctionEntity[]> {
+  async findAuctionsReadyForWithdraw(): Promise<OffersEntity[]> {
     const mintingBids = this.entityManager
-      .createQueryBuilder(BidEntity, 'bid')
+      .createQueryBuilder(AuctionBidEntity, 'bid')
       .select('auction_id')
       .distinct()
       .where('bid.status = :bidStatus');
 
     return this.entityManager
-      .createQueryBuilder(AuctionEntity, 'auction')
-      .where('auction.status = :auctionStatus')
-      .andWhere(`auction.id NOT IN (${mintingBids.getSql()})`)
+      .createQueryBuilder(OffersEntity, 'auction')
+      .where('type = :type')
+      .andWhere('auction.status_auction = :auctionStatus')
+      .andWhere(`id NOT IN (${mintingBids.getSql()})`)
       .setParameters({
+        type: 'Auction',
         auctionStatus: AuctionStatus.stopped,
         bidStatus: BidStatus.minting,
       })
@@ -120,7 +109,7 @@ export class DatabaseHelper {
     const { auctionId, bidStatuses, bidderAddress } = filter;
 
     const query = this.entityManager
-      .createQueryBuilder<AggregatedBidDb>(BidEntity, 'auction_bid')
+      .createQueryBuilder<AggregatedBidDb>(AuctionBidEntity, 'auction_bid')
       .select('SUM(auction_bid.amount)', 'totalAmount')
       .addSelect('auction_bid.bidder_address', 'bidderAddress')
       .where('auction_bid.auction_id = :auctionId', { auctionId });
@@ -161,10 +150,10 @@ export class DatabaseHelper {
     return this.getAggregatedBid({ ...filter, bidStatuses: [BidStatus.finished] });
   }
 
-  async getBids(filter: { auctionId: string; bidStatuses?: BidStatus[]; includeWithdrawals?: boolean }): Promise<BidEntity[]> {
+  async getBids(filter: { auctionId: string; bidStatuses?: BidStatus[]; includeWithdrawals?: boolean }): Promise<AuctionBidEntity[]> {
     const { auctionId, includeWithdrawals = false, bidStatuses = [BidStatus.minting, BidStatus.finished] } = filter;
 
-    const findOptions: FindManyOptions<BidEntity> = {
+    const findOptions: FindManyOptions<AuctionBidEntity> = {
       where: {
         auctionId,
         status: Any(bidStatuses),
@@ -172,6 +161,6 @@ export class DatabaseHelper {
       },
     };
 
-    return this.entityManager.find(BidEntity, findOptions);
+    return this.entityManager.find(AuctionBidEntity, findOptions);
   }
 }
