@@ -17,7 +17,7 @@ export class OffersEntity {
   @Column('varchar', { name: 'status', length: 16 })
   status: string;
 
-  @Column({ type: 'varchar', default: AuctionStatus.created, length: 16, name: 'status_auction' })
+  @Column({ type: 'varchar', length: 16, name: 'status_auction' })
   status_auction: string;
 
   @Column('bigint', { name: 'collection_id' })

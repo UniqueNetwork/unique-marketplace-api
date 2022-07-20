@@ -66,7 +66,6 @@ export class Offers_2022071900000000 implements MigrationInterface {
             type: 'varchar',
             length: '16',
             isNullable: true,
-            default: `'${AuctionStatus.created}'`,
           },
           {
             name: 'stop_at',
