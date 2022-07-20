@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, IsString } from 'class-validator';
-import { OfferContractAskDto } from '../../offers/dto/offer-dto';
+import { OfferEntityDto } from '../../offers/dto/offer-dto';
 
-export type BidsWitdrawByOwner = Pick<OfferContractAskDto, 'collectionId' | 'tokenId'> & {
+export type BidsWitdrawByOwner = Pick<OfferEntityDto, 'collectionId' | 'tokenId'> & {
   auctionId: string;
   amount: string;
   contractAskId: string;

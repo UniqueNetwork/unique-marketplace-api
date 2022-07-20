@@ -22,8 +22,9 @@ export class OffersAuctionBids_20220719150000 implements MigrationInterface {
           },
           {
             name: 'amount',
-            type: 'varchar',
+            type: 'numeric(39)',
             isNullable: false,
+            default: '0',
           },
           {
             name: 'balance',

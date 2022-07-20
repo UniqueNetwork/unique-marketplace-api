@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { cyan, red, green, black, bgGreen, bgRed } from 'cli-color';
 import { BroadcastIOServer, BroadcastIOSocket, TokenIds, BroadcastIOEmitter } from '../types';
-import { OfferContractAskDto } from '../../offers/dto/offer-dto';
+import { OfferEntityDto } from '../../offers/dto';
 
 @Injectable()
 export class BroadcastService {
@@ -61,12 +61,12 @@ export class BroadcastService {
     });
   }
 
-  sendAuctionStarted(offer: OfferContractAskDto): void {
+  sendAuctionStarted(offer: OfferEntityDto): void {
     this.logger.log(`${this.emitColor} auctionStarted - ${JSON.stringify(offer)}`);
     this.server.emit('auctionStarted', offer);
   }
 
-  sendBidPlaced(offer: OfferContractAskDto): void {
+  sendBidPlaced(offer: OfferEntityDto): void {
     const roomId = BroadcastService.getAuctionRoomId(offer);
 
     this.logger.log(`${this.emitColor} bidPlaced - ${roomId} - ${JSON.stringify(offer)}`);
@@ -74,7 +74,7 @@ export class BroadcastService {
     this.server.in(roomId).emit('bidPlaced', offer);
   }
 
-  sendAuctionError(offer: OfferContractAskDto, message: string): void {
+  sendAuctionError(offer: OfferEntityDto, message: string): void {
     const roomId = BroadcastService.getAuctionRoomId(offer);
     this.logger.error(`${this.emitColorRed} errorMessage - ${roomId} - ${JSON.stringify(offer)}`);
     const error = {
@@ -84,7 +84,7 @@ export class BroadcastService {
     this.server.in(roomId).emit('errorMessage', `${error}`);
   }
 
-  sendAuctionStopped(offer: OfferContractAskDto): void {
+  sendAuctionStopped(offer: OfferEntityDto): void {
     const roomId = BroadcastService.getAuctionRoomId(offer);
 
     this.logger.debug(`${this.emitColorRed} auctionStopped - ${roomId} - ${JSON.stringify(offer)}`);
@@ -92,7 +92,7 @@ export class BroadcastService {
     this.server.in(roomId).emit('auctionStopped', offer);
   }
 
-  sendAuctionClosed(offer: OfferContractAskDto): void {
+  sendAuctionClosed(offer: OfferEntityDto): void {
     const roomId = BroadcastService.getAuctionRoomId(offer);
 
     this.logger.debug(`${this.emitColorRed} auctionClosed - ${roomId} - ${JSON.stringify(offer)}`);

@@ -2,11 +2,11 @@ import { Connection, SelectQueryBuilder } from 'typeorm';
 import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 import { BlockchainBlock, ContractAsk } from '../entity';
 import { OfferSortingRequest } from '../utils/sorting/sorting-request';
-import { OfferContractAskDto } from './dto/offer-dto';
+import { OfferEntityDto } from './dto/offer-dto';
 import { SortingOrder } from '../utils/sorting/sorting-order';
 import { SortingParameter } from '../utils/sorting/sorting-parameter';
 
-type SortMapping<T> = Partial<Record<keyof OfferContractAskDto, keyof T>>;
+type SortMapping<T> = Partial<Record<keyof OfferEntityDto, keyof T>>;
 
 const prepareMapping = (input: Record<string, string>, columnMetadata: ColumnMetadata[]): Record<string, string> => {
   return Object.entries(input).reduce((acc, [key, value]) => {

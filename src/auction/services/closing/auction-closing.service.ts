@@ -6,7 +6,7 @@ import { KeyringPair } from '@polkadot/keyring/types';
 
 import { BroadcastService } from '../../../broadcast/services/broadcast.service';
 import { AuctionEntity } from '../../entities';
-import { BlockchainBlock, ContractAsk, MarketTrade, MoneyTransfer } from '../../../entity';
+import { BlockchainBlock, ContractAsk, MarketTrade, MoneyTransfer, OffersEntity } from '../../../entity';
 import { DatabaseHelper } from '../helpers/database-helper';
 import { AuctionStatus, BidStatus, SellingMethod } from '../../../types';
 import { BidWithdrawService } from '../bid-withdraw.service';
@@ -14,7 +14,7 @@ import { AuctionCancelingService } from '../auction-canceling.service';
 import { ASK_STATUS } from '../../../escrow/constants';
 import { ExtrinsicSubmitter } from '../helpers/extrinsic-submitter';
 import { MarketConfig } from '../../../config/market-config';
-import { OfferContractAskDto } from '../../../offers/dto/offer-dto';
+import { OfferEntityDto } from '../../../offers/dto/offer-dto';
 import { AuctionCredentials } from '../../providers';
 import { InjectSentry, SentryService } from '../../../utils/sentry';
 import { MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from '../../../escrow/constants';
@@ -23,8 +23,7 @@ import { MONEY_TRANSFER_TYPES, MONEY_TRANSFER_STATUS } from '../../../escrow/con
 export class AuctionClosingService {
   private readonly logger = new Logger(AuctionClosingService.name);
 
-  private auctionRepository: Repository<AuctionEntity>;
-  private contractAskRepository: Repository<ContractAsk>;
+  private offersRepository: Repository<OffersEntity>;
   private blockchainBlockRepository: Repository<BlockchainBlock>;
   private auctionKeyring: KeyringPair;
   private tradeRepository: Repository<MarketTrade>;
@@ -42,35 +41,39 @@ export class AuctionClosingService {
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     @InjectSentry() private readonly sentryService: SentryService,
   ) {
-    this.auctionRepository = connection.manager.getRepository(AuctionEntity);
-    this.contractAskRepository = connection.manager.getRepository(ContractAsk);
+    this.offersRepository = connection.manager.getRepository(OffersEntity);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
     this.auctionKeyring = auctionCredentials.keyring;
     this.tradeRepository = connection.manager.getRepository(MarketTrade);
     this.moneyTransferRepository = connection.getRepository(MoneyTransfer);
   }
 
+  /**
+   * Processes auctions stopping interval.
+   */
   async auctionsStoppingIntervalHandler(): Promise<void> {
     const databaseHelper = new DatabaseHelper(this.connection.manager);
 
-    const { contractIds } = await databaseHelper.updateAuctionsAsStopped();
+    const { auctionIds } = await databaseHelper.updateAuctionsAsStopped();
 
-    if (contractIds.length === 0) return;
+    if (auctionIds.length === 0) return;
 
-    const contractAsks = await this.contractAskRepository.find({
-      where: { id: In(contractIds) },
-      relations: ['auction'],
+    const auctionData = await this.offersRepository.find({
+      where: { id: In(auctionIds), type: SellingMethod.Auction },
     });
 
-    for (const contractAsk of contractAsks) {
+    for (const auction of auctionData) {
       try {
-        this.broadcastService.sendAuctionStopped(OfferContractAskDto.fromContractAsk(contractAsk));
+        this.broadcastService.sendAuctionStopped(OfferEntityDto.fromOffersEntity(auction));
       } catch (error) {
         this.logger.warn(error);
       }
     }
   }
 
+  /**
+   * Processes auction closing.
+   */
   async auctionsWithdrawingIntervalHandler(): Promise<void> {
     const databaseHelper = new DatabaseHelper(this.connection.manager);
 
@@ -91,27 +94,26 @@ export class AuctionClosingService {
     //await Promise.all(withdrawsPromises);
   }
 
-  async processAuctionWithdraws(auction: AuctionEntity): Promise<void> {
+  async processAuctionWithdraws(auction: OffersEntity): Promise<void> {
     const databaseHelper = new DatabaseHelper(this.connection.manager);
-    await this.auctionRepository.update(auction.id, { status: AuctionStatus.withdrawing });
+    await this.offersRepository.update(auction.id, { status_auction: AuctionStatus.withdrawing });
 
     const [winner, ...othersBidders] = await databaseHelper.getAuctionAggregatedBids({
       auctionId: auction.id,
       bidStatuses: [BidStatus.finished],
     });
 
-    const contractAsk = await this.contractAskRepository.findOne(auction.contractAskId);
-    const { address_from } = contractAsk;
+    const offer = await this.offersRepository.findOne(auction.id);
+    const { address_from } = offer;
 
     if (othersBidders.length === 0) {
-      await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.CANCELLED });
-      await this.auctionRepository.update(auction.id, { status: AuctionStatus.ended });
+      await this.offersRepository.update(offer.id, { status: ASK_STATUS.CANCELLED, status_auction: AuctionStatus.ended });
     }
 
     for (const bidder of othersBidders) {
       try {
         const { bidderAddress, totalAmount } = bidder;
-        const message = AuctionClosingService.getIdentityMessage(contractAsk, bidderAddress, totalAmount);
+        const message = AuctionClosingService.getIdentityMessage(offer, bidderAddress, totalAmount);
 
         if (totalAmount > 0) {
           this.logger.log(message + ` is not a winner, going to withdraw`);
@@ -147,13 +149,13 @@ export class AuctionClosingService {
 
       const ownerPrice = getPriceWithoutCommission(finalPrice, this.config.auction.commission);
 
-      let message = AuctionClosingService.getIdentityMessage(contractAsk, winnerAddress, finalPrice);
+      let message = AuctionClosingService.getIdentityMessage(offer, winnerAddress, finalPrice);
       message += ` is winner;\n`;
       message += `going to send ${ownerPrice} to owner (${address_from});\n`;
       message += `market fee is ${finalPrice - ownerPrice};\n`;
       this.logger.log(message);
 
-      await this.sendTokenToWinner(contractAsk, winnerAddress);
+      await this.sendTokenToWinner(offer, winnerAddress);
 
       const nonce = await this.kusamaApi.rpc.system.accountNextIndex(this.auctionKeyring.address);
 
@@ -170,10 +172,13 @@ export class AuctionClosingService {
         });
 
       if (extrinsic) {
-        await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.BOUGHT, address_to: winnerAddress });
-        await this.auctionRepository.update(auction.id, { status: AuctionStatus.ended });
+        await this.offersRepository.update(offer.id, {
+          status: ASK_STATUS.BOUGHT,
+          address_to: winnerAddress,
+          status_auction: AuctionStatus.ended,
+        });
 
-        const contractAskDb = await this.contractAskRepository.findOne(contractAsk.id);
+        const contractAskDb = await this.offersRepository.findOne(offer.id);
 
         const getBlockCreatedAt = async (blockNum: bigint | number, blockTimeSec = 6n) => {
           let block = await this.blockchainBlockRepository.findOne({
@@ -215,7 +220,7 @@ export class AuctionClosingService {
           buy_created_at,
           originPrice: `${contractAskDb.price}`,
           status: SellingMethod.Auction,
-          commission: `${BigInt(contractAsk.price) - ownerPrice}`,
+          commission: `${BigInt(offer.price) - ownerPrice}`,
         });
 
         await this.moneyTransferRepository
@@ -226,7 +231,7 @@ export class AuctionClosingService {
             this.moneyTransferRepository.create([
               {
                 id: uuid(),
-                amount: `-${BigInt(contractAsk.price)}`,
+                amount: `-${BigInt(offer.price)}`,
                 block_number: contractAskDb.block_number_buy,
                 network: 'kusama',
                 type: MONEY_TRANSFER_TYPES.DEPOSIT,
@@ -253,18 +258,18 @@ export class AuctionClosingService {
           .execute();
       }
     } else {
-      const contractAsk = await this.contractAskRepository.findOne(auction.contractAskId);
+      const contractAsk = await this.offersRepository.findOne(auction.id);
       await this.auctionCancellingService.sendTokenBackToOwner(contractAsk);
-      await this.contractAskRepository.update(contractAsk.id, { status: ASK_STATUS.CANCELLED });
+      await this.offersRepository.update(contractAsk.id, { status: ASK_STATUS.CANCELLED });
     }
 
-    contractAsk.auction = auction;
-    this.broadcastService.sendAuctionClosed(OfferContractAskDto.fromContractAsk(contractAsk));
+    // offer.auction = auction;
+    this.broadcastService.sendAuctionClosed(OfferEntityDto.fromOffersEntity(offer));
   }
 
-  private async sendTokenToWinner(contractAsk: ContractAsk, winnerAddress: string): Promise<void> {
+  private async sendTokenToWinner(offersEntity: OffersEntity, winnerAddress: string): Promise<void> {
     try {
-      const { collection_id, token_id } = contractAsk;
+      const { collection_id, token_id } = offersEntity;
 
       const tx = await this.uniqueApi.tx.unique
         .transfer({ Substrate: winnerAddress }, collection_id, token_id, 1)
@@ -279,13 +284,13 @@ export class AuctionClosingService {
       });
 
       await this.connection.createQueryBuilder().insert().into(BlockchainBlock).values(block).orIgnore().execute();
-      await this.contractAskRepository.update(contractAsk.id, { block_number_buy: block.block_number });
+      await this.offersRepository.update(offersEntity.id, { block_number_buy: block.block_number });
     } catch (error) {
       this.logger.error(error);
     }
   }
 
-  static getIdentityMessage(contract: ContractAsk, address: string, amount: bigint): string {
-    return `${contract.collection_id}/${contract.token_id}; ${address}  (current amount: ${amount})`;
+  static getIdentityMessage(offer: OffersEntity, address: string, amount: bigint): string {
+    return `${offer.collection_id}/${offer.token_id}; ${address}  (current amount: ${amount})`;
   }
 }

@@ -11,7 +11,7 @@ export class ForceClosingService {
   async forceCloseAuction(collectionId: string, tokenId: string): Promise<void> {
     const databaseHelper = new DatabaseHelper(this.connection.manager);
 
-    const contract = await databaseHelper.getAuctionContract(
+    const contract = await databaseHelper.getAuction(
       {
         collectionId: Number(collectionId),
         tokenId: Number(tokenId),
@@ -19,7 +19,7 @@ export class ForceClosingService {
       [AuctionStatus.created, AuctionStatus.active],
     );
 
-    await this.connection.manager.update(AuctionEntity, contract.auction.id, {
+    await this.connection.manager.update(AuctionEntity, contract.id, {
       stopAt: new Date(),
       status: AuctionStatus.stopped,
     });

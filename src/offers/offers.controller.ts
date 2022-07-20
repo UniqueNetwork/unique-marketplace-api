@@ -3,7 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import * as fs from 'fs';
 
 import { OffersService } from './offers.service';
-import { OfferTraits, OfferContractAskDto, OffersFilter, OfferAttributesDto, OfferAttributes } from './dto';
+import { OfferTraits, OfferEntityDto, OffersFilter, OfferAttributesDto, OfferAttributes } from './dto';
 import { ParseOffersFilterPipe, ParseOffersAttributes } from './pipes';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
@@ -22,21 +22,21 @@ export class OffersController {
     summary: 'Get offers, filters and seller',
     description: fs.readFileSync('docs/offers.md').toString(),
   })
-  @ApiResponse({ type: OfferContractAskDto, status: HttpStatus.OK })
+  @ApiResponse({ type: OfferEntityDto, status: HttpStatus.OK })
   get(
     @Query() pagination: PaginationRequest,
     @Query(ParseOffersFilterPipe) offersFilter: OffersFilter,
     @Query() sort: OfferSortingRequest,
-  ): Promise<PaginationResultDto<OfferContractAskDto>> {
+  ): Promise<PaginationResultDto<OfferEntityDto>> {
     return this.offersService.get(pagination, offersFilter, sort);
   }
 
   @Get('offer/:collectionId/:tokenId')
-  @ApiResponse({ type: OfferContractAskDto, status: HttpStatus.OK })
+  @ApiResponse({ type: OfferEntityDto, status: HttpStatus.OK })
   async getOneOffer(
     @Param('collectionId', ParseIntPipe) collectionId: number,
     @Param('tokenId', ParseIntPipe) tokenId: number,
-  ): Promise<OfferContractAskDto> {
+  ): Promise<OfferEntityDto> {
     const offer = await this.offersService.getOne({ collectionId, tokenId });
 
     if (offer) {

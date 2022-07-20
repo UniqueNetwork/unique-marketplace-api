@@ -2,7 +2,7 @@ import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@ne
 import { Connection, Repository } from 'typeorm';
 
 import { AuctionEntity, BidEntity } from '../entities';
-import { ContractAsk, MoneyTransfer } from '../../entity';
+import { AuctionBidEntity, ContractAsk, MoneyTransfer, OffersEntity } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
 import { MarketConfig } from '../../config/market-config';
@@ -32,9 +32,9 @@ type BidsWirthdrawArgs = {
 export class BidWithdrawService {
   private readonly logger = new Logger(BidWithdrawService.name);
 
-  private readonly bidRepository: Repository<BidEntity>;
-  private readonly auctionRepository: Repository<AuctionEntity>;
-  private readonly contractAskRepository: Repository<ContractAsk>;
+  private readonly bidRepository: Repository<AuctionBidEntity>;
+
+  private readonly offersRepository: Repository<OffersEntity>;
   private moneyTransferRepository: Repository<MoneyTransfer>;
 
   constructor(
@@ -46,14 +46,14 @@ export class BidWithdrawService {
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @InjectSentry() private readonly sentryService: SentryService,
   ) {
-    this.bidRepository = connection.manager.getRepository(BidEntity);
-    this.auctionRepository = connection.manager.getRepository(AuctionEntity);
-    this.contractAskRepository = connection.getRepository(ContractAsk);
+    this.bidRepository = connection.manager.getRepository(AuctionBidEntity);
+
+    this.offersRepository = connection.getRepository(OffersEntity);
     this.moneyTransferRepository = connection.getRepository(MoneyTransfer);
   }
 
   async withdrawBidByBidder(args: BidWithdrawArgs): Promise<void> {
-    let withdrawingBid: BidEntity;
+    let withdrawingBid: AuctionBidEntity;
 
     try {
       withdrawingBid = await this.tryCreateWithdrawingBid(args);
@@ -68,8 +68,8 @@ export class BidWithdrawService {
     }
   }
 
-  async withdrawByMarket(auction: AuctionEntity, bidderAddress: string, amount: bigint): Promise<void> {
-    const withdrawingBid = this.connection.manager.create(BidEntity, {
+  async withdrawByMarket(auction: OffersEntity, bidderAddress: string, amount: bigint): Promise<void> {
+    const withdrawingBid = this.connection.manager.create(AuctionBidEntity, {
       id: uuid(),
       status: BidStatus.minting,
       bidderAddress: encodeAddress(bidderAddress),
@@ -85,7 +85,7 @@ export class BidWithdrawService {
     await this.makeWithdrawalTransfer(withdrawingBid);
   }
 
-  async makeWithdrawalTransfer(withdrawingBid: BidEntity): Promise<void> {
+  async makeWithdrawalTransfer(withdrawingBid: AuctionBidEntity): Promise<void> {
     const auctionKeyring = this.auctionCredentials.keyring;
     const amount = BigInt(withdrawingBid.amount) * -1n;
 
@@ -144,14 +144,14 @@ export class BidWithdrawService {
   }
 
   // todo - unite into single method with withdrawByMarket?
-  private async tryCreateWithdrawingBid(args: BidWithdrawArgs): Promise<BidEntity> {
+  private async tryCreateWithdrawingBid(args: BidWithdrawArgs): Promise<AuctionBidEntity> {
     const { collectionId, tokenId, bidderAddress } = args;
 
-    return this.connection.transaction<BidEntity>('REPEATABLE READ', async (transactionEntityManager) => {
+    return this.connection.transaction<AuctionBidEntity>('REPEATABLE READ', async (transactionEntityManager) => {
       const databaseHelper = new DatabaseHelper(transactionEntityManager);
 
-      const contractAsk = await databaseHelper.getActiveAuctionContract({ collectionId, tokenId });
-      const auctionId = contractAsk.auction.id;
+      const auction = await databaseHelper.getActiveAuction({ collectionId, tokenId });
+      const auctionId = auction.id;
 
       const bidderActualSum = await databaseHelper.getUserActualSum({ auctionId, bidderAddress });
       const bidderPendingSum = await databaseHelper.getUserPendingSum({ auctionId, bidderAddress });
@@ -175,13 +175,13 @@ export class BidWithdrawService {
         throw new Error(`You are winner at this moment, please wait your bid to be overbidden`);
       }
 
-      const withdrawingBid = transactionEntityManager.create(BidEntity, {
+      const withdrawingBid = transactionEntityManager.create(AuctionBidEntity, {
         id: uuid(),
         status: BidStatus.minting,
         bidderAddress: encodeAddress(bidderAddress),
         amount: (-1n * bidderActualSum).toString(),
         balance: (bidderPendingSum - bidderActualSum).toString(),
-        auctionId: contractAsk.auction.id,
+        auctionId: auction.id,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -195,7 +195,7 @@ export class BidWithdrawService {
         bidderAddress_n42: encodeAddress(bidderAddress),
         amount: (-1n * bidderActualSum).toString(),
         balance: (bidderPendingSum - bidderActualSum).toString(),
-        auctionId: contractAsk.auction.id,
+        auctionId: auction.id,
         log: 'tryCreateWithdrawingBid',
       };
       this.logger.debug(JSON.stringify(bidTransaction));
@@ -207,20 +207,21 @@ export class BidWithdrawService {
     const results = await this.connection.manager.query(
       `
       with my_list_auction as (
-        select auction_id from bids where bidder_address = $1
+        select auction_id from auction_bids where bidder_address = $1
         group by auction_id
     ),
     sum_amount_auctions as (
         select distinct b.auction_id, bidder_address, sum(amount) over (partition by bidder_address, b.auction_id) sum_amount
-        from bids b inner join  my_list_auction my on my.auction_id = b.auction_id
+        from auction_bids b inner join  my_list_auction my on my.auction_id = b.auction_id
     ),
     my_withdraws as (
         select auction_id, bidder_address, sum_amount amount, rank() over (partition by auction_id order by sum_amount desc ) rank
         from sum_amount_auctions
     )
     select distinct  auction_id "auctionId", amount, contract_ask_id "contractAskId", collection_id "collectionId", token_id "tokenId" from my_withdraws
-    inner join auctions auc on auc.id = auction_id
-    inner join contract_ask ca on ca.id = auc.contract_ask_id
+  //  inner join auctions auc on auc.id = auction_id
+    //inner join contract_ask ca on ca.id = auc.contract_ask_id
+    inner join offers ca on ca.id = auction_id
     where rank <> 1 and amount > 0 and bidder_address = $1
       `,
       [owner],
