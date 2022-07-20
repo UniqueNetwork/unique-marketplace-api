@@ -46,6 +46,22 @@ export interface Auction {
   contractAskId?: string;
 }
 
+export interface AuctionOffer {
+  id: string;
+
+  status_auction: AuctionStatus;
+
+  startPrice: string;
+
+  priceStep: string;
+
+  stopAt: Date;
+
+  createdAt: Date;
+
+  updated_auction: Date;
+}
+
 export type CreateAuctionAndBroadcastArgs = {
   blockNumber: string;
   collectionId: string;
