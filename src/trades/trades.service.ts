@@ -11,9 +11,10 @@ import { SortingOrder } from '../utils/sorting/sorting-order';
 import { TradeSortingRequest } from '../utils/sorting/sorting-request';
 import { paginate } from '../utils/pagination/paginate';
 import { MarketTradeDto, TradesFilter } from './dto';
-import { MarketTrade, SearchIndex, SellingMethod } from '../entity';
+import { MarketTrade, SearchIndex } from '../entity';
 import { IMarketTrade } from './interfaces';
 import { InjectSentry, SentryService } from '../utils/sentry';
+import { SellingMethod } from '../types';
 
 @Injectable()
 export class TradesService {

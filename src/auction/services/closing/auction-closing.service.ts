@@ -64,7 +64,7 @@ export class AuctionClosingService {
 
     for (const auction of auctionData) {
       try {
-        this.broadcastService.sendAuctionStopped(OfferEntityDto.fromContractAsk(auction));
+        this.broadcastService.sendAuctionStopped(OfferEntityDto.fromOffersEntity(auction));
       } catch (error) {
         this.logger.warn(error);
       }
@@ -264,7 +264,7 @@ export class AuctionClosingService {
     }
 
     // offer.auction = auction;
-    this.broadcastService.sendAuctionClosed(OfferEntityDto.fromContractAsk(offer));
+    this.broadcastService.sendAuctionClosed(OfferEntityDto.fromOffersEntity(offer));
   }
 
   private async sendTokenToWinner(offersEntity: OffersEntity, winnerAddress: string): Promise<void> {

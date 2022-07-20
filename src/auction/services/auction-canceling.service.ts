@@ -1,6 +1,5 @@
 import { BadRequestException, Inject, Logger } from '@nestjs/common';
 import { Connection, Not, Repository } from 'typeorm';
-import { AuctionEntity, BidEntity } from '../entities';
 import { AuctionBidEntity, BlockchainBlock, OffersEntity } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';

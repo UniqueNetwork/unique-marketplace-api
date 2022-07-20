@@ -150,10 +150,10 @@ export class DatabaseHelper {
     return this.getAggregatedBid({ ...filter, bidStatuses: [BidStatus.finished] });
   }
 
-  async getBids(filter: { auctionId: string; bidStatuses?: BidStatus[]; includeWithdrawals?: boolean }): Promise<BidEntity[]> {
+  async getBids(filter: { auctionId: string; bidStatuses?: BidStatus[]; includeWithdrawals?: boolean }): Promise<AuctionBidEntity[]> {
     const { auctionId, includeWithdrawals = false, bidStatuses = [BidStatus.minting, BidStatus.finished] } = filter;
 
-    const findOptions: FindManyOptions<BidEntity> = {
+    const findOptions: FindManyOptions<AuctionBidEntity> = {
       where: {
         auctionId,
         status: Any(bidStatuses),
@@ -161,6 +161,6 @@ export class DatabaseHelper {
       },
     };
 
-    return this.entityManager.find(BidEntity, findOptions);
+    return this.entityManager.find(AuctionBidEntity, findOptions);
   }
 }

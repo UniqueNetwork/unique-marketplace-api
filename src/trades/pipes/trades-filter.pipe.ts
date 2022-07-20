@@ -5,7 +5,7 @@ import { UntypedRequest } from '../../utils/type-generators/untyped-request';
 import { TradesFilter } from '../dto';
 import { TransformationResult } from '../../utils/type-generators/transformation-result';
 import { parseCollectionIdRequest, requestArray } from '../../utils/parsers';
-import { SellingMethod } from '../../entity';
+import { SellingMethod } from '../../types';
 
 export interface ParseTradesFilterPipeOptions {
   errorHttpStatusCode?: ErrorHttpStatusCode;

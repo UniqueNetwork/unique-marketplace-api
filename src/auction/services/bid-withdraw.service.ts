@@ -32,9 +32,9 @@ type BidsWirthdrawArgs = {
 export class BidWithdrawService {
   private readonly logger = new Logger(BidWithdrawService.name);
 
-  private readonly bidRepository: Repository<BidEntity>;
-  private readonly auctionRepository: Repository<AuctionEntity>;
-  private readonly contractAskRepository: Repository<ContractAsk>;
+  private readonly bidRepository: Repository<AuctionBidEntity>;
+
+  private readonly offersRepository: Repository<OffersEntity>;
   private moneyTransferRepository: Repository<MoneyTransfer>;
 
   constructor(
@@ -46,9 +46,9 @@ export class BidWithdrawService {
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @InjectSentry() private readonly sentryService: SentryService,
   ) {
-    this.bidRepository = connection.manager.getRepository(BidEntity);
-    this.auctionRepository = connection.manager.getRepository(AuctionEntity);
-    this.contractAskRepository = connection.getRepository(ContractAsk);
+    this.bidRepository = connection.manager.getRepository(AuctionBidEntity);
+
+    this.offersRepository = connection.getRepository(OffersEntity);
     this.moneyTransferRepository = connection.getRepository(MoneyTransfer);
   }
 
@@ -207,20 +207,21 @@ export class BidWithdrawService {
     const results = await this.connection.manager.query(
       `
       with my_list_auction as (
-        select auction_id from bids where bidder_address = $1
+        select auction_id from auction_bids where bidder_address = $1
         group by auction_id
     ),
     sum_amount_auctions as (
         select distinct b.auction_id, bidder_address, sum(amount) over (partition by bidder_address, b.auction_id) sum_amount
-        from bids b inner join  my_list_auction my on my.auction_id = b.auction_id
+        from auction_bids b inner join  my_list_auction my on my.auction_id = b.auction_id
     ),
     my_withdraws as (
         select auction_id, bidder_address, sum_amount amount, rank() over (partition by auction_id order by sum_amount desc ) rank
         from sum_amount_auctions
     )
     select distinct  auction_id "auctionId", amount, contract_ask_id "contractAskId", collection_id "collectionId", token_id "tokenId" from my_withdraws
-    inner join auctions auc on auc.id = auction_id
-    inner join contract_ask ca on ca.id = auc.contract_ask_id
+  //  inner join auctions auc on auc.id = auction_id
+    //inner join contract_ask ca on ca.id = auc.contract_ask_id
+    inner join offers ca on ca.id = auction_id
     where rank <> 1 and amount > 0 and bidder_address = $1
       `,
       [owner],

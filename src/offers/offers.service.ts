@@ -3,8 +3,8 @@ import { Connection } from 'typeorm';
 
 import { TypeAttributToken, Bid } from '../types';
 
-import { OfferTraits, OfferContractAskDto, OffersFilter, OfferAttributesDto, OfferAttributes, TraitDto } from './dto';
-import { ContractAsk, SearchIndex, BidEntity } from '../entity';
+import { OfferTraits, OfferEntityDto, OffersFilter, OfferAttributesDto, OfferAttributes, TraitDto } from './dto';
+import { ContractAsk, SearchIndex, BidEntity, OffersEntity } from '../entity';
 
 import { PaginationRequest } from '../utils/pagination/pagination-request';
 import { PaginationResultDto } from '../utils/pagination/pagination-result';
@@ -36,7 +36,7 @@ export class OffersService {
     pagination: PaginationRequest,
     offersFilter: OffersFilter,
     sort: OfferSortingRequest,
-  ): Promise<PaginationResultDto<OfferContractAskDto>> {
+  ): Promise<PaginationResultDto<OfferEntityDto>> {
     let offers;
     let items = [];
     let auctionIds: Array<number> = [];
@@ -61,11 +61,11 @@ export class OffersService {
       });
     }
 
-    return new PaginationResultDto(OfferContractAskDto, {
+    return new PaginationResultDto(OfferEntityDto, {
       page: offers.page,
       pageSize: offers.pageSize,
       itemsCount: offers.itemsCount,
-      items: items.map(OfferContractAskDto.fromContractAsk),
+      items: items.map(OfferEntityDto.fromOffersEntity),
       attributes: offers.attributes as Array<TraitDto>,
       attributesCount: offers.attributesCount,
     });
@@ -225,7 +225,7 @@ export class OffersService {
     return items.reduce(convertorFlatToObject(), []);
   }
 
-  async getOne(filter: { collectionId: number; tokenId: number }): Promise<OfferContractAskDto | null> {
+  async getOne(filter: { collectionId: number; tokenId: number }): Promise<OfferEntityDto | null> {
     const { collectionId, tokenId } = filter;
 
     const source = await this.offersFilterService.filterByOne(collectionId, tokenId);
@@ -233,9 +233,9 @@ export class OffersService {
 
     const searchIndex = await this.searchIndex(this.parserCollectionIdTokenId(source));
 
-    const contractAsk = this.parseItems(source, bids, searchIndex).pop() as any as ContractAsk;
+    const offers = this.parseItems(source, bids, searchIndex).pop() as any as OffersEntity;
 
-    return contractAsk && OfferContractAskDto.fromContractAsk(contractAsk);
+    return offers && OfferEntityDto.fromOffersEntity(offers);
   }
 
   public get isConnected(): boolean {

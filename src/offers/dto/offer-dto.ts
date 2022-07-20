@@ -138,6 +138,4 @@ export class OfferEntityDto {
       excludeExtraneousValues: true,
     });
   }
-
-  static fromContractAsk(newAuction: any) {}
 }
