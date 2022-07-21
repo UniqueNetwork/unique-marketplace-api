@@ -1,8 +1,8 @@
 import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import * as fs from 'fs';
 
-import { MarketTradeDto, ResponseMarketTradeDto, TradesFilter } from './dto';
+import { MarketTradeDto, ResponseMarketTradeDto, TradeAuctionDto, TradesFilter } from './dto';
 import { ParseTradesFilterPipe } from './pipes';
 import { TradesService } from './trades.service';
 import { queryArray } from '../utils/decorators/query-array.decorator';
@@ -36,6 +36,7 @@ export class TradesController {
   @ApiOperation({
     summary: 'Get auction by id',
   })
+  @ApiResponse({ type: ResponseMarketTradeDto, status: HttpStatus.OK })
   getByAuction(@Param('auctionId') auctionId: string): Promise<any> {
     return this.tradesService.getByAuction(auctionId);
   }
