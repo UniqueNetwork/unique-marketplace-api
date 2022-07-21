@@ -1,11 +1,11 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Connection, EntityManager, Repository } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
 import { stringify } from '@polkadot/util';
 import { v4 as uuid } from 'uuid';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { OfferEntityDto } from '../../offers/dto/offer-dto';
-import { AuctionBidEntity, BlockchainBlock, MoneyTransfer, OffersEntity } from '../../entity';
+import { AuctionBidEntity, BidEntity, BlockchainBlock, MoneyTransfer, OffersEntity } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
 import { AuctionStatus, BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, SellingMethod } from '../../types';
@@ -33,7 +33,6 @@ export class BidPlacingService {
     this.bidRepository = connection.manager.getRepository(AuctionBidEntity);
     this.offersRepository = connection.getRepository(OffersEntity);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
-
     this.moneyTransferRepository = connection.getRepository(MoneyTransfer);
   }
 
@@ -229,13 +228,12 @@ export class BidPlacingService {
   private async getBidsBalance(collectionId: number, tokenId: number, bidderAddress: string) {
     const bids = await this.bidRepository
       .createQueryBuilder('bids')
-      .leftJoinAndSelect('offers.id', 'offers')
+      .leftJoinAndSelect('offers', 'offer', 'offer.id = bids.auctionId')
       .where('bids.bidderAddress = :bidderAddress', { bidderAddress: encodeAddress(bidderAddress) })
-      .andWhere('bids.status = :status', { status: BidStatus.finished })
+      // .andWhere('bids.status = :status', { status: BidStatus.finished })
       .andWhere('offer.status_auction = :auctionsStatus', { auctionsStatus: AuctionStatus.active })
-      .andWhere('offers.collection_id = :collectionId', { collectionId })
-      .andWhere('offers.token_id = :tokenId', { tokenId })
-      .andWhere('offers.type = :type', { type: SellingMethod.Auction })
+      .andWhere('offer.collection_id = :collectionId', { collectionId })
+      .andWhere('offer.token_id = :tokenId', { tokenId })
       .getMany();
 
     return bids.reduce((acc, bid) => acc + BigInt(bid.balance), BigInt(0));
