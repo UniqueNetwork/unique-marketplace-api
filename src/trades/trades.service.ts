@@ -12,6 +12,7 @@ import { AuctionBidEntity, MarketTrade, OffersEntity, SearchIndex } from '../ent
 import { IMarketTrade } from './interfaces';
 import { InjectSentry, SentryService } from '../utils/sentry';
 import { SellingMethod } from '../types';
+import { uuidValidateV4 } from '../utils/uuid';
 
 @Injectable()
 export class TradesService {
@@ -253,6 +254,9 @@ export class TradesService {
   }
 
   public async getByAuction(auctionId: string): Promise<any> {
+    if (!uuidValidateV4(auctionId)) {
+      throw new BadRequestException('Invalid format auctionId. Please set auctionId UUID format');
+    }
     const auction = await this.connection.manager
       .createQueryBuilder(OffersEntity, 'auction')
       .leftJoinAndMapMany('auction.bids', AuctionBidEntity, 'bids', 'bids.auction_id = auction.id')

@@ -3,6 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type, plainToInstance } from 'class-transformer';
 import { MarketTrade } from '../../entity';
 import { TokenDescriptionDto } from '../../offers/dto';
+import { IsUUID } from 'class-validator';
 
 /** DTO for Trades */
 export class MarketTradeDto {
@@ -142,4 +143,10 @@ export class ResponseMarketTradeDto {
 
   @ApiProperty({ type: [MarketTradeDto], format: 'array' })
   items: [MarketTradeDto];
+}
+
+export class TradeAuctionDto {
+  @ApiProperty({})
+  @IsUUID('4')
+  auctionId: string;
 }
