@@ -80,7 +80,8 @@ export class OffersService {
       .createQueryBuilder(AuctionBidEntity, 'bid')
       .select(['created_at', 'updated_at', 'amount', 'auction_id', 'bidder_address', 'balance', 'status'])
       .where('bid.amount > 0')
-      .andWhere('bid.status != :status', { status: BidStatus.error });
+      .andWhere('bid.status != :status', { status: BidStatus.error })
+      .orderBy('bid.created_at', 'DESC');
 
     if (Array.isArray(auctionIds) && auctionIds?.length > 0) {
       queryBuilder.andWhere('bid.auction_id in (:...auctionIds)', {
