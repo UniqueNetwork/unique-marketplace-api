@@ -3,7 +3,6 @@ import { CommandModule } from 'nestjs-command';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
-import { DatabaseModule } from './database/module';
 import { ConfigServiceModule } from './config/module';
 import { PlaygroundCommand } from './utils/playground';
 import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
@@ -21,7 +20,6 @@ import { DeployContractService } from './commands/services/deploy-contract.servi
       rootPath: join(__dirname, '..', 'blockchain'),
     }),
     SentryLoggerService(),
-    DatabaseModule,
     ConfigServiceModule,
     CommandModule,
     EscrowModule,

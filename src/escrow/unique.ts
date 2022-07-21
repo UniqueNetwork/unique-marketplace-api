@@ -1,6 +1,7 @@
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { Interface } from 'ethers/lib/utils';
 import InputDataDecoder from 'ethereum-input-data-decoder';
+import { Logger } from '@nestjs/common';
 
 import { Escrow } from './base';
 import * as logging from '../utils/logging';
@@ -9,7 +10,7 @@ import * as unique from '../utils/blockchain/unique';
 import * as util from '../utils/blockchain/util';
 import { MONEY_TRANSFER_STATUS } from './constants';
 import { MoneyTransfer } from '../entity';
-import { Logger } from '@nestjs/common';
+//import { NFTTransferService } from '../db/nft-transfer/nft-transfer.service';
 
 export class UniqueEscrow extends Escrow {
   logger = new Logger(UniqueEscrow.name);
@@ -25,6 +26,8 @@ export class UniqueEscrow extends Escrow {
   collectionIds: number[];
 
   BLOCKED_SCHEMA_KEYS = ['ipfsJson'];
+
+  //private nftTransferService: NFTTransferService;
 
   normalizeSubstrate(address: string): string {
     return encodeAddress(decodeAddress(address));
@@ -48,6 +51,7 @@ export class UniqueEscrow extends Escrow {
     this.web3conn = lib.connectWeb3(this.config('unique.wsEndpoint'));
     this.web3 = this.web3conn.web3;
     this.contractOwner = this.web3.eth.accounts.privateKeyToAccount(this.config('unique.contractOwnerSeed'));
+    //this.nftTransferService = this.service.moduleRef.get(NFTTransferService, { strict: false });
   }
 
   async destroy() {
@@ -108,6 +112,21 @@ export class UniqueEscrow extends Escrow {
     if (!eventTransfer) return;
     const collectionId = parseInt(eventTransfer.event.data[0].replace(/,/g, ''));
     if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
+
+    // TODO: replace registerNftTransfer -> registerTransfer
+    // and remove registerTransfer
+    /*
+    await this.nftTransferService.registerNftTransfer(
+      blockNum,
+      {
+        collectionId: eventTransfer.event.data[0],
+        tokenId: eventTransfer.event.data[1],
+        addressFrom: eventTransfer.event.data[2],
+        addressTo: eventTransfer.event.data[3],
+      },
+      this.getNetwork(),
+    );*/
+
     await this.service.registerTransfer(
       blockNum,
       {

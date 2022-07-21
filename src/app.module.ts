@@ -2,9 +2,11 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { CommandModule } from 'nestjs-command';
 import { TerminusModule } from '@nestjs/terminus';
 import { HttpModule } from '@nestjs/axios';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { DatabaseModule } from './database/module';
+
 import { PlaygroundCommand } from './utils/playground';
 import { SentryLoggerService } from './utils/sentry/sentry-logger.service';
 import { PrometheusService } from './utils/prometheus/prometheus.service';
@@ -18,8 +20,12 @@ import { TradesModule } from './trades/trades.module';
 import { OffersModule } from './offers/offers.module';
 import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
-import { ConfigModule } from '@nestjs/config';
 import { ConfigServiceModule } from './config/module';
+
+// TODO: delete this module
+import { DatabaseModule } from './database/module';
+import { DbModule } from './db/db.module';
+import { getConnectionOptions } from './database/connection-options';
 
 @Module({
   imports: [
@@ -43,6 +49,10 @@ import { ConfigServiceModule } from './config/module';
     OffersModule,
     SettingsModule,
     AdminModule,
+    TypeOrmModule.forRootAsync({
+      useFactory: () => getConnectionOptions(),
+    }),
+    DbModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [PlaygroundCommand, HealthService, MetricsService, PrometheusService],

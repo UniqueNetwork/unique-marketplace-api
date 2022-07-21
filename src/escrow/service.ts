@@ -21,7 +21,7 @@ export class EscrowService {
   constructor(
     @Inject('DATABASE_CONNECTION') private db: Connection,
     @Inject('CONFIG') private config: MarketConfig,
-    private moduleRef: ModuleRef,
+    public moduleRef: ModuleRef,
   ) {
     this.collectionsRepository = db.getRepository(Collection);
   }
