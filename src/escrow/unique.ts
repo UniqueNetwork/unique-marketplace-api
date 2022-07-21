@@ -106,6 +106,9 @@ export class UniqueEscrow extends Escrow {
   async processTransfer(blockNum, events) {
     const eventTransfer = events.find((e) => e.event.method === 'Transfer' && e.event.section === 'common');
     if (!eventTransfer) return;
+    console.log(eventTransfer.event.data[0]);
+    const collectionId = parseInt(eventTransfer.event.data[0].replace(/,/g, ''));
+    if (!this.isCollectionManaged(collectionId)) return; // Collection not managed by market
     await this.service.registerTransfer(
       blockNum,
       {
