@@ -198,7 +198,7 @@ export class EscrowService {
     const collection_id = data.collectionId.toString().replace(/,/g, '');
     const token_id = data.tokenId.toString().replace(/,/g, '');
 
-    await repository.insert({
+    const item = {
       id: uuid(),
       block_number: `${blockNum}`,
       network: this.getNetwork(network),
@@ -208,12 +208,17 @@ export class EscrowService {
       address_to,
       created_at: new Date(),
       updated_at: new Date(),
+    };
+
+    await repository.insert({
+      ...item,
     });
-    logging.log(
-      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${token_id}, collection: ${collection_id}, addressFrom: '${data.addressFrom}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
-    );
+
     this.logger.log(
-      `{subject:'Got NFT transfer', thread:'NFTTransfer', token: ${token_id}, collection: ${collection_id}, addressFrom: '${data.addressFrom}', addressTo: ${data.addressTo}, block: #${blockNum}, log: 'registerTransfer'}`,
+      JSON.stringify({
+        subject: 'Got NFT transfer',
+        ...item,
+      }),
     );
   }
 
