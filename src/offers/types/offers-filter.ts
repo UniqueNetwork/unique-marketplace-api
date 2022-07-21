@@ -1,6 +1,7 @@
 export type OffersFilterType = {
   offer_id: string;
   offer_status: string;
+  offer_type: string;
   collection_id: number;
   token_id: number;
   offer_network: string;

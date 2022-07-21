@@ -21,7 +21,6 @@ import { ViewColumn, ViewEntity } from 'typeorm';
     offer.start_price AS auction_start_price,
     offer.status AS auction_status,
     offer.stop_at AS auction_stop_at,
-    offer.id AS auction_contract_ask_id,
     bid.bidder_address AS auction_bidder_address,
     search_filter.collection_id,
     search_filter.network,
@@ -46,8 +45,7 @@ import { ViewColumn, ViewEntity } from 'typeorm';
             sf.list_items
            FROM search_index sf
           WHERE sf.type <> 'ImageURL'::search_index_type_enum) search_filter ON offer.network::text = search_filter.network::text AND offer.collection_id = search_filter.collection_id AND offer.token_id = search_filter.token_id
-     LEFT JOIN auction_bids bid ON bid.auction_id = offer.id
-  WHERE offer.status::text = 'active'::text`,
+     LEFT JOIN auction_bids bid ON bid.auction_id = offer.id`,
   name: 'v_offers_search',
 })
 export class OfferFilters {
