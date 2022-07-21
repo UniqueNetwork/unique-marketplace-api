@@ -14,8 +14,8 @@ export default {
   mainSaleSeed: process.env.MAINSALE_SEED || null,
   adminList: process.env.ADMIN_LIST || '',
   dev: {
-    debugMigrations: false,
-    debugScanBlock: false,
+    debugMigrations: process.env.DEBUG_DBASE === 'true',
+    debugScanBlock: process.env.DEBUG_SCAN_BLOCK === 'true',
   },
   jwt: {
     access: '24h',
