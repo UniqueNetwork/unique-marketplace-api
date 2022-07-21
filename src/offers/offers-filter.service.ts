@@ -265,6 +265,7 @@ export class OffersFilterService {
       .createQueryBuilder()
       .select([
         'v_offers_search_offer_id as offer_id',
+        'v_offers_search_offer_type as offer_type',
         'v_offers_search_offer_status as offer_status',
         'v_offers_search_collection_id as collection_id',
         'v_offers_search_token_id as token_id',
