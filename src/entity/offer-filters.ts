@@ -109,9 +109,6 @@ export class OfferFilters {
   @ViewColumn({ name: 'auction_stop_at' })
   auctionStopAt: Date;
 
-  @ViewColumn({ name: 'auction_contract_ask_id' })
-  auctionContractAskId: string;
-
   @ViewColumn({ name: 'auction_bidder_address' })
   auctionBidderAddress: string;
 

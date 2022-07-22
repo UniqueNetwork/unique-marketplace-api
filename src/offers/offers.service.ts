@@ -190,6 +190,8 @@ export class OffersService {
         const obj = {
           collection_id: +item.collection_id,
           token_id: +item.token_id,
+          status: item.offer_status,
+          type: item.offer_type,
           price: item.offer_price,
           currency: +item.offer_currency,
           address_from: item.offer_address_from,
