@@ -150,7 +150,6 @@ export class BidWithdrawService {
 
       const auction = await databaseHelper.getActiveAuction({ collectionId, tokenId });
       const auctionId = auction.id;
-
       const bidderActualSum = await databaseHelper.getUserActualSum({ auctionId, bidderAddress });
       const bidderPendingSum = await databaseHelper.getUserPendingSum({ auctionId, bidderAddress });
 
@@ -236,7 +235,7 @@ export class BidWithdrawService {
                 left join offers a on bids.auction_id = a.id
                where a.status_auction in ('active', 'created')
            ) temp
-      ),
+      )
     select auction_id "auctionId", sum_amount amount, collection_id "collectionId", token_id "tokenId"
     from auctions_data
     where rank = 1 and bidder_address = $1
