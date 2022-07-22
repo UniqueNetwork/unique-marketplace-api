@@ -1,21 +1,27 @@
-import { Injectable, Inject, Logger, BadRequestException, HttpStatus } from '@nestjs/common';
+import { Injectable, Inject, Logger, BadRequestException, HttpStatus, OnModuleInit } from '@nestjs/common';
 import { Connection, In, IsNull, Not, Repository } from 'typeorm';
 import { Keyring } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
-import { OffersEntity } from '../../entity';
+import { Collection, OffersEntity } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { AuctionStatus, SellingMethod } from '../../types';
 import { ASK_STATUS } from '../../escrow/constants';
 import { MassCancelResult } from '../dto';
 
 @Injectable()
-export class MassCancelingService {
+export class MassCancelingService implements OnModuleInit {
   private readonly logger: Logger;
   private readonly offersEntityRepository: Repository<OffersEntity>;
+  private readonly collectionRepository: Repository<Collection>;
 
   constructor(@Inject('DATABASE_CONNECTION') private connection: Connection, @Inject('CONFIG') private config: MarketConfig) {
     this.logger = new Logger(MassCancelingService.name);
     this.offersEntityRepository = connection.getRepository(OffersEntity);
+    this.collectionRepository = connection.getRepository(Collection);
+  }
+
+  async onModuleInit() {
+    await this.allowedTokensInList(1562);
   }
 
   /**
@@ -40,6 +46,10 @@ export class MassCancelingService {
     };
   }
 
+  /**
+   * Mass cancel all offers and auctions
+   * @return ({Promise<MassCancelResult>})
+   */
   async massCancelSystem(): Promise<MassCancelResult> {
     const fixPrice = await this.massFixPriceCancel();
     const auction = await this.massAuctionCancel();
@@ -117,6 +127,37 @@ export class MassCancelingService {
     );
 
     return affected;
+  }
+
+  /**
+   * Checking for Allowed Tokens
+   */
+  async allowedTokensInList(collectionId: number): Promise<number[]> {
+    const collection = await this.collectionRepository.findOne({
+      where: { id: collectionId },
+    });
+    const allowedList = [];
+    const allowedTokenArray = collection.allowedTokens.match(/[^(,\s]+|\([^)]+\)/g);
+
+    for (const token of allowedTokenArray) {
+      const rangeNumber = token.match(/\d+/g);
+      if (rangeNumber.length === 2) {
+        const rangeN = rangeNumber.map((number) => parseInt(number));
+        allowedList.push(...this.range(rangeN[0], rangeN[1]));
+      } else {
+        allowedList.push(parseInt(token));
+      }
+    }
+
+    return allowedList;
+  }
+
+  range(start, end) {
+    const list = [];
+    for (let i = start; i < end + 1; i++) {
+      list.push(parseInt(i));
+    }
+    return list;
   }
 
   /**
