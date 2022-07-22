@@ -379,7 +379,6 @@ export class EscrowService {
    * @return ({Promise<number[]>})
    */
   async getCollectionIds(): Promise<number[]> {
-    // @ts-ignore
     const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
 
     return collections.map((i) => Number(i.id));

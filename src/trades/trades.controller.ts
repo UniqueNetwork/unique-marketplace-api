@@ -1,8 +1,8 @@
 import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import * as fs from 'fs';
 
-import { MarketTradeDto, ResponseMarketTradeDto, TradeAuctionDto, TradesFilter } from './dto';
+import { MarketTradeDto, ResponseMarketTradeDto, TradesFilter } from './dto';
 import { ParseTradesFilterPipe } from './pipes';
 import { TradesService } from './trades.service';
 import { queryArray } from '../utils/decorators/query-array.decorator';

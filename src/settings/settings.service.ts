@@ -99,7 +99,6 @@ export class SettingsService {
    * @returns {Promise<number[]>}
    */
   async getCollectionIds(): Promise<number[]> {
-    // @ts-ignore
     const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
 
     return collections.map((i) => Number(i.id));
@@ -140,7 +139,6 @@ export class SettingsService {
    */
   private async getAllowedTokens(): Promise<any> {
     const collections = await this.collectionsRepository.find({
-      // @ts-ignore
       status: CollectionStatus.Enabled,
       allowedTokens: Not(''),
     });

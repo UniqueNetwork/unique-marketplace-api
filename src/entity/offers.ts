@@ -1,7 +1,6 @@
 import { Column, Entity, Index, OneToMany, OneToOne } from 'typeorm';
 import { BlockchainBlock } from './blockchain-block';
 import { SearchIndex } from './search-index';
-import { AuctionStatus } from '../types';
 import { AuctionBidEntity } from './auction-bids-entity';
 
 @Index('IX_offers_id', ['collection_id', 'token_id'])

@@ -31,10 +31,10 @@ export class DatabaseHelper {
   constructor(private readonly entityManager: EntityManager) {}
 
   async getActiveAuction(filter: AuctionTokenFilter): Promise<OffersEntity> {
-    return this.getAuction(filter, [AuctionStatus.active]);
+    return this.getAuction(filter);
   }
 
-  async getAuction(filter: AuctionTokenFilter, auctionStatuses: AuctionStatus[]): Promise<OffersEntity> {
+  async getAuction(filter: AuctionTokenFilter): Promise<OffersEntity> {
     const { collectionId, tokenId } = filter;
 
     const offersEntityData = await this.entityManager.findOne(OffersEntity, {
@@ -47,7 +47,6 @@ export class DatabaseHelper {
     const auctionIds: string[] = [];
 
     const auctionsToStop = await this.entityManager.find(OffersEntity, {
-      // @ts-ignore
       status_auction: AuctionStatus.active,
       stopAt: LessThanOrEqual(new Date()),
     });
@@ -157,7 +156,6 @@ export class DatabaseHelper {
     const findOptions: FindManyOptions<AuctionBidEntity> = {
       where: {
         auctionId,
-        // @ts-ignore
         status: Any(bidStatuses),
         ...(includeWithdrawals ? { amount: MoreThan(0) } : {}),
       },

@@ -120,7 +120,7 @@ export class UniqueEscrow extends Escrow {
     );
   }
 
-  async processAddAsk(blockNum, extrinsic, inputData, signer, events) {
+  async processAddAsk(blockNum, extrinsic, inputData, signer) {
     const addressTo = util.normalizeAccountId(extrinsic.args.target);
     const addressFrom = this.normalizeSubstrate(signer.toString()); // signer is substrate address of args.source
     const addressFromEth = util.normalizeAccountId(extrinsic.args.source);
@@ -164,7 +164,7 @@ export class UniqueEscrow extends Escrow {
     );
   }
 
-  async processBuyKSM(blockNum, extrinsic, inputData, events) {
+  async processBuyKSM(blockNum, extrinsic, inputData) {
     // const addressTo = util.normalizeAccountId(extrinsic.args.target);
     // const addressFrom = util.normalizeAccountId(extrinsic.args.source);
     const collectionEVMAddress = inputData.inputs[0];
@@ -251,10 +251,10 @@ export class UniqueEscrow extends Escrow {
       return;
     }
     if (inputData.method === 'addAsk') {
-      return await this.processAddAsk(blockNum, extrinsic, inputData, rawExtrinsic.signer, events);
+      return await this.processAddAsk(blockNum, extrinsic, inputData, rawExtrinsic.signer);
     }
     if (inputData.method === 'buyKSM') {
-      return await this.processBuyKSM(blockNum, extrinsic, inputData, events);
+      return await this.processBuyKSM(blockNum, extrinsic, inputData);
     }
     if (inputData.method === 'cancelAsk') {
       return await this.processCancelAsk(blockNum, inputData);

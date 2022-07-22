@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { OffersEntity } from '../../entity';
-import { Auction, AuctionStatus, Bid, BidStatus, TokenDescription } from '../../types';
+import { AuctionStatus, Bid, BidStatus, TokenDescription } from '../../types';
 import { Exclude, Expose, plainToInstance, Type } from 'class-transformer';
 import { AuctionOffer } from '../../types/auction';
 

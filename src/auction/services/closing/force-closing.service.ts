@@ -11,13 +11,10 @@ export class ForceClosingService {
   async forceCloseAuction(collectionId: string, tokenId: string): Promise<void> {
     const databaseHelper = new DatabaseHelper(this.connection.manager);
 
-    const contract = await databaseHelper.getAuction(
-      {
-        collectionId: Number(collectionId),
-        tokenId: Number(tokenId),
-      },
-      [AuctionStatus.created, AuctionStatus.active],
-    );
+    const contract = await databaseHelper.getAuction({
+      collectionId: Number(collectionId),
+      tokenId: Number(tokenId),
+    });
 
     await this.connection.manager.update(OffersEntity, contract.id, {
       stopAt: new Date(),
