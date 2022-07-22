@@ -180,9 +180,10 @@ export class AuctionClosingService {
 
         const getBlockCreatedAt = async (blockNum: bigint | number, blockTimeSec = 6n) => {
           let block = await this.blockchainBlockRepository.findOne({
-            // @ts-ignore
-            block_number: `${blockNum}`,
-            network: this.config.blockchain.unique.network,
+            where: {
+              block_number: `${blockNum}`,
+              network: this.config.blockchain.unique.network,
+            },
           });
           if (!!block) return block.created_at;
           block = await this.blockchainBlockRepository

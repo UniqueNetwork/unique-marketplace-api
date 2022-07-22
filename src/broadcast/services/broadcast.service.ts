@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { cyan, red, green, black, bgGreen, bgRed } from 'cli-color';
-import { BroadcastIOServer, BroadcastIOSocket, TokenIds, BroadcastIOEmitter } from '../types';
+import { bgGreen, bgRed, black, cyan } from 'cli-color';
+import { BroadcastIOEmitter, BroadcastIOServer, BroadcastIOSocket, TokenIds } from '../types';
 import { OfferEntityDto } from '../../offers/dto';
 
 @Injectable()

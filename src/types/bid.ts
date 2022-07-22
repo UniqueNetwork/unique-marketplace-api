@@ -1,8 +1,8 @@
 export enum BidStatus {
+  error = 'error',
   created = 'created',
   minting = 'minting',
   finished = 'finished',
-  error = 'error',
 }
 
 export interface Bid {

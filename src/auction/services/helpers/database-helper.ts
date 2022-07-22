@@ -1,9 +1,7 @@
-import { Any, EntityManager, LessThanOrEqual, MoreThan, SelectQueryBuilder } from 'typeorm';
+import { Any, EntityManager, In, LessThanOrEqual, MoreThan, SelectQueryBuilder } from 'typeorm';
 import { Logger } from '@nestjs/common';
 import { AuctionBidEntity, OffersEntity } from '../../../entity';
-import { ASK_STATUS } from '../../../escrow/constants';
 import { AuctionStatus, BidStatus } from '../../../types';
-import { FindManyOptions } from 'typeorm/find-options/FindManyOptions';
 import { encodeAddress } from '@polkadot/util-crypto';
 
 type AggregatedBid = { bidderAddress: string; totalAmount: bigint };
@@ -38,7 +36,7 @@ export class DatabaseHelper {
     const { collectionId, tokenId } = filter;
 
     const offersEntityData = await this.entityManager.findOne(OffersEntity, {
-      where: { type: 'Auction', collection_id: collectionId.toString(), token_id: tokenId.toString(), status_auction: ASK_STATUS.ACTIVE },
+      where: { type: 'Auction', collection_id: collectionId.toString(), token_id: tokenId.toString(), status_auction: In(auctionStatuses) },
     });
     return offersEntityData;
   }
@@ -47,9 +45,10 @@ export class DatabaseHelper {
     const auctionIds: string[] = [];
 
     const auctionsToStop = await this.entityManager.find(OffersEntity, {
-      // @ts-ignore
-      status_auction: AuctionStatus.active,
-      stopAt: LessThanOrEqual(new Date()),
+      where: {
+        status_auction: AuctionStatus.active,
+        stopAt: LessThanOrEqual(new Date()),
+      },
     });
 
     auctionsToStop.forEach((a) => {
@@ -153,16 +152,21 @@ export class DatabaseHelper {
 
   async getBids(filter: { auctionId: string; bidStatuses?: BidStatus[]; includeWithdrawals?: boolean }): Promise<AuctionBidEntity[]> {
     const { auctionId, includeWithdrawals = false, bidStatuses = [BidStatus.minting, BidStatus.finished] } = filter;
+    const amoutData = includeWithdrawals ? { amount: MoreThan(0) } : {};
+    // const findOptions: FindManyOptions<AuctionBidEntity> = {
+    //   where: {
+    //     auctionId: auctionId,
+    //     status: In(bidStatuses),
+    //     ...amoutData,
+    //   },
+    // };
 
-    const findOptions: FindManyOptions<AuctionBidEntity> = {
+    return this.entityManager.find(AuctionBidEntity, {
       where: {
-        auctionId,
-        // @ts-ignore
+        auctionId: auctionId,
         status: Any(bidStatuses),
-        ...(includeWithdrawals ? { amount: MoreThan(0) } : {}),
+        ...amoutData,
       },
-    };
-
-    return this.entityManager.find(AuctionBidEntity, findOptions);
+    } as any);
   }
 }

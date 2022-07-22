@@ -1,7 +1,6 @@
 import '@polkadot/api-augment/polkadot';
 import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { BN } from '@polkadot/util';
-import { BnList } from '@polkadot/util/types';
 import { Keyring } from '@polkadot/api';
 import { Observable, Subscriber } from 'rxjs';
 import { Connection, Repository } from 'typeorm';

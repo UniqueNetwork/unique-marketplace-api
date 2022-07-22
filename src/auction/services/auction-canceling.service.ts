@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Logger } from '@nestjs/common';
-import { Connection, Not, Repository } from 'typeorm';
+import { Connection, FindOperator, Not, Repository } from 'typeorm';
 import { AuctionBidEntity, BlockchainBlock, OffersEntity } from '../../entity';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { ApiPromise } from '@polkadot/api';
@@ -74,8 +74,9 @@ export class AuctionCancelingService {
         throw new Error(`You are not an owner. Owner is ${auctionData.address_from}, your address is ${ownerAddress}`);
       }
 
+      const status = Not(BidStatus.error) as FindOperator<BidStatus> & BidStatus;
       const bidsCount = await transactionEntityManager.count(AuctionBidEntity, {
-        where: { auctionId: auctionData.id, status: Not(BidStatus.error) },
+        where: { auctionId: auctionData.id, status: status },
       });
 
       if (bidsCount !== 0) {

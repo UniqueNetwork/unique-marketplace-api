@@ -1,4 +1,4 @@
-import { BadRequestException, HttpStatus, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Connection, In, Repository } from 'typeorm';
 import { Collection, OffersEntity, Tokens } from '../../entity';
 import { CollectionsService } from './collections.service';

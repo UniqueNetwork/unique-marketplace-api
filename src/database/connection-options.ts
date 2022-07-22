@@ -1,12 +1,8 @@
 import { ConnectionOptions } from 'typeorm';
-
 import { getConfig } from '../config';
 import { ProjectNamingStrategy } from './naming_strategy';
-import { join } from 'path';
-import { DataSourceOptions } from 'typeorm/data-source/DataSourceOptions';
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
-export const getConnectionOptions = (config = getConfig(), test = false, logger = false): DataSourceOptions => {
+export const getConnectionOptions = (config = getConfig(), test = false, logger = false): ConnectionOptions => {
   return {
     database: '',
     type: 'postgres',
@@ -15,10 +11,6 @@ export const getConnectionOptions = (config = getConfig(), test = false, logger 
     migrations: [__dirname + '/../migrations/*.{t,j}s'],
     synchronize: false,
     logging: logger ? logger : config.dev.debugMigrations,
-    // @ts-ignore
-    cli: {
-      migrationsDir: join('src', 'migrations'),
-    },
     namingStrategy: new ProjectNamingStrategy(),
   };
 };

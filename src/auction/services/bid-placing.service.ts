@@ -1,14 +1,14 @@
-import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, EntityManager, Repository } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
 import { stringify } from '@polkadot/util';
 import { v4 as uuid } from 'uuid';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { OfferEntityDto } from '../../offers/dto/offer-dto';
-import { AuctionBidEntity, BidEntity, BlockchainBlock, MoneyTransfer, OffersEntity } from '../../entity';
+import { AuctionBidEntity, BlockchainBlock, MoneyTransfer, OffersEntity } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { AuctionStatus, BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, SellingMethod } from '../../types';
+import { AuctionStatus, BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs } from '../../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { InjectKusamaAPI } from '../../blockchain';
