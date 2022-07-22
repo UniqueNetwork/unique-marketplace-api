@@ -101,7 +101,7 @@ export class AuctionClosingService {
       bidStatuses: [BidStatus.finished],
     });
 
-    const offer = await this.offersRepository.findOne(auction.id);
+    const offer = await this.offersRepository.findOne({ where: { id: auction.id } });
     const { address_from } = offer;
 
     if (othersBidders.length === 0) {
@@ -176,10 +176,11 @@ export class AuctionClosingService {
           status_auction: AuctionStatus.ended,
         });
 
-        const offersDb = await this.offersRepository.findOne(offer.id);
+        const offersDb = await this.offersRepository.findOne({ where: { id: offer.id } });
 
         const getBlockCreatedAt = async (blockNum: bigint | number, blockTimeSec = 6n) => {
           let block = await this.blockchainBlockRepository.findOne({
+            // @ts-ignore
             block_number: `${blockNum}`,
             network: this.config.blockchain.unique.network,
           });
@@ -256,7 +257,7 @@ export class AuctionClosingService {
           .execute();
       }
     } else {
-      const offers = await this.offersRepository.findOne(auction.id);
+      const offers = await this.offersRepository.findOne({ where: { id: auction.id } });
       await this.auctionCancellingService.sendTokenBackToOwner(offers);
       await this.offersRepository.update(offers.id, { status: ASK_STATUS.CANCELLED });
     }

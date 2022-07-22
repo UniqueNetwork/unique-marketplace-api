@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminController } from './admin.controller';
-import { AdminService, CollectionsService, MassSaleService, TokenService, MassCancelingService, MarketService } from './services';
+import { AdminService, CollectionsService, MassCancelingService, MassSaleService, TokenService } from './services';
 import { ConfigServiceModule } from '../config/module';
 import { MarketConfig } from '../config/market-config';
 import { BlockchainModule } from '../blockchain/blockchain.module';

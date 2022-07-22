@@ -1,13 +1,13 @@
 import '@polkadot/api-augment/polkadot';
-import { Injectable, BadRequestException, Inject, HttpStatus, Logger } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { BN } from '@polkadot/util';
 import { BnList } from '@polkadot/util/types';
 import { Keyring } from '@polkadot/api';
 import { Observable, Subscriber } from 'rxjs';
-import { Connection, In, Repository } from 'typeorm';
+import { Connection, Repository } from 'typeorm';
 import { Interface } from 'ethers/lib/utils';
 
-import { MassFixPriceSaleDTO, MassFixPriceSaleResultDto, MassAuctionSaleDTO, MassAuctionSaleResultDto } from '../dto';
+import { MassAuctionSaleDTO, MassAuctionSaleResultDto, MassFixPriceSaleDTO, MassFixPriceSaleResultDto } from '../dto';
 import { CollectionsService } from './collections.service';
 import { MarketConfig } from '../../config/market-config';
 import { collectionIdToAddress, subToEth } from '../../utils/blockchain/web3';
@@ -19,7 +19,6 @@ import { blockchainStaticFile } from '../../utils/blockchain/util';
 import { GAS_LIMIT } from '../constants';
 import { ProxyCollection } from '../../utils/blockchain';
 import { InjectUniqueAPI } from '../../blockchain';
-import { OffersEntity } from '../../entity';
 import { TokenService } from './tokens.service';
 
 @Injectable()
@@ -257,12 +256,8 @@ export class MassSaleService {
 
     const signer = keyring.addFromUri(mainSaleSeed);
 
-    const accountTokens: BnList = await this.unique.rpc.unique.accountTokens(collectionId, {
-      Substrate: signer.address,
-    });
-
     const allowedTokens = await this.tokenService.getArrayAllowedTokens(+collectionById.collectionId, signer.address);
-    //const tokenIds = accountTokens.map((t) => t.toNumber()).sort((a, b) => a - b);
+
     const tokenIds = allowedTokens.ownerAllowedList;
     return {
       tokenIds,

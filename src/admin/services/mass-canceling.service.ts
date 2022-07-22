@@ -1,5 +1,5 @@
-import { Injectable, Inject, Logger, BadRequestException, HttpStatus, OnModuleInit } from '@nestjs/common';
-import { Connection, In, IsNull, Not, Repository } from 'typeorm';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { Connection, In, Not, Repository } from 'typeorm';
 import { Keyring } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { Collection, OffersEntity } from '../../entity';
@@ -130,7 +130,7 @@ export class MassCancelingService {
    */
   async allowedTokensInList(collectionId: number): Promise<number[]> {
     const collection = await this.collectionRepository.findOne({
-      where: { id: collectionId },
+      where: { id: collectionId.toString() },
     });
     const allowedList = [];
     const allowedTokenArray = collection.allowedTokens.match(/[^(,\s]+|\([^)]+\)/g);

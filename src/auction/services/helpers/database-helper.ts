@@ -38,7 +38,7 @@ export class DatabaseHelper {
     const { collectionId, tokenId } = filter;
 
     const offersEntityData = await this.entityManager.findOne(OffersEntity, {
-      where: { type: 'Auction', collection_id: collectionId, token_id: tokenId, status_auction: ASK_STATUS.ACTIVE },
+      where: { type: 'Auction', collection_id: collectionId.toString(), token_id: tokenId.toString(), status_auction: ASK_STATUS.ACTIVE },
     });
     return offersEntityData;
   }
@@ -47,6 +47,7 @@ export class DatabaseHelper {
     const auctionIds: string[] = [];
 
     const auctionsToStop = await this.entityManager.find(OffersEntity, {
+      // @ts-ignore
       status_auction: AuctionStatus.active,
       stopAt: LessThanOrEqual(new Date()),
     });
@@ -156,6 +157,7 @@ export class DatabaseHelper {
     const findOptions: FindManyOptions<AuctionBidEntity> = {
       where: {
         auctionId,
+        // @ts-ignore
         status: Any(bidStatuses),
         ...(includeWithdrawals ? { amount: MoreThan(0) } : {}),
       },

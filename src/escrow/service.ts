@@ -33,7 +33,7 @@ export class EscrowService {
 
   async getBlockCreatedAt(blockNum: bigint | number, network?: string, blockTimeSec = 6n): Promise<Date> {
     const repository = this.db.getRepository(BlockchainBlock);
-    let block = await repository.findOne({ block_number: `${blockNum}`, network: this.getNetwork(network) });
+    let block = await repository.findOne({ where: { block_number: `${blockNum}`, network: this.getNetwork(network) } });
     if (!!block) return block.created_at;
     block = await repository
       .createQueryBuilder('blockchain_block')
@@ -52,8 +52,9 @@ export class EscrowService {
   }
 
   async isBlockScanned(blockNum: bigint | number, network?: string): Promise<boolean> {
-    return !!(await this.db.getRepository(BlockchainBlock).findOne({ block_number: `${blockNum}`, network: this.getNetwork(network) }))
-      ?.block_number;
+    return !!(
+      await this.db.getRepository(BlockchainBlock).findOne({ where: { block_number: `${blockNum}`, network: this.getNetwork(network) } })
+    )?.block_number;
   }
 
   async getLastScannedBlock(network?: string) {
@@ -73,17 +74,19 @@ export class EscrowService {
 
   async getSubstrateAddress(ethereum: string): Promise<string> {
     const repository = this.db.getRepository(AccountPairs);
-    return (await repository.findOne({ ethereum: ethereum.toLocaleLowerCase() }))?.substrate;
+    return (await repository.findOne({ where: { ethereum: ethereum.toLocaleLowerCase() } }))?.substrate;
   }
 
   async getActiveAsk(collectionId: number, tokenId: number, network?: string): Promise<OffersEntity> {
     const repository = this.db.getRepository(OffersEntity);
     return await repository.findOne({
-      collection_id: collectionId.toString(),
-      token_id: tokenId.toString(),
-      network: this.getNetwork(network),
-      status: In([ASK_STATUS.ACTIVE, ASK_STATUS.REMOVED_BY_ADMIN]),
-      type: SellingMethod.FixedPrice,
+      where: {
+        collection_id: collectionId.toString(),
+        token_id: tokenId.toString(),
+        network: this.getNetwork(network),
+        status: In([ASK_STATUS.ACTIVE, ASK_STATUS.REMOVED_BY_ADMIN]),
+        type: SellingMethod.FixedPrice,
+      },
     });
   }
 
@@ -225,9 +228,11 @@ export class EscrowService {
   async getTokenTransfers(collectionId: number, tokenId: number, network: string) {
     const repository = this.db.getRepository(NFTTransfer);
     return repository.find({
-      network: this.getNetwork(network),
-      collection_id: collectionId.toString(),
-      token_id: tokenId.toString(),
+      where: {
+        network: this.getNetwork(network),
+        collection_id: collectionId.toString(),
+        token_id: tokenId.toString(),
+      },
     });
   }
 
@@ -318,9 +323,11 @@ export class EscrowService {
   async getTradeSellerAndBuyer(buyer: string, seller: string, price: string): Promise<MarketTrade> {
     const repository = this.db.getRepository(MarketTrade);
     return await repository.findOne({
-      address_seller: seller,
-      address_buyer: buyer,
-      price: price,
+      where: {
+        address_seller: seller,
+        address_buyer: buyer,
+        price: price,
+      },
     });
   }
 
@@ -353,10 +360,12 @@ export class EscrowService {
   async getSearchIndexTraits(collectionId: number, tokenId: number, network?: string) {
     const repository = this.db.getRepository(SearchIndex);
     return await repository.find({
-      collection_id: collectionId.toString(),
-      token_id: tokenId.toString(),
-      network: this.getNetwork(network),
-      is_trait: true,
+      where: {
+        collection_id: collectionId.toString(),
+        token_id: tokenId.toString(),
+        network: this.getNetwork(network),
+        is_trait: true,
+      },
     });
   }
 
@@ -370,6 +379,7 @@ export class EscrowService {
    * @return ({Promise<number[]>})
    */
   async getCollectionIds(): Promise<number[]> {
+    // @ts-ignore
     const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
 
     return collections.map((i) => Number(i.id));

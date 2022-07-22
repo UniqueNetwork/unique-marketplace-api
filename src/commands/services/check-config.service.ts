@@ -208,7 +208,7 @@ export class CheckConfigCommandService {
   }
 
   async getCollectionIds(): Promise<number[]> {
-    const collections = await this.collectionsRepository.find({ status: CollectionStatus.Enabled });
+    const collections = await this.collectionsRepository.find({ where: { status: CollectionStatus.Enabled } });
 
     return collections.map((i) => Number(i.id));
   }

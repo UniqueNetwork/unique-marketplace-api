@@ -211,9 +211,11 @@ export class TokenService {
     for (const token of collectionList) {
       if (this.hasAllowedToken(token, allowedList)) {
         tokenActive = await this.offersRepository.findOne({
-          collection_id: collection.id,
-          token_id: String(token),
-          status: In(['removed_by_admin']),
+          where: {
+            collection_id: collection.id.toString(),
+            token_id: String(token),
+            status: In(['removed_by_admin']),
+          },
         });
         if (tokenActive) {
           tokenActive.status = 'active';
@@ -221,9 +223,11 @@ export class TokenService {
         }
       } else {
         tokenRemoved = await this.offersRepository.findOne({
-          collection_id: collection.id,
-          token_id: String(token),
-          status: In(['active']),
+          where: {
+            collection_id: collection.id,
+            token_id: String(token),
+            status: In(['active']),
+          },
         });
         if (tokenRemoved) {
           allowedList.length > 0 ? (tokenRemoved.status = 'removed_by_admin') : (tokenRemoved.status = 'active');

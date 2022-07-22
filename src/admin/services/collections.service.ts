@@ -2,7 +2,7 @@ import '@polkadot/api-augment/polkadot';
 import { HttpStatus, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { MarketConfig } from '../../config/market-config';
 import { Connection, Repository } from 'typeorm';
-import { cyan, red, green, yellow } from 'cli-color';
+import { green, yellow } from 'cli-color';
 import { CollectionImportType, CollectionStatus, DecodedCollection, ImportByIdResult } from '../types';
 import { CollectionsFilter, DisableCollectionResult, EnableCollectionResult, ListCollectionResult } from '../dto';
 import { Collection } from '../../entity';
@@ -113,7 +113,7 @@ export class CollectionsService implements OnModuleInit {
    * @return ({Promise<DisableCollectionResult>})
    */
   async disableById(id: number): Promise<DisableCollectionResult> {
-    const collection = await this.collectionsRepository.findOne(id);
+    const collection = await this.collectionsRepository.findOne({ where: { id: id.toString() } });
 
     if (!collection) throw new NotFoundException(`Collection #${id} not found`);
 
@@ -138,7 +138,7 @@ export class CollectionsService implements OnModuleInit {
    * @return ({Promise<void>})
    */
   async updateAllowedTokens(id: number, tokens: string): Promise<void> {
-    const collection = await this.collectionsRepository.findOne(id);
+    const collection = await this.collectionsRepository.findOne({ where: { id: id.toString() } });
 
     if (!collection) throw new NotFoundException(`Collection #${id} not found`);
 
@@ -151,7 +151,7 @@ export class CollectionsService implements OnModuleInit {
    * @return ({Promise<Collection>})
    */
   async findById(id: number): Promise<Collection> {
-    return await this.collectionsRepository.findOne(id);
+    return await this.collectionsRepository.findOne({ where: { id: id.toString() } });
   }
 
   /**
@@ -166,7 +166,7 @@ export class CollectionsService implements OnModuleInit {
         message: '',
         data: await this.collectionsRepository.find({
           where: {
-            id: filter.collectionId,
+            id: filter.collectionId.toString(),
           },
         }),
       };
