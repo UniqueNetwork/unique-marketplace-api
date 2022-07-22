@@ -18,10 +18,12 @@ import { ForceClosingService } from './services/closing/force-closing.service';
 import { SearchIndexService } from './services/search-index.service';
 import { BlockchainModule } from '../blockchain/blockchain.module';
 
+import { DbModule } from '../db/db.module';
+
 const isAuctionTestingStage = process.env.IS_AUCTION_TESTING_STAGE === 'true' || process.env.NODE_ENV === 'test';
 
 @Module({
-  imports: [ConfigServiceModule, ScheduleModule.forRoot(), BlockchainModule],
+  imports: [ConfigServiceModule, ScheduleModule.forRoot(), BlockchainModule, DbModule],
   providers: [
     auctionCredentialsProvider,
     ExtrinsicSubmitter,

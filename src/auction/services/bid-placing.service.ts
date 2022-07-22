@@ -1,25 +1,26 @@
-import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Connection, EntityManager, Repository } from 'typeorm';
 import { ApiPromise } from '@polkadot/api';
 import { stringify } from '@polkadot/util';
 import { v4 as uuid } from 'uuid';
 import { BroadcastService } from '../../broadcast/services/broadcast.service';
 import { OfferEntityDto } from '../../offers/dto/offer-dto';
-import { AuctionBidEntity, BidEntity, BlockchainBlock, MoneyTransfer, OffersEntity } from '../../entity';
+import { AuctionBidEntity, BlockchainBlock, MoneyTransfer, OffersEntity } from '../../entity';
 import { MarketConfig } from '../../config/market-config';
 import { ExtrinsicSubmitter } from './helpers/extrinsic-submitter';
-import { AuctionStatus, BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs, SellingMethod } from '../../types';
+import { AuctionStatus, BidStatus, CalculateArgs, CalculationInfo, PlaceBidArgs } from '../../types';
 import { DatabaseHelper } from './helpers/database-helper';
 import { encodeAddress } from '@polkadot/util-crypto';
 import { InjectKusamaAPI } from '../../blockchain';
 import { MONEY_TRANSFER_STATUS, MONEY_TRANSFER_TYPES } from '../../escrow/constants';
+
+import { MoneyTransferService } from '../../db/money-transfer/money-transfer.service';
 
 @Injectable()
 export class BidPlacingService {
   private readonly logger = new Logger(BidPlacingService.name);
 
   private bidRepository: Repository<AuctionBidEntity>;
-  private blockchainBlockRepository: Repository<BlockchainBlock>;
   private readonly offersRepository: Repository<OffersEntity>;
   private moneyTransferRepository: Repository<MoneyTransfer>;
 
@@ -29,10 +30,10 @@ export class BidPlacingService {
     @InjectKusamaAPI() private kusamaApi: ApiPromise,
     @Inject('CONFIG') private config: MarketConfig,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
+    private readonly moneyTransferService: MoneyTransferService,
   ) {
     this.bidRepository = connection.manager.getRepository(AuctionBidEntity);
     this.offersRepository = connection.getRepository(OffersEntity);
-    this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
     this.moneyTransferRepository = connection.getRepository(MoneyTransfer);
   }
 
@@ -83,6 +84,21 @@ export class BidPlacingService {
         status: BidStatus.finished,
         blockNumber: blockNumber.toString(),
       });
+      // TODO: replace moneyTransferRepository.save -> moneyTransferService.saveMoneyTransfer
+      /*
+      await this.moneyTransferService.saveMoneyTransfer({
+        id: uuid(),
+        amount: placeBidArgs.amount,
+        block_number: blockNumber.toString(),
+        network: 'kusama',
+        type: MONEY_TRANSFER_TYPES.DEPOSIT,
+        status: MONEY_TRANSFER_STATUS.COMPLETED,
+        created_at: new Date(),
+        updated_at: new Date(),
+        extra: { address: placeBidArgs.bidderAddress },
+        currency: '2', // TODO: check this
+      });
+      */
       await this.moneyTransferRepository.save({
         id: uuid(),
         amount: placeBidArgs.amount,

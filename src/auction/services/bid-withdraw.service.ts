@@ -14,6 +14,7 @@ import { BidsWitdrawByOwner, BidsWithdraw } from '../responses';
 import { InjectSentry, SentryService } from '../../utils/sentry';
 import { InjectKusamaAPI } from '../../blockchain';
 import { MONEY_TRANSFER_STATUS, MONEY_TRANSFER_TYPES } from '../../escrow/constants';
+import { MoneyTransferService } from '../../db/money-transfer/money-transfer.service';
 
 type BidWithdrawArgs = {
   collectionId: number;
@@ -43,6 +44,7 @@ export class BidWithdrawService {
     @Inject('AUCTION_CREDENTIALS') private auctionCredentials: AuctionCredentials,
     private readonly extrinsicSubmitter: ExtrinsicSubmitter,
     @InjectSentry() private readonly sentryService: SentryService,
+    private readonly moneyTransferService: MoneyTransferService,
   ) {
     this.bidRepository = connection.manager.getRepository(AuctionBidEntity);
 
@@ -103,6 +105,22 @@ export class BidWithdrawService {
         this.logger.debug(
           `Bid make Withdraw transfer id: ${withdrawingBid.id},  status: ${BidStatus.finished}, blockNumber: ${blockNumber.toString()} `,
         );
+
+        // TODO: replace moneyTransferRepository.save -> moneyTransferService.saveMoneyTransfer
+        /*
+        await this.moneyTransferService.saveMoneyTransfer({
+          id: uuid(),
+          amount: `${amount}`,
+          block_number: `${blockNumber}`,
+          network: 'kusama',
+          type: MONEY_TRANSFER_TYPES.WITHDRAW,
+          status: MONEY_TRANSFER_STATUS.COMPLETED,
+          created_at: new Date(),
+          updated_at: new Date(),
+          extra: { address: withdrawingBid.bidderAddress },
+          currency: '2', // TODO: check this
+        });*/
+
         await this.moneyTransferRepository.save({
           id: uuid(),
           amount: `${amount}`,
@@ -126,6 +144,23 @@ export class BidWithdrawService {
         this.logger.error(JSON.stringify(fullError));
 
         await this.bidRepository.update(withdrawingBid.id, { status: BidStatus.error });
+
+        // TODO: replace moneyTransferRepository.save -> moneyTransferService.saveMoneyTransfer
+        /*
+        await this.moneyTransferService.saveMoneyTransfer({
+          id: uuid(),
+          amount: `-${amount}`,
+          block_number: `${withdrawingBid.blockNumber}`,
+          network: 'kusama',
+          type: MONEY_TRANSFER_TYPES.DEPOSIT,
+          status: MONEY_TRANSFER_STATUS.FAILED,
+          created_at: new Date(),
+          updated_at: new Date(),
+          extra: { address: withdrawingBid.bidderAddress },
+          currency: '2', // TODO: check this
+        });
+        */
+
         await this.moneyTransferRepository.save({
           id: uuid(),
           amount: `-${amount}`,
