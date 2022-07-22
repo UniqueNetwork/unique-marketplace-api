@@ -9,7 +9,7 @@ import { ASK_STATUS } from '../../escrow/constants';
 import { MassCancelResult } from '../dto';
 
 @Injectable()
-export class MassCancelingService implements OnModuleInit {
+export class MassCancelingService {
   private readonly logger: Logger;
   private readonly offersEntityRepository: Repository<OffersEntity>;
   private readonly collectionRepository: Repository<Collection>;
@@ -18,10 +18,6 @@ export class MassCancelingService implements OnModuleInit {
     this.logger = new Logger(MassCancelingService.name);
     this.offersEntityRepository = connection.getRepository(OffersEntity);
     this.collectionRepository = connection.getRepository(Collection);
-  }
-
-  async onModuleInit() {
-    await this.allowedTokensInList(1562);
   }
 
   /**
