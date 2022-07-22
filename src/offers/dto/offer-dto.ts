@@ -57,6 +57,15 @@ export class OfferEntityDto {
   @ApiProperty({ description: 'Contract ask from', example: '5CfC8HRcV5Rc4jHFHmZsSjADCMYc7zoWbvxdoNG9qwEP7aUB' })
   @Expose()
   seller: string;
+
+  @ApiProperty({ description: 'Type offer' })
+  @Expose()
+  type: string;
+
+  @ApiProperty({ description: 'Status offer' })
+  @Expose()
+  status: string;
+
   @ApiProperty({ description: 'Date blockchain block created' })
   @Expose()
   creationDate: Date;
@@ -72,6 +81,7 @@ export class OfferEntityDto {
   tokenDescription: TokenDescriptionDto;
 
   static fromOffersEntity(offersData: OffersEntity): OfferEntityDto {
+    console.dir(offersData, { depth: 3 });
     const plain: Record<string, any> = {
       ...offersData,
       collectionId: +offersData.collection_id,
@@ -80,6 +90,7 @@ export class OfferEntityDto {
       quoteId: +offersData.currency,
       seller: offersData.address_from,
       creationDate: offersData.created_at,
+      status: offersData.status,
       types: offersData.type,
     };
 
