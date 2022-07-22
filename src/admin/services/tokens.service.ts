@@ -1,10 +1,19 @@
-import { BadRequestException, HttpStatus, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { Connection, In, Repository } from 'typeorm';
 import { Collection, OffersEntity, Tokens } from '../../entity';
 import { CollectionsService } from './collections.service';
 import { ResponseTokenDto } from '../dto';
 import { BnList } from '@polkadot/util/types';
 import { InjectUniqueAPI } from '../../blockchain';
+import { Keyring } from '@polkadot/api';
+
+export class TokensList {
+  allowedList: number[];
+  collectionList: number[];
+  ownerList?: number[];
+  ownerAllowedList?: number[];
+}
+export type TokensCollectionList = number[];
 
 @Injectable()
 export class TokenService {
@@ -12,6 +21,7 @@ export class TokenService {
   private readonly logger: Logger;
   private readonly MAX_TOKEN_NUMBER = 2147483647;
   private readonly offersRepository: Repository<OffersEntity>;
+  private readonly keyring = new Keyring({ type: 'sr25519' });
 
   constructor(
     @Inject('DATABASE_CONNECTION') private connection: Connection,
@@ -123,7 +133,12 @@ export class TokenService {
     });
   }
 
-  async getAllTokens(collection: any): Promise<number[]> {
+  /**
+   * Parse a record from the collection and get an array of tokens
+   * @description Incoming data from the collection in the format: '1,3-5,7,9-11' we get an array of tokens: [1,3,4,5,7,9,10,11]
+   * @param collection
+   */
+  async parseStringAllowedTokens(collection: any): Promise<number[]> {
     const arrayDiff = [];
     const allowedTokens = collection.allowedTokens !== '' ? collection.allowedTokens.split(',').map((t) => t) : [];
     if (allowedTokens.length > 0) {
@@ -143,35 +158,76 @@ export class TokenService {
     return arrayDiff;
   }
 
-  async removeTokens(collection: Collection): Promise<void | BadRequestException> {
-    if (!collection) throw new BadRequestException(`Collection #${collection.id} not found`);
-    const tokens: BnList = await this.unique.rpc.unique.collectionTokens(collection.id);
-    const tokenIdsList = tokens.map((t) => t.toNumber()).sort((a, b) => a - b);
+  /**
+   * Check if the token is in the list of allowed tokens
+   * @param {Number} token - token number
+   * @param {Number[]} arrayTokens - list of allowed tokens
+   * @return {boolean}
+   */
+  hasAllowedToken(token: number, arrayTokens: number[]): boolean {
+    return arrayTokens.indexOf(token) !== -1;
+  }
 
-    const arrayAllowedTokens = await this.getAllTokens(collection);
+  /**
+   * Получаем объект с данными о токенах
+   * @param {string} collection - collection id
+   * @param {string} owner - Substrate address owner tokens
+   * @return {Promise<TokensList>}
+   */
+  async getArrayAllowedTokens(collectionId: number, owner = ''): Promise<TokensList> {
+    const collection = await this.collectionsService.findById(collectionId);
+    if (!collection) throw new BadRequestException(`Collection #${collection.id} not found`);
+    const tokensCollection: BnList = await this.unique.rpc.unique.collectionTokens(collection.id);
+    const tokenCollectionList = tokensCollection.map((t) => t.toNumber()).sort((a, b) => a - b);
+    const arrayAllowedTokensTemp = await this.parseStringAllowedTokens(collection);
+    const arrayAllowedTokens = arrayAllowedTokensTemp.length ? arrayAllowedTokensTemp : tokenCollectionList;
+
+    if (owner !== '') {
+      const accountTokens: BnList = await this.unique.rpc.unique.accountTokens(collection.id, {
+        Substrate: owner,
+      });
+      const tokenOwnerList = accountTokens.map((t) => t.toNumber()).sort((a, b) => a - b);
+      const tokenOwnerAllowedList = arrayAllowedTokens.filter((token) => tokenOwnerList.includes(token)) as number[];
+      return {
+        allowedList: arrayAllowedTokens,
+        collectionList: tokenCollectionList,
+        ownerList: tokenOwnerList,
+        ownerAllowedList: tokenOwnerAllowedList,
+      };
+    } else {
+      return {
+        allowedList: arrayAllowedTokens,
+        collectionList: tokenCollectionList,
+      };
+    }
+  }
+
+  async removeTokens(collection: Collection): Promise<void | BadRequestException> {
+    const { allowedList, collectionList } = await this.getArrayAllowedTokens(+collection.id);
 
     ///'------------------------------------------------------';
-    let carActive, carRemoved;
-    for (const token of tokenIdsList) {
-      if (arrayAllowedTokens.indexOf(token) !== -1) {
-        carActive = await this.offersRepository.findOne({
+    // Set removed_by_admin or active token status
+    let tokenActive, tokenRemoved;
+    for (const token of collectionList) {
+      if (this.hasAllowedToken(token, allowedList)) {
+        tokenActive = await this.offersRepository.findOne({
           collection_id: collection.id,
           token_id: String(token),
           status: In(['removed_by_admin']),
         });
-        if (carActive) {
-          carActive.status = 'active';
-          await this.offersRepository.update(carActive.id, carActive);
+        if (tokenActive) {
+          tokenActive.status = 'active';
+          await this.offersRepository.update(tokenActive.id, tokenActive);
         }
       } else {
-        carRemoved = await this.offersRepository.findOne({
+        tokenRemoved = await this.offersRepository.findOne({
           collection_id: collection.id,
           token_id: String(token),
           status: In(['active']),
         });
-        if (carRemoved) {
-          arrayAllowedTokens.length > 0 ? (carRemoved.status = 'removed_by_admin') : (carRemoved.status = 'active');
-          await this.offersRepository.update(carRemoved.id, carRemoved);
+        if (tokenRemoved) {
+          allowedList.length > 0 ? (tokenRemoved.status = 'removed_by_admin') : (tokenRemoved.status = 'active');
+          await this.offersRepository.update(tokenRemoved.id, tokenRemoved);
         }
       }
     }
