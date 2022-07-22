@@ -20,6 +20,7 @@ import { GAS_LIMIT } from '../constants';
 import { ProxyCollection } from '../../utils/blockchain';
 import { InjectUniqueAPI } from '../../blockchain';
 import { OffersEntity } from '../../entity';
+import { TokenService } from './tokens.service';
 
 @Injectable()
 export class MassSaleService {
@@ -35,6 +36,7 @@ export class MassSaleService {
     @Inject('CONFIG') private config: MarketConfig,
     private readonly collections: CollectionsService,
     private readonly auctionCreationService: AuctionCreationService,
+    private readonly tokenService: TokenService,
   ) {
     this.logger = new Logger(MassSaleService.name);
     this.blockchainBlockRepository = connection.getRepository(BlockchainBlock);
@@ -259,8 +261,9 @@ export class MassSaleService {
       Substrate: signer.address,
     });
 
-    const tokenIds = accountTokens.map((t) => t.toNumber()).sort((a, b) => a - b);
-
+    const allowedTokens = await this.tokenService.getArrayAllowedTokens(+collectionById.collectionId, signer.address);
+    //const tokenIds = accountTokens.map((t) => t.toNumber()).sort((a, b) => a - b);
+    const tokenIds = allowedTokens.ownerAllowedList;
     return {
       tokenIds,
       signer,

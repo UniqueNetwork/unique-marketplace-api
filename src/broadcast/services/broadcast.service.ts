@@ -34,30 +34,26 @@ export class BroadcastService {
   }
 
   private handleSocketConnection(socket: BroadcastIOSocket): void {
-    this.logger.log(`Socket ${socket.id} connected`);
+    this.logger.log(cyan(`User ${socket.id} connected`));
 
     socket.on('subscribeToAuction', async (ids) => {
       const roomId = BroadcastService.getAuctionRoomId(ids);
-
-      this.logger.log(`Socket ${socket.id} subscribeTo ${roomId}`);
-
+      this.logger.log(cyan(`User ${socket.id} subscribeTo ${roomId}`));
       await socket.join(roomId);
     });
 
     socket.on('unsubscribeFromAuction', async (ids) => {
       const roomId = BroadcastService.getAuctionRoomId(ids);
-
-      this.logger.log(`Socket ${socket.id} unsubscribeFrom ${roomId}`);
-
+      this.logger.log(cyan(`User ${socket.id} unsubscribeFrom ${roomId}`));
       await socket.leave(roomId);
     });
 
     socket.on('disconnecting', (reason) => {
-      this.logger.warn(`Socket ${socket.id} disconnecting; Reason ${reason}`);
+      this.logger.warn(cyan(`User ${socket.id} disconnecting; Reason ${reason}`));
     });
 
     socket.on('disconnect', (reason) => {
-      this.logger.warn(`Socket ${socket.id} disconnected; Reason ${reason}`);
+      this.logger.warn(cyan(`User ${socket.id} disconnected; Reason ${reason}`));
     });
   }
 

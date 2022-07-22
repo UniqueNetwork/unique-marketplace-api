@@ -22,6 +22,6 @@ import { AuctionModule } from '../auction/auction.module';
   ],
   controllers: [AdminController],
   providers: [AdminService, CollectionsService, MassSaleService, TokenService, MassCancelingService],
-  exports: [AdminService, MassSaleService, MassCancelingService],
+  exports: [AdminService, MassSaleService, MassCancelingService, TokenService],
 })
 export class AdminModule {}
