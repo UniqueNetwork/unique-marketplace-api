@@ -83,6 +83,10 @@ export class BidWithdrawService {
     await this.makeWithdrawalTransfer(withdrawingBid);
   }
 
+  /**
+   * Make withdrawal transfer for bid
+   * @param withdrawingBid
+   */
   async makeWithdrawalTransfer(withdrawingBid: AuctionBidEntity): Promise<void> {
     const auctionKeyring = this.auctionCredentials.keyring;
     const amount = BigInt(withdrawingBid.amount) * -1n;
@@ -142,6 +146,11 @@ export class BidWithdrawService {
   }
 
   // todo - unite into single method with withdrawByMarket?
+  /**
+   * Create withdrawing bid for bidder
+   * @param args
+   * @private
+   */
   private async tryCreateWithdrawingBid(args: BidWithdrawArgs): Promise<AuctionBidEntity> {
     const { collectionId, tokenId, bidderAddress } = args;
 
@@ -200,6 +209,11 @@ export class BidWithdrawService {
     });
   }
 
+  /**
+   * Get bids for withdrawing
+   * @param owner
+   * @private
+   */
   private async _getBidsForWithdraw(owner: string): Promise<Array<BidsWitdrawByOwner>> {
     const results = await this.connection.manager.query(
       `
@@ -224,6 +238,11 @@ export class BidWithdrawService {
     return results;
   }
 
+  /**
+   * Get Leader bids
+   * @param {String} owner - owner address
+   * @private
+   */
   private async _getLeaderBids(owner: string): Promise<Array<BidsWitdrawByOwner>> {
     const results = await this.connection.manager.query(
       `
@@ -245,6 +264,11 @@ export class BidWithdrawService {
     return results;
   }
 
+  /**
+   * Get bids for withdrawing
+   * @param owner
+   * @returns {Promise<Array<BidsWitdrawByOwner>>}
+   */
   async getBidsForWithdraw(owner: string): Promise<BidsWithdraw> {
     let bidsWithdraw = [];
     let leaderBids = [];
@@ -269,10 +293,15 @@ export class BidWithdrawService {
     };
   }
 
+  /**
+   * Withdraw bids for user
+   * @param args
+   */
   async withdrawBidsByBidder(args: BidsWirthdrawArgs): Promise<void> {
     const query = this.connection
       .createQueryBuilder(OffersEntity, 'offerAuction')
       .select(['collection_id', 'token_id'])
+      .andWhere('offerAuction.id in (:...auctionIds)', { auctionIds: args.auctionIds })
       .andWhere('offerAuction.type = :type', { type: SellingMethod.Auction })
       .distinct();
 
